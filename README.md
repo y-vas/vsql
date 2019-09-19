@@ -1,15 +1,13 @@
 # VASQL
 -----
- add_modifiers
 
-<br>
 
-- adds global variables to the queries
+adds global variables to the queries
 example:
 
-$vas = new VASQL();
-$vas->add_modifiers(array("lang"=>1));
-$vas->query("SELECT * FROM languages where id = <@lang> ");
-
-result query would be =
-        SELECT * FROM languages where id = 1
+\n
+$vas = new VASQL(); \n
+$vas->add_modifiers(array("lang"=>1)); \n
+$vas->query("SELECT * FROM languages where id = <@lang> "); \n
+\n
+result query would be = "SELECT * FROM languages where id = 1" \n

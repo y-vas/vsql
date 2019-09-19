@@ -87,7 +87,12 @@ class VSQL {
 //------------------------------------------------ <  query > ----------------------------------------------------------
   function query(string $query_string, array $query_vars) :string {
 
-    preg_match_all('!<(.*?)>!', $query_string, $_modifiers_match);
+    preg_match_all('!<(.*?)?:(.*?)>!', $query_string, $_modifiers_match);
+    echo "<textarea>";
+    var_dump($_modifiers_match);
+    echo "</textarea>";
+
+
 
     // foreach ($_modifiers_match[1] as $mkey => $modifier_tag) {
     //   $modif = $this->_convert_modifier($modifier_tag);
@@ -197,13 +202,13 @@ $vas->query("SELECT *
 [ , (SELECT REPLACE(phone,'|',' ') FROM customers where id = ($customer)) as %S ]
 [ , (SELECT city from products p where p.id = ($product) limit 1) as %S ]
 [ , (SELECT name from suppliers s where ci.id_supplier = s.id limit 1) as %S ]
-[ , ($customer) as %S /*gets the customer id */ ]
+[ , ($customer) as <I:var3>%S /*gets the customer id */ ]
 [ , ($customer_meta = 'avatar' limit 1) as %S /*gets the customer avater */ ]
 [ , (SELECT id from supplier_users su where ci.id_supplier = su.id_supplier limit 1) as %S /* gets the first supplier in cart */ ]
 [ , (SELECT name FROM status sta WHERE sta.id = ci.status limit 1) as %S /*gets the cart status */]
 [ , ($product_meta = 'title' limit 1) as %S /*gets the product title*/ ]
 [ , ($product_meta = 'supplieremail' limit 1 ) as %S /* gets the product supplieremail */ ]
-[ , ($product_meta = 'departure-number-1' limit 1 ) as %S /* gets the product supplier phone */ ]
+[ , ($product_meta = 'departure<S:var2>-number-1' limit 1 ) as %S /* gets the product supplier phone */ ]
 [ , ($product_meta = 'departure-return-1' limit 1 ) as %S /* gets the cart return point */ ]
 [ , ($product_meta = 'latitude' limit 1 ) as %S /* gets product meet point latitude */ ]
 [ , ($product_meta = 'longitude' limit 1 ) as %S /* gets product meet point longitude */ ]
@@ -219,8 +224,7 @@ $vas->query("SELECT *
 
 [ , CONCAT( ci.id_cart * (SELECT st_value FROM setting WHERE st_group = 'staticnumber' and st_key ='referenceCart' limit 1),'-',ci.id ) as %S /*gives you the factor of the cart */ ]
 [ , (SELECT r.id FROM reviews r where r.id_cartitem = ci.`id` limit 1) as %S /*gives you the a review made on this cartitem*/ ]
-
-[ , ($cartitem_meta = 'personId' limit 1) as %S ]
+[ , (SELECT t.name FROM type t WHERE t.id = (SELECT sp.type FROM sub_product sp WHERE sp.id = ($subproduct))) as <S:var1> {($cartitem_meta = 'personId' limit 1) as %S ]
 [ , ($cartitem_meta = 'currency' limit 1) as %S ]
 [ , ($cart_meta = 'paid_by' limit 1) as %S ]
  FROM `cart_items` ci WHERE TRUE
