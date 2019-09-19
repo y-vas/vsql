@@ -31,6 +31,7 @@ class VSQL {
   );
 
   private $modifiers = array();
+  private $query_vars = array();
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
   function __construct() {
@@ -47,11 +48,6 @@ class VSQL {
           $_ENV["vsql_password"],
           $_ENV["vsql_database"]
       );
-
-      $_SESSION["vsql"] = "Vasyl Yovdiy";
-      $this->_superglobals("env_",$_ENV);
-      $this->_superglobals("ses_",$_SESSION);
-      $this->_superglobals("coo_",$_COOKIE);
 
   }
 
@@ -70,181 +66,227 @@ class VSQL {
     die();
   }
 
-//------------------------------------------------ <  add_global_vars > ------------------------------------------------
-  function env(array $params){
+//------------------------------------------------ <  global_scope > ------------------------------------------------
+  function tags(array $params){
 		$this->modifiers = array_merge($this->modifiers, $params );
 	}
 
 
-//------------------------------------------------ <  add_superglobals > -----------------------------------------------
-  private function _superglobals(string $starter,array $params){
-		foreach ($params as $key => $value) {
-      $this->modifiers[$starter.$key] = $value;
-    }
-	}
-
-
 //------------------------------------------------ <  query > ----------------------------------------------------------
-  function query(string $query_string, array $query_vars) :string {
+  function query(string $query_string, array $query_vars) : string {
+    $this->query_vars = $query_vars;
 
-    preg_match_all('!<(.*?)?:(.*?)>!', $query_string, $_modifiers_match);
-    echo "<textarea>";
-    var_dump($_modifiers_match);
+    echo "<br><textarea>";
+    print_r( $query_string);
     echo "</textarea>";
 
+    echo "<br><textarea>";
+    $this->_quote_check($query_string);
+    echo "</textarea>";
+
+    // $query_string = $this->_var_transform($query_string);
 
 
-    // foreach ($_modifiers_match[1] as $mkey => $modifier_tag) {
-    //   $modif = $this->_convert_modifier($modifier_tag);
-    //   $query_string = str_replace( $_modifiers_match[0][$mkey] ,$modif, $query_string);
-    // }
+    // echo "<br><textarea>";
+    // print_r($match_brakets[1]);
+    // echo "</textarea>";
     //
-    // //-------------------------------------------------------------
-    // $_var_count = count($query_vars);
-    //
-    // if($_var_count != preg_match_all('!%[sSiIfFcClLqQnNtT]!', $query_string, $_match)) {
-    //   $this->_error_msg('unmatched number of vars and % placeholders: ' . $query_string);
-    // }
-    //
-    //
-    // // get string position for each element
-    // $_var_pos = array();
-    // $_curr_pos = 0;
-    //
-    // for( $_x = 0; $_x < $_var_count; $_x++ ) {
-    //   $_var_pos[$_x] = strpos($query_string, $_match[0][$_x], $_curr_pos);
-    //   $_curr_pos = $_var_pos[$_x] + 1;
-    // }
-    //
-    // // build query from passed in variables, escape them
-    // // start from end of query and work backwards so string
-    // // positions are not altered during replacement
-    //
-    // $_last_removed_pos = null;
-    // $_last_var_pos = null;
-    //
-    // for( $_x = $_var_count-1; $_x >= 0; $_x-- ) {
-    //
-    //   if( isset($_last_removed_pos) && $_last_removed_pos < $_var_pos[$_x] ) {
-    //       continue;
-    //   }
-    //
-    //   // escape string
-    //   $query_vars[$_x] = $this->_sql_escape($query_vars[$_x]);
-    //
-    //
-    //   if(in_array($_match[0][$_x], array('%S','%I','%F','%C','%L','%Q','%N',"%T"))) {
-    //
-    //     // get positions of [ and ]
-    //     $_right_pos = strpos($query_string, ']', isset($_last_var_pos) ? $_last_var_pos : $_var_pos[$_x]);
-    //
-    //     // no way to get strpos from the right side starting in the middle
-    //     // of the string, so slice the first part out then find it
-    //
-    //     $_str_slice = substr($query_string, 0, $_var_pos[$_x]);
-    //     $_left_pos = strrpos($_str_slice, '[');
-    //
-    //     if($_right_pos === false || $_left_pos === false) {
-    //       $this->_error_msg('missing or unmatched brackets: ' . $query_string);
-    //     }
-    //     if(in_array($query_vars[$_x], $this->_drop_values, true)) {
-    //                   $_last_removed_pos = $_left_pos;
-    //       // remove entire part of string
-    //       $query_string = substr_replace($query_string, '', $_left_pos, $_right_pos - $_left_pos + 1);
-    //                   $_last_var_pos = null;
-    //               } else if ($_x > 0 && $_var_pos[$_x-1] > $_left_pos) {
-    //                   // still variables left in brackets, leave them and just replace var
-    //                   $_convert_var = $this->_convert_var($query_vars[$_x], $_match[0][$_x]);
-    //       $query_string = substr_replace($query_string, $_convert_var, $_var_pos[$_x], 2);
-    //                   $_last_var_pos = $_var_pos[$_x] + strlen($_convert_var);
-    //     } else {
-    //       // remove the brackets only, and replace %S
-    //       $query_string = substr_replace($query_string, '', $_right_pos, 1);
-    //       $query_string = substr_replace($query_string, $this->_convert_var($query_vars[$_x], $_match[0][$_x]), $_var_pos[$_x], 2);
-    //       $query_string = substr_replace($query_string, '', $_left_pos, 1);
-    //       $_last_var_pos = null;
-    //     }
-    //   } else {
-    //     $query_string = substr_replace($query_string, $this->_convert_var($query_vars[$_x], $_match[0][$_x]), $_var_pos[$_x], 2);
-    //   }
-    // }
-
+    echo "<br><textarea>";
+    print_r( $query_string);
+    echo "</textarea>";
 
     return $query_string;
   }
 
+//------------------------------------------------ <  _var_transform > -----------------------------------------------
+  private function _var_transform(string $query_string) : string {
+    preg_match_all('!<(.*?)?(\!)?(\?+)?:(.*?)>!', $query_string, $match );
+
+    foreach ($match[1] as $key => $simbol) {
+      $var_key = $match[4][$key];
+      $not_null = $match[2][$key];
+      $in_brackets = $match[3][$key];
+
+
+      $var = $this->_convert_var($simbol, $var_key);
+
+      if (empty($var) && $not_null == "!") {
+        $this->_error_msg("$var_key key resulted in null!");
+      }
+
+      if (empty($in_brackets)) {
+        $query_string = str_replace( $match[0][$key], $var, $query_string );
+        continue;
+      }
+
+    }
+
+    return $query_string;
+  }
+
+//------------------------------------------------ <  _quote_check > -----------------------------------------------
+  private function _quote_check(string $query_string) : string {
+    $ds = "{{";
+    $df = "}}";
+    preg_match_all("!$ds([^]*?\X*?[^$ds]*?)$df!", $query_string, $match_brakets);
+
+    // while ($a <= 10) {
+    //   // code...
+    // }
+    foreach ($match_brakets[1] as $key => $value) {
+      $res = $this->_var_transform($value,$this->query_vars);
+      echo "---$res";
+    }
+  }
+
+//------------------------------------------------ <  _quote_check > -----------------------------------------------
+  private function _quote_check(string $query_string) : string {
+    $ds = "{{";
+    $df = "}}";
+    preg_match_all("!$ds(\X*?[^$ds]*)$df!", $query_string, $match_brakets);
+
+    foreach ($match_brakets[1] as $key => $value) {
+      $res = $this->_var_transform($value,$this->query_vars);
+      echo "---$res";
+    }
+  }
+
+//------------------------------------------------ <  _get_var_from_query_vars > -----------------------------------------------
+  private function _qvar(string $var) {
+    return empty($this->query_vars[$var]) ? null : $this->query_vars[$var];
+  }
+
+//------------------------------------------------ <  _convert_var > -----------------------------------------------
+  private function _convert_var(string $type, string $var){
+
+    $result = '';
+    //---------------------- cases -----------------
+		switch ($type) {
+      // if is empty does nothing only paste the value
+      case '':
+        $result = $this->_ecape_qvar($var);
+        break;
+
+      // @ or @T = fetch value from tags
+      case '@':
+      case '@T':
+        $result = empty($this->modifiers[$var]) ? null: $this->modifiers[$var];
+        $result = $this->_sql_escape($result);
+        break;
+
+      // @E = fetch value from $ENV
+      case '@E':
+        $result = empty($_ENV[$var]) ? null: $_ENV[$var];
+        $result = $this->_sql_escape($result);
+        break;
+
+      // @E = fetch value from $_COOKIE
+      case '@C':
+        $result = empty($_COOKIE[$var]) ? null: $_COOKIE[$var];
+        $result = $this->_sql_escape($result);
+        break;
+
+      // @E = fetch value from $_SESSION
+      case '@S':
+        $result = empty($_SESSION[$var]) ? null: $_SESSION[$var];
+        $result = $this->_sql_escape($result);
+        break;
+
+      // cast to integer
+      case 'I':
+        $x = $this->_qvar($var);
+        settype($x, 'integer');
+        $result = $this->_sql_escape($x);
+        break;
+
+      // cast to float
+      case 'F':
+        $x = $this->_qvar($var);
+        settype($x, 'float');
+        $result = $this->_sql_escape($x);
+        break;
+
+      // implode the array
+      case 'implode':
+        $x = $this->_qvar($var);
+        $result = $this->_ecape_qvar(implode(',', $x));
+        break;
+
+      // <json_get:what,from>
+      case 'json_get':
+        $js = explode(',',$var);
+        if(empty($this->_qvar($js[0]))){
+          $result = null;
+          break;
+        }
+        $from = $this->_sql_escape($js[1]);
+        $val = $this->_ecape_qvar($js[1]);
+
+        $result = "IF (JSON_VALID($from), JSON_UNQUOTE( JSON_EXTRACT($from, $.$val)),NULL)";
+        break;
+
+      // trims the value
+      case 'T':
+        $result = $this->_sql_escape(trim($this->_qvar($var)));
+        break;
+
+    }
+    //-------------------------------------------
+
+    return $result;
+	}
+
+//------------------------------------------------ <  _sql_escape > -----------------------------------------------
+  private function _sql_escape($var){
+
+		if(is_array($var)) {
+			foreach($var as $_element) {
+				$_newvar[] = $this->_sql_escape($_element);
+			}
+			return $_newvar;
+		}
+		if(function_exists('mysql_real_escape_string')) {
+			if(!isset($this->CONN)) {
+				return mysql_real_escape_string($var);
+			} else {
+				return mysql_real_escape_string($var, $this->CONN);
+			}
+		} elseif(function_exists('mysql_escape_string')) {
+			return mysql_escape_string($var);
+		} else {
+			return addslashes($var);
+		}
+	}
+
+//------------------------------------------------ <  _ecape_qvar > -----------------------------------------------
+  private function _ecape_qvar(string $var) {
+    return $this->_sql_escape($this->_qvar($var));
+  }
+
+
 }
 
 $vas = new VSQL();
-$vas->env(array("lang" => 1));
+$vas->tags(array("lang" => "English"));
+
+$vas->query("
+<json_get:content,content>
+<@E:vsql_servername>
+<:vasyl>
+
+{{
+
+  {{ <T?:vasyl>  }}
+   <:vasylena>
 
 
-/* ----Helpers---- */
-$conversation = "SELECT id_conversation FROM support_labels sl
-                 LEFT JOIN support_conversations sc ON sc.id = sl.id_conversation
-                 WHERE label = CONCAT('#book-',ci.id)";
+}}
+",array(
+  "vasyl" => "genius",
+  "content" => "aaaa",
+// "vasylena" => "genius2",
 
-$subproduct = "SELECT ps.id_subproduct FROM product_sold ps WHERE ps.id = ci.id_sold";
-$product = "SELECT id_product FROM sub_product sp WHERE sp.id = ($subproduct)";
-$customer = "SELECT id_customer from carts c where ci.id_cart = c.id limit 1";
-$product_meta = "SELECT metavalue FROM product_meta pm WHERE pm.id_product = ($product) AND pm.metaname";
-$cart_meta = "SELECT metavalue FROM cart_meta WHERE id_cart = ci.id_cart AND metaname";
-$cartitem_meta = "SELECT metavalue FROM cartitem_meta WHERE id_cartitem = ci.id AND metaname";
-$customer_meta = "SELECT metavalue FROM customer_meta WHERE id_customer = ($customer) AND metaname";
-
-
-$vas->query("SELECT *
-[ , (SELECT t.name FROM type t WHERE t.id = (SELECT sp.type FROM sub_product sp WHERE sp.id = ($subproduct))) as %S ]
-[ , (SELECT CONCAT(date, ' ', hour) FROM product_sold WHERE id = ci.id_sold) as %S ]
-[ , (SELECT date FROM carts WHERE id = ci.id_cart) as %S ]
-[ , (CONCAT((SELECT firstname FROM customers where id = ($customer)),' ', (SELECT lastname FROM customers where id = ($customer)) )) as %S ]
-[ , (SELECT email FROM customers where id = ($customer)) as %S ]
-[ , (SELECT REPLACE(phone,'|',' ') FROM customers where id = ($customer)) as %S ]
-[ , (SELECT city from products p where p.id = ($product) limit 1) as %S ]
-[ , (SELECT name from suppliers s where ci.id_supplier = s.id limit 1) as %S ]
-[ , ($customer) as <I:var3>%S /*gets the customer id */ ]
-[ , ($customer_meta = 'avatar' limit 1) as %S /*gets the customer avater */ ]
-[ , (SELECT id from supplier_users su where ci.id_supplier = su.id_supplier limit 1) as %S /* gets the first supplier in cart */ ]
-[ , (SELECT name FROM status sta WHERE sta.id = ci.status limit 1) as %S /*gets the cart status */]
-[ , ($product_meta = 'title' limit 1) as %S /*gets the product title*/ ]
-[ , ($product_meta = 'supplieremail' limit 1 ) as %S /* gets the product supplieremail */ ]
-[ , ($product_meta = 'departure<S:var2>-number-1' limit 1 ) as %S /* gets the product supplier phone */ ]
-[ , ($product_meta = 'departure-return-1' limit 1 ) as %S /* gets the cart return point */ ]
-[ , ($product_meta = 'latitude' limit 1 ) as %S /* gets product meet point latitude */ ]
-[ , ($product_meta = 'longitude' limit 1 ) as %S /* gets product meet point longitude */ ]
-[ , ($product) as %S /* gets the product id*/ ]
-[ , (SELECT name FROM status sta WHERE sta.id = (SELECT status from products p where p.id = ($product) limit 1)) as %S /*product status */]
-[ , (SELECT concat(path,name) FROM product_photos ph where ph.id_product = ($product) order by show_order limit 1) as %S /* gets the product first image*/ ]
-[ , (SELECT t.name FROM products p left join type t on t.id = p.product_type where p.id = ($product)) as %S /* gets the product type */ ]
-
--- gives you an existing conversation with the type of users for the cart item
-[ , ($conversation and sc.id_admin_user is not null and sc.id_supplier_user is not null limit 1) as %S ]
-[ , ($conversation and sc.id_admin_user is not null and sc.id_customer is not null limit 1) as %S ]
-[ , ($conversation and sc.id_supplier_user is not null and sc.id_customer is not null limit 1) as %S ]
-
-[ , CONCAT( ci.id_cart * (SELECT st_value FROM setting WHERE st_group = 'staticnumber' and st_key ='referenceCart' limit 1),'-',ci.id ) as %S /*gives you the factor of the cart */ ]
-[ , (SELECT r.id FROM reviews r where r.id_cartitem = ci.`id` limit 1) as %S /*gives you the a review made on this cartitem*/ ]
-[ , (SELECT t.name FROM type t WHERE t.id = (SELECT sp.type FROM sub_product sp WHERE sp.id = ($subproduct))) as <S:var1> {($cartitem_meta = 'personId' limit 1) as %S ]
-[ , ($cartitem_meta = 'currency' limit 1) as %S ]
-[ , ($cart_meta = 'paid_by' limit 1) as %S ]
- FROM `cart_items` ci WHERE TRUE
- [ AND (SELECT id_customer from carts c where ci.id_cart = c.id limit 1) = %I ]
- [ AND ci.`id`            = %I ]
- [ AND ci.`id_cart`       = %I ]
- [ AND ci.`id_supplier`   = %I ]
- [ AND ci.`title`         = %N ]
- [ AND ci.`retail_amount` = %N ]
- [ AND ci.`net_amount`    = %N ]
- [ AND ci.`url_crypte`    = %N ]
- [ AND ci.`id_sold`       = %I ]
- [ AND ci.`status`        = %N ]
- [ AND CONCAT( ci.id_cart * (SELECT st_value FROM setting WHERE st_group = 'staticnumber' and st_key ='referenceCart' limit 1),'-',ci.id ) = '%S' ]
- [ AND ($cart_meta = 'email' limit 1) like '%%S%' ]
- [ AND (CONCAT(($cart_meta = 'firstname' limit 1),' ', ($cart_meta = 'lastname' limit 1))) like '%%S%' ]
- [ AND (SELECT id_language FROM product_meta pm WHERE pm.id_product = ($product) AND pm.`metaname` = 'title') = %I ]
- [ ORDER BY `%S` ][ %S ]
- [ LIMIT %I ][ , %I ] [ OFFSET %I ]
-",array());
+));
 
 
 

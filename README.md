@@ -1,13 +1,21 @@
 # VASQL
------
+------------------------------------------------------
 
 
-adds global variables to the queries
+- Add global variables to the queries
 example:
 
-\n
-$vas = new VASQL(); \n
-$vas->add_modifiers(array("lang"=>1)); \n
-$vas->query("SELECT * FROM languages where id = <@lang> "); \n
-\n
-result query would be = "SELECT * FROM languages where id = 1" \n
+$vas = new VASQL();
+$vas->add_modifiers(array("lang"=>1));
+$vas->query("SELECT * FROM languages where id = <@T:lang> ");
+
+result query would be = SELECT * FROM languages where id = 1
+
+------------------------------------------------------
+# CASES
+- @S = fetch value from $SESSION
+- @C = fetch value from $COOKIE
+- @E = fetch value from $ENV
+- @ or @T = fetch value from tags
+
+-
