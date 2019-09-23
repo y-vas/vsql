@@ -278,6 +278,11 @@ class VSQL {
               }
               mysqli_free_result($result);
             }
+
+            if(!mysqli_more_results()){
+              break;
+            }
+
           } while (mysqli_next_result($mysqli));
 
         }else {
