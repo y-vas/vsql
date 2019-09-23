@@ -1,0 +1,12 @@
+{
+    "name": "vasyl/vsql",
+    "description": "SQL Helper",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Vasyl Yovdiy",
+            "email": "yovdiyvasyl@gmail.com"
+        }
+    ],
+    "require": {}
+}
