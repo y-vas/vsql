@@ -1,9 +1,11 @@
 <?php
 
-$_ENV["vsql_servername"] = "127.0.0.1";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "password";
-$_ENV["vsql_database"] = "dotravel4";
+
+namespace VSQL;
+// $_ENV["vsql_servername"] = "127.0.0.1";
+// $_ENV["vsql_username"] = "root";
+// $_ENV["vsql_password"] = "password";
+// $_ENV["vsql_database"] = "dotravel4";
 
 class VSQL {
 
@@ -501,22 +503,4 @@ class VSQL {
   }
 
 }
-
-$vas = new VSQL();
-$vas->tags(array("lang" => "English"));
-
-$query = $vas->query("
-SELECT * from products limit 10 <s!:key>;
-",array(
-  "id" => 1,
-  "id2" => 2,
-  // "group" => "vasyl_test",
-  // "value" => "vasyl is awesome",
-  "key" => "key_test",
-));
-
-echo $query;
-
-// var_dump($vas->get());
-
 ?>
