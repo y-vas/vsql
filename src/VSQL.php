@@ -207,14 +207,10 @@ class VSQL {
       // <json_get:what,from>
       case 'json_get':
         $js = explode(',',$var);
-        if(empty($this->_qvar($js[0]))){
-          $result = null;
-          break;
-        }
-        $from = $this->_sql_escape($js[1]);
-        $val = $this->_ecape_qvar($js[1]);
+        $from = $js[0];
+        $val = $js[1];
 
-        $result = "IF (JSON_VALID($from), JSON_UNQUOTE( JSON_EXTRACT($from, $.$val)),NULL)";
+        $result = "IF (JSON_VALID($from), JSON_UNQUOTE( JSON_EXTRACT($from, '$.$val')),NULL)";
         break;
 
       // trims the value
