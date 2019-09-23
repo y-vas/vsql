@@ -1,7 +1,7 @@
 <?php
 
 
-namespace src\VSQL;
+namespace VSQL\VSQL;
 
 // $_ENV["vsql_servername"] = "127.0.0.1";
 // $_ENV["vsql_username"] = "root";
