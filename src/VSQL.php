@@ -62,7 +62,7 @@ class VSQL {
 
 //------------------------------------------------ <  trows_exteption > ------------------------------------------------
   public function trows_exteption(boolean $trow) {
-    $this->throw_exteption = $trow;
+    $this->trows_exteption = $trow;
   }
 
 //------------------------------------------------ <  add_global_vars > ------------------------------------------------
