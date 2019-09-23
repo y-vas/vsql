@@ -3,11 +3,7 @@
 
 namespace VSQL\VSQL;
 
-// $_ENV["vsql_servername"] = "127.0.0.1";
-// $_ENV["vsql_username"] = "root";
-// $_ENV["vsql_password"] = "password";
-// $_ENV["vsql_database"] = "dotravel4";
-
+class ExVSQL extends \Exception { }
 class VSQL {
 
   private $CONN = null;
@@ -36,6 +32,7 @@ class VSQL {
   private $modifiers = array();
   private $query_vars = array();
   private $query_string = "";
+  private $trows_exteption = false;
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
   function __construct($display = false) {
@@ -61,6 +58,11 @@ class VSQL {
         $this->_error_msg("Falló la conexión a MySQL: (" . $this->CONN->connect_errno . ") " . $this->CONN->connect_error);
       }
 
+  }
+
+//------------------------------------------------ <  trows_exteption > ------------------------------------------------
+  public function trows_exteption(boolean $trow) {
+    $this->throw_exteption = $trow;
   }
 
 //------------------------------------------------ <  add_global_vars > ------------------------------------------------
@@ -106,6 +108,11 @@ class VSQL {
 
       if (empty($var)) {
         if ($not_null == "!") {
+
+          if ($this->trows_exteption) {
+            throw new \ExVSQL("$var_key field is empty!", 1);
+          }
+
           $this->_error_msg("$var_key key resulted in null!");
         }
 
