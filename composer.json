@@ -1,12 +1,20 @@
 {
     "name": "vasyl/vsql",
     "description": "SQL Helper",
-    "type": "library",
+    "type": "package",
     "authors": [
         {
             "name": "Vasyl Yovdiy",
             "email": "yovdiyvasyl@gmail.com"
         }
     ],
-    "require": {}
+    "require": {
+
+    },
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "scr\\VSQL\\": "src/"
+        }
+    }
 }
