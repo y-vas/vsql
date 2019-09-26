@@ -32,6 +32,7 @@ class VSQL {
   private $query_vars = array();
   private $query_string = "";
   private $trows_exteption = true;
+  private $concat_name = true;
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
   function __construct($display = false) {
@@ -60,8 +61,9 @@ class VSQL {
   }
 
 //------------------------------------------------ <  trow_exceptions > ------------------------------------------------
-  public function trow_exceptions() {
-    $this->trows_exteption = true;
+  public function config(array $arr) {
+    $this->trows_exteption = !isset($arr["exeptions"]) ? true   : $arr["exeptions"];
+    $this->concat_name     = !isset($arr["concat_name"]) ? true : $arr["concat_name"];
   }
 
 //------------------------------------------------ <  add_global_vars > ------------------------------------------------
@@ -255,9 +257,6 @@ class VSQL {
     }
     //-------------------------------------------
 
-
-    // echo $result;
-    // echo "<br>$type -> ";
     return $result;
 	}
 
@@ -362,9 +361,13 @@ class VSQL {
 
     $count = 0;
     foreach ($proceso as $key => $value) {
-      $datatype = $result->fetch_field_direct($count)->type;
-      $ret = $this->_transform_get($value, $datatype , $key);
+      $direct = $result->fetch_field_direct($count);
+      $ret = $this->_transform_get($value, $direct->type , $key);
       $key = $ret[1];
+
+      if ($this->concat_name == true) {
+        $key = $direct->orgtable."__".$key;
+      }
       $row->$key = $ret[0];
       $count++;
     }
@@ -375,6 +378,7 @@ class VSQL {
 // ------------------------------------------------ <  _transform_get > ----------------------------------------------------
   public function _transform_get($val, string $datatype, string $key) {
     $key = explode("=>", $key);
+    $dt_str = $this->mysql_data_type_hash[$datatype][1];
     settype($val, $dt_str);
 
     switch ($key[1]) {
@@ -391,8 +395,7 @@ class VSQL {
         break;
     }
 
-    $dt_str = $this->mysql_data_type_hash[$datatype][1];
-    return array($val, $key[0] );
+    return array($val, $key[0]);
   }
 
 // ------------------------------------------------ <  _show_example > ----------------------------------------------------
