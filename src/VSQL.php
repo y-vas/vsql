@@ -1,11 +1,10 @@
 <?php
 
-
 namespace VSQL\VSQL;
 
 class ExVSQL extends \Exception { }
-class VSQL {
 
+class VSQL {
   private $CONN = null;
 
   // this came from http://php.net/manual/en/mysqli-result.fetch-field-direct.php
@@ -29,10 +28,10 @@ class VSQL {
       246 =>array('decimal','float')
   );
 
-  private $modifiers = array();
+  private $tags = array();
   private $query_vars = array();
   private $query_string = "";
-  private $trows_exteption = false;
+  private $trows_exteption = true;
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
   function __construct($display = false) {
@@ -60,38 +59,34 @@ class VSQL {
 
   }
 
-//------------------------------------------------ <  trows_exteption > ------------------------------------------------
-  public function trows_exteption() {
+//------------------------------------------------ <  trow_exceptions > ------------------------------------------------
+  public function trow_exceptions() {
     $this->trows_exteption = true;
   }
 
 //------------------------------------------------ <  add_global_vars > ------------------------------------------------
   private function _error_msg($error_msg) {
-    echo "<div style='
-          margin: auto;
-          width: 50%;
-          padding: 10px;
-          font-family: Arial, Helvetica, sans-serif;
-        '>";
-
-    $this->_show_example();
-
-    throw new \Exception('VSQL Error: ' . $error_msg."</div>", 1);
+    $this->_show_example("<div>".$error_msg."</div>");
+    die();
   }
 
 //------------------------------------------------ <  global_scope > ------------------------------------------------
-  function tags(array $params){
-		$this->modifiers = array_merge($this->modifiers, $params );
-	}
-
+  public function tags(array $params){
+    $this->tags = array_merge($this->tags, $params );
+  }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-  function query(string $query_string, array $query_vars) : string {
+  public function query(string $query_string, array $query_vars, $debug = false) : string {
     $this->query_vars = $query_vars;
+    $this->query_string = $query_string;
 
     $query_string = $this->_quote_check($query_string);
     $query_string = $this->_var_transform($query_string);
     $this->query_string = $query_string;
+
+    if($debug){
+      $this->_error_msg("DEBUG");
+    }
 
     return $query_string;
   }
@@ -106,11 +101,11 @@ class VSQL {
 
       $var = $this->_convert_var($simbol, $var_key);
 
-      if (empty($var)) {
+      if ($var == null) {
         if ($not_null == "!") {
 
           if ($this->trows_exteption) {
-            throw new \ExVSQL("$var_key field is empty!", 1);
+            throw new ExVSQL("$var_key field is empty!", 1);
           }
 
           $this->_error_msg("$var_key key resulted in null!");
@@ -149,10 +144,15 @@ class VSQL {
     return empty($this->query_vars[$var]) ? null : $this->query_vars[$var];
   }
 
+//------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
+  private function _tvar(string $var) {
+    return empty($this->tags[$var]) ? null : $this->tags[$var];
+  }
+
 //------------------------------------------------ <  _convert_var > ---------------------------------------------------
   private function _convert_var(string $type, string $var){
 
-    $result = '';
+    $result = null;
     //---------------------- cases -----------------
 		switch ($type) {
       // if is empty does nothing only paste the value
@@ -164,7 +164,7 @@ class VSQL {
       case '@':
       case '@T':
       case '@t':
-        $result = empty($this->modifiers[$var]) ? null: $this->modifiers[$var];
+        $result = empty($this->tags[$var]) ? null: $this->tags[$var];
         $result = $this->_sql_escape($result);
         break;
 
@@ -193,8 +193,10 @@ class VSQL {
       case 'i':
       case 'I':
         $x = $this->_qvar($var);
-        settype($x, 'integer');
-        $result = $this->_sql_escape($x);
+        if($x != null){
+          settype($x, 'integer');
+          $result = $this->_sql_escape($x);
+        }
         break;
 
       // cast to float
@@ -208,16 +210,33 @@ class VSQL {
       // implode the array
       case 'implode':
         $x = $this->_qvar($var);
-        $result = $this->_ecape_qvar(implode(',', $x));
+        $res = $this->_sql_escape(implode(',', $x));
+        $result = $res != null ? "'".$res."'" : $res;
         break;
 
-      // <json_get:what,from>
+      // <json_get:from,what>
       case 'json_get':
         $js = explode(',',$var);
         $from = $js[0];
         $val = $js[1];
 
         $result = "IF (JSON_VALID($from), JSON_UNQUOTE( JSON_EXTRACT($from, '$.$val')),NULL)";
+        break;
+
+      // <&:from,what>
+      case '&':
+        $js = explode(',',$var);
+        $from = $js[0];
+        $val = $js[1];
+        $result = $this->_duplex($from , $this->_qvar($val));
+        break;
+
+      // <get:from,what>
+      case 'get':
+        $js = explode(',',$var);
+        $from = $js[0];
+        $val = $js[1];
+        $result = $this->_duplex($from , $val);
         break;
 
       // trims the value
@@ -236,31 +255,32 @@ class VSQL {
     }
     //-------------------------------------------
 
+
+    // echo $result;
+    // echo "<br>$type -> ";
     return $result;
 	}
 
 //------------------------------------------------ <  _sql_escape > ----------------------------------------------------
   private function _sql_escape($var){
+    if(is_array($var)) {
+    	foreach($var as $_element) {
+    		$_newvar[] = $this->_sql_escape($_element);
+    	}
+    	return $_newvar;
+    }
 
-		if(is_array($var)) {
-			foreach($var as $_element) {
-				$_newvar[] = $this->_sql_escape($_element);
-			}
-			return $_newvar;
-		}
-
-		if(function_exists('mysql_real_escape_string')) {
-			if(!isset($this->CONN)) {
-				return mysql_real_escape_string($var);
-			} else {
-				return mysql_real_escape_string($var, $this->CONN);
-			}
-		} elseif(function_exists('mysql_escape_string')) {
-			return mysql_escape_string($var);
-		} else {
-			return addslashes($var);
-		}
-
+    if(function_exists('mysql_real_escape_string')) {
+    	if(!isset($this->CONN)) {
+    		return mysql_real_escape_string($var);
+    	} else {
+    		return mysql_real_escape_string($var, $this->CONN);
+    	}
+    } elseif(function_exists('mysql_escape_string')) {
+    	return mysql_escape_string($var);
+    } else {
+    	return addslashes($var);
+    }
 	}
 
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
@@ -269,7 +289,7 @@ class VSQL {
   }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-  public function get($list = true) {
+  public function get($list = false) {
     $mysqli = $this->CONN;
     $obj = new \stdClass();
 
@@ -286,11 +306,11 @@ class VSQL {
               mysqli_free_result($result);
             }
 
-            if(!mysqli_more_results()){
+            if(!mysqli_more_results($mysqli)){
               break;
             }
 
-          } while (mysqli_next_result($mysqli));
+          } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
         }else {
           $result = mysqli_store_result($mysqli);
@@ -299,21 +319,41 @@ class VSQL {
         };
 
     }else {
-      $this->_error_msg("Fail on query get: ");
+      $this->_error_msg("Fail on query get");
     }
 
     return $obj;
   }
 
-// ------------------------------------------------ <  run > -----------------------------------------------------------
-  public function run() {
+//------------------------------------------------ <  run > ------------------------------------------------------------
+  public function run($list = false) {
     $mysqli = $this->CONN;
+    $obj = new \stdClass();
 
-    if (!$mysqli->multi_query($this->query_string)) {
-      $this->_error_msg("Fail on query run: (" . $mysqli->errno . ") " . $mysqli->error);
-    }
+    $nr = 0;
+    mysqli_multi_query($mysqli, $this->query_string);
 
-    return $mysqli;
+    if ($list) {
+      while(mysqli_more_results($mysqli)){
+          mysqli_next_result($mysqli);
+
+          if ($result = mysqli_store_result($mysqli)) {
+
+            while ($proceso = mysqli_fetch_assoc($result)) {
+                $obj->$nr = $this->_fetch_row($result, $proceso);
+                $nr ++;
+            }
+            mysqli_free_result($result);
+          }
+
+      }
+    }else {
+      $result = mysqli_store_result($mysqli);
+      $proceso = mysqli_fetch_assoc($result);
+      $obj = $this->_fetch_row($result, $proceso);
+    };
+
+    return $obj;
   }
 
 // ------------------------------------------------ <  _fetch_row > ----------------------------------------------------
@@ -323,18 +363,41 @@ class VSQL {
     $count = 0;
     foreach ($proceso as $key => $value) {
       $datatype = $result->fetch_field_direct($count)->type;
-      $dt_str   = $this->mysql_data_type_hash[$datatype][1];
-      settype($value,$dt_str);
-      $row->$key = $value;
+      $ret = $this->_transform_get($value, $datatype , $key);
+      $key = $ret[1];
+      $row->$key = $ret[0];
       $count++;
     }
 
     return $row;
   }
 
-  public function _show_example() {
-    echo "
+// ------------------------------------------------ <  _transform_get > ----------------------------------------------------
+  public function _transform_get($val, string $datatype, string $key) {
+    $key = explode("=>", $key);
+    settype($val, $dt_str);
 
+    switch ($key[1]) {
+      case 'json':
+        $val = json_decode($val);
+        settype($val, "array");
+        break;
+
+      case 'duplex':
+        $val = $this->_duplex($key[2],$val, false);
+        break;
+
+      case null:
+        break;
+    }
+
+    $dt_str = $this->mysql_data_type_hash[$datatype][1];
+    return array($val, $key[0] );
+  }
+
+// ------------------------------------------------ <  _show_example > ----------------------------------------------------
+  public function _show_example($error = "") {
+    echo "
     <!DOCTYPE html>
     <html lang=\"en\">
     <head>
@@ -344,14 +407,12 @@ class VSQL {
       <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css\">
       <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js\"></script>
       <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js\"></script>
+      <script src=\"https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js\"></script>
+      <link rel=\"stylesheet\" href=\"//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css\">
+      <script src=\"//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js\"></script>
+      <script>hljs.initHighlightingOnLoad();</script>
+
     </head>
-    <style>
-
-    .tab {margin-left: 30px;}
-    .t2 {margin-left: 60px;}
-    .t3 {margin-left: 90px;}
-
-    </style>
     <body>
 
     <div class=\"jumbotron text-center\">
@@ -359,6 +420,18 @@ class VSQL {
     </div>
 
     <div class=\"container\" style=\"line-height: 70%;\">
+
+      <div class=\"row\">
+        <div class=\"col-sm-12\">
+          <h2>ERROR INFO</h2>
+          <p>
+          $error
+          </p>
+        </div>
+      </div>
+
+      <pre><code class='sql'>".htmlentities($this->query_string)."</code></pre>
+
       <div class=\"row\">
         <div class=\"col-sm-12\">
           <h2>INITIALIZE</h2>
@@ -395,51 +468,32 @@ class VSQL {
             <p class=\"tab\"> <i class=\"text-success\">\"user\"</i> => <i class=\"text-success\">\"Mateo\"</i>, </p>
             <p class=\"tab\"> <i class=\"text-success\">\"tester\"</i> => <i class=\"text-success\">\"Vasyl\"</i>, </p>
             <p class=\"tab\"> <i class=\"text-success\">\"model\"</i> => <i class=\"text-success\">\"icon\"</i>, </p>
-
           <p> )); </p>
           <br>
 
           <p class=\"text-muted\">/* \$query = \$vas->query(\" //can be used to return the safe Query (Optional)*/</p>
           <p><b class=\"text-danger\">\$vas</b>-><i class=\"text-info\">query</i>(<i class=\"text-success\">\"</i></p>
-          <p class=\"tab\">
-            <i class=\"text-info\">SELECT</i> *
-          </p>
 
+          <pre><code class='sql'>
+          SELECT * FROM items
+          WHERE TRUE
+            /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
+            /*  <b>'!'</b> forces value to be used basically */
+            AND  `id` = <&#33;:id>
+            /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
+         {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
+            /* <b>@ or @T or @t</b> simbols will fetch a value from the inserted tags */
+            AND `model` = <@:model>
+            /* <b>@e or @E</b> //simbols will fetch a value from the \$_ENV Superglobal Variable */
+            AND `model` = <@E:vsql_username>
+            /* <b>@c or @C</b> //simbols will fetch a value from the \$_COOKIE Superglobal Variable */
+            AND `time` = <@C:cookie_time>
+            /* <b>@s or @S</b> //simbols will fetch a value from the \$_SESSION Superglobal Variable */
+            AND  `supplier_id` = <@S!:supplier_id>
+            /* <b>i or I</b> //simbols will cast the value to integer */
+            AND  `customer` = <@i!:customer>
+          </code></pre>
 
-         <p class=\"tab\">
-           <i class=\"text-info\">FROM</i> items
-         </p>
-
-         <p class=\"tab\">
-           <i class=\"text-info\">WHERE</i> <i class=\"text-warning\">TRUE</i>
-         </p>
-         <br>
-
-         <p class=\"t2 text-muted\">/* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception */</p>
-         <p class=\"t2 text-muted\">/*  <b>'!'</b> forces value to be used */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> id = <&#33;:id> </p>
-         <br>
-         <p class=\"t2 text-muted\">/* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/</p>
-         <p class=\"t2\"> {{ <i class=\"text-danger\">AND</i> status = <:status> }} </p>
-         <br>
-         <p class=\"t2 text-muted\">/* can be used also with <b>'!'</b> */</p>
-         <p class=\"t2\"> {{ <i class=\"text-danger\">AND</i> type = <&#33;:type> }} </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>@ or @T or @t</b> //simbols will fetch a value from the inserted tags */</p>
-         <p class=\"t2\"> {{ <i class=\"text-danger\">AND</i> model = <@:model> }} </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>@e or @E</b> //simbols will fetch a value from the \$_ENV Superglobal Variable */</p>
-         <p class=\"t2\"> {{ <i class=\"text-danger\">AND</i> user = <@e:vsql_username> }} </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>@c or @C</b> //simbols will fetch a value from the \$_COOKIE Superglobal Variable */</p>
-         <p class=\"t2\"> {{ <i class=\"text-danger\">AND</i> time = <@c!:cookie_time> }} </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>@s or @S</b> //simbols will fetch a value from the \$_SESSION Superglobal Variable */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> supplier_id = <@S!:supplier_id> </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>i or I</b> //simbols will cast the value to integer */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> customer = < I!:customer> </p>
-         <br>
          <p class=\"t2 text-muted\">/* <b>f or F</b> //simbols will cast the value to float */</p>
          <p class=\"t2\"> <i class=\"text-danger\">AND</i> height = < F!:height> </p>
          <br>
@@ -511,5 +565,22 @@ class VSQL {
     ";
   }
 
+  // ------------------------------------------------ <  _duplex > ----------------------------------------------------
+  private function _duplex($from, $needle ,$addslashes = true) {
+      $array = $this->_tvar($from);
+
+      if (is_int($needle) || ctype_digit((string)$needle)) {
+          foreach ($array as $keyStr => $valueInt) {
+              if ($needle == $valueInt) {
+                  return $addslashes ? "'$keyStr'" : $keyStr;
+              }
+          }
+      }else {
+        return $array[$needle] === null ? null : "".$array[$needle];
+      }
+
+      return null;
+  }
+
+
 }
-?>
