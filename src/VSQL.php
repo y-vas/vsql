@@ -6,28 +6,6 @@ class ExVSQL extends \Exception { }
 
 class VSQL {
   private $CONN = null;
-
-  // this came from http://php.net/manual/en/mysqli-result.fetch-field-direct.php
-  private $mysql_data_type_hash = array(
-      1   =>array('tinyint','int'),
-      2   =>array('smallint','int'),
-      3   =>array('int','int'),
-      4   =>array('float','float'),
-      5   =>array('double','double'),
-      7   =>array('timestamp','string'),
-      8   =>array('bigint','int'),
-      9   =>array('mediumint','int'),
-      10  =>array('date','string'),
-      11  =>array('time','string'),
-      12  =>array('datetime','string'),
-      13  =>array('year','int'),
-      16  =>array('bit','int'),
-      //252 is currently mapped to all text and blob types (MySQL 5.0.51a)
-      253 =>array('varchar','string'),
-      254 =>array('char','string'),
-      246 =>array('decimal','float')
-  );
-
   private $tags = array();
   private $query_vars = array();
   private $query_string = "";
@@ -35,7 +13,20 @@ class VSQL {
   private $concat_name = true;
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
-  function __construct($display = false) {
+  function __construct($id = "") {
+
+      if(!empty($id)){
+          $con = null;
+          if (!empty($_ENV["vsql_db_$id"])) {
+            $con = $_ENV["vsql_db_$id"];
+          }else {
+           $con = VSQL::save($id);
+          }
+          foreach ($con as $key => $value) {
+            $this->$key = $value;
+          }
+          return;
+      }
 
       foreach (array('servername','username','password','database') as $value) {
         if (empty($_ENV["vsql_".$value])) {
@@ -43,16 +34,7 @@ class VSQL {
         }
       }
 
-      if($display){
-        $this->_show_example();
-      }
-
-      $this->CONN = mysqli_connect(
-          $_ENV["vsql_servername"],
-          $_ENV["vsql_username"],
-          $_ENV["vsql_password"],
-          $_ENV["vsql_database"]
-      );
+      $this->CONN = self::_conn();
 
       if ($this->CONN->connect_errno) {
         $this->_error_msg("Falló la conexión a MySQL: (" . $this->CONN->connect_errno . ") " . $this->CONN->connect_error);
@@ -60,15 +42,45 @@ class VSQL {
 
   }
 
+//------------------------------------------------ <  _conn > ------------------------------------------------
+  private function _conn() {
+    return mysqli_connect(
+        $_ENV["vsql_servername"],
+        $_ENV["vsql_username"],
+        $_ENV["vsql_password"],
+        $_ENV["vsql_database"]
+    );
+  }
+
 //------------------------------------------------ <  trow_exceptions > ------------------------------------------------
   public function config(array $arr) {
-    $this->trows_exteption = !isset($arr["exeptions"]) ? true   : $arr["exeptions"];
+    $this->trows_exteption = !isset($arr["exceptions"]) ? true   : $arr["exceptions"];
     $this->concat_name     = !isset($arr["concat_name"]) ? true : $arr["concat_name"];
   }
 
-//------------------------------------------------ <  add_global_vars > ------------------------------------------------
+//------------------------------------------------ <  store > ------------------------------------------------
+  public static function save(string $var,  $config = array()) : VSQL {
+    $CONN = new VSQL();
+    $CONN->config($config);
+    $_ENV["vsql_db_$var"] = $CONN;
+    return $CONN;
+  }
+
+//------------------------------------------------ <  TRANSACTION > ------------------------------------------------
+  public static function TRANSACTION(string $var, $config = array()) : VSQL {
+    $CONN = new VSQL();
+    $CONN->config($config);
+
+    $CONN->query("START TRANSACTION;", array() );
+    $CONN->run();
+
+    $_ENV["vsql_db_$var"] = $CONN;
+    return $CONN;
+  }
+
+//------------------------------------------------ <  _error_msg > ------------------------------------------------
   private function _error_msg($error_msg) {
-    $this->_show_example("<div>".$error_msg."</div>");
+    self::_show_example("<div>".$error_msg."</div>");
     die();
   }
 
@@ -254,6 +266,15 @@ class VSQL {
         $result = $res != null ? "'".$res."'" : $res;
         break;
 
+      // trigger the {{ }} to be executed
+      case 'n':
+        if($this->_qvar($var) != null){
+          $result = "
+          -- triggered
+          ";
+        }
+        break;
+
     }
     //-------------------------------------------
 
@@ -320,7 +341,6 @@ class VSQL {
     }else {
       $this->_error_msg("Fail on query get");
     }
-
     return $obj;
   }
 
@@ -352,6 +372,10 @@ class VSQL {
       $obj = $this->_fetch_row($result, $proceso);
     };
 
+    if(mysqli_error($mysqli)){
+      $this->_error_msg(mysqli_error($mysqli));
+    }
+
     return $obj;
   }
 
@@ -378,7 +402,27 @@ class VSQL {
 // ------------------------------------------------ <  _transform_get > ----------------------------------------------------
   public function _transform_get($val, string $datatype, string $key) {
     $key = explode("=>", $key);
-    $dt_str = $this->mysql_data_type_hash[$datatype][1];
+
+    $mysql_data_type_hash = array(
+        1   =>array('tinyint','int'),
+        2   =>array('smallint','int'),
+        3   =>array('int','int'),
+        4   =>array('float','float'),
+        5   =>array('double','double'),
+        7   =>array('timestamp','string'),
+        8   =>array('bigint','int'),
+        9   =>array('mediumint','int'),
+        10  =>array('date','string'),
+        11  =>array('time','string'),
+        12  =>array('datetime','string'),
+        13  =>array('year','int'),
+        16  =>array('bit','int'),
+        253 =>array('varchar','string'),
+        254 =>array('char','string'),
+        246 =>array('decimal','float')
+    );
+
+    $dt_str = $mysql_data_type_hash[$datatype][1];
     settype($val, $dt_str);
 
     switch ($key[1]) {
@@ -433,7 +477,7 @@ class VSQL {
         </div>
       </div>
 
-      <pre><code class='sql'>".htmlentities($this->query_string)."</code></pre>
+      <pre><code class='sql'>" . htmlentities($this->query_string) . "</code></pre>
 
       <div class=\"row\">
         <div class=\"col-sm-12\">
