@@ -29,7 +29,7 @@ class VSQL {
       }
 
       foreach (array('servername','username','password','database') as $value) {
-        if (empty($_ENV["vsql_".$value])) {
+        if (!isset($_ENV["vsql_".$value])) {
           $this->_error_msg("Enviroment value < \$_ENV['vsql_".$value."'] > is not set!");
         }
       }
@@ -302,6 +302,7 @@ class VSQL {
           ";
         }
         break;
+
 
     }
     //-------------------------------------------
