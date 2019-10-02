@@ -20,11 +20,11 @@ class VSQL {
           if (!empty($_ENV["vsql_db_$id"])) {
             $con = $_ENV["vsql_db_$id"];
           }else {
-           $con = VSQL::save($id);
+            $con = VSQL::save($id);
           }
-          foreach ($con as $key => $value) {
-            $this->$key = $value;
-          }
+          $this->CONN = $con->CONN;
+          $this->trows_exteption = $con->trows_exteption;
+          $this->is_transaction = $con->is_transaction;
           return;
       }
 
@@ -67,10 +67,16 @@ class VSQL {
   }
 
 //------------------------------------------------ <  TRANSACTION > ------------------------------------------------
-  public static function TRANSACTION(string $var, $config = array()) : VSQL {
-    $CONN = new VSQL();
-    $CONN->config($config);
+  public static function START_TRANSACTION(string $var, $config = array()) : VSQL {
 
+    if(!empty($_ENV["vsql_db_$var"])){
+      return $_ENV["vsql_db_$var"];
+    }
+
+    $CONN = new VSQL();
+    $config["exceptions"] = !isset($config["exceptions"]) ? false   : $config["exceptions"];
+    $CONN->config($config);
+    $CONN->is_transaction = true;
     $CONN->query("START TRANSACTION;", array() );
     $CONN->run();
 
@@ -78,8 +84,30 @@ class VSQL {
     return $CONN;
   }
 
+  public static function END_TRANSACTION($name, $show = false)  : bool {
+
+    $vsql = new VSQL($name);
+
+    $yep = true;
+    $err = "";
+    foreach ($_ENV['VSQL_LOGS'] as $key => $value) {
+      if ($show) { $err = "<br>" . $value . "<br>". $err; }
+      if (!empty($value)) { $yep = false; }
+    }
+
+    if ($show && !$yep) {
+      $vsql->_error_msg( $err );
+    }
+
+    $vsql->query("COMMIT;", array() );
+    $vsql->run();
+
+    $_ENV["vsql_db_$name"] = null;
+
+    return $yep;
+  }
 //------------------------------------------------ <  _error_msg > ------------------------------------------------
-  private function _error_msg($error_msg) {
+  public function _error_msg($error_msg) {
     self::_show_example("<div>".$error_msg."</div>");
     die();
   }
@@ -347,33 +375,35 @@ class VSQL {
 //------------------------------------------------ <  run > ------------------------------------------------------------
   public function run($list = false) {
     $mysqli = $this->CONN;
-    $obj = new \stdClass();
 
+    $obj = new \stdClass();
     $nr = 0;
     mysqli_multi_query($mysqli, $this->query_string);
 
     if ($list) {
+
       while(mysqli_more_results($mysqli)){
           mysqli_next_result($mysqli);
 
           if ($result = mysqli_store_result($mysqli)) {
-
             while ($proceso = mysqli_fetch_assoc($result)) {
                 $obj->$nr = $this->_fetch_row($result, $proceso);
                 $nr ++;
             }
             mysqli_free_result($result);
           }
-
       }
+
     }else {
       $result = mysqli_store_result($mysqli);
       $proceso = mysqli_fetch_assoc($result);
       $obj = $this->_fetch_row($result, $proceso);
     };
 
-    if(mysqli_error($mysqli)){
+    if(mysqli_error($mysqli) && $this->trows_exteption){
       $this->_error_msg(mysqli_error($mysqli));
+    }else {
+      $_ENV['VSQL_LOGS'][] = mysqli_error($mysqli);
     }
 
     return $obj;
