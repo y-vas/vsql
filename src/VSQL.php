@@ -457,7 +457,7 @@ class VSQL {
 
     switch ($key[1]) {
       case 'json':
-        $val = json_decode($val);
+        $val = json_decode(utf8_decode($val),true);
         settype($val, "array");
         break;
 
