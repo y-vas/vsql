@@ -569,23 +569,19 @@ class VSQL {
             AND  `supplier_id` = <@S!:supplier_id>
             /* <b>i or I</b> //simbols will cast the value to integer */
             AND  `customer` = <@i!:customer>
+            /* <b>f or F</b> //simbols will cast the value to float */
+            AND  `height` = <F!:height>
+            /* <b>t or T</b> ///will trim the value */
+            AND  location LIKE \"%< t!:location>%\"
+            /* <b>s or S</b> ///add slashes to value */
+            AND  program LIKE \"%< s:program>%\"
+            /* <b>implode</b> //will implode the array */
+            AND  FIND_IN_SET(name, \"< implode!:name>\")
+            /* <b>json_get</b> ///will transorm the value to
+            \"IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)\"
+            */
+            AND  content_type = < json_get:img,content>
           </code></pre>
-
-         <p class=\"t2 text-muted\">/* <b>f or F</b> //simbols will cast the value to float */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> height = < F!:height> </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>implode</b> //will implode the array */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> FIND_IN_SET(name, \"< implode!:name>\") </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>json_get</b> //will transorm the value to  </p>
-         <p class=\"t2 text-muted\">\"IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)\" */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> content_type = < json_get:img,content> </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>t or T</b> //will trim the value */</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> location <i class=\"text-info\">LIKE</i> \"%< t!:location>%\" </p>
-         <br>
-         <p class=\"t2 text-muted\">/* <b>s or S</b> //will add slashes to value*/</p>
-         <p class=\"t2\"> <i class=\"text-danger\">AND</i> program <i class=\"text-info\">LIKE</i> < s:program> </p>
 
          <i class=\"tab text-success\">\"</i> , <i class=\"text-info\">array</i>(
 
