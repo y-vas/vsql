@@ -368,7 +368,7 @@ class VSQL {
         };
 
     }else {
-      $this->_error_msg("Fail on query get");
+      $this->_error_msg("Fail on query get :" . mysqli_error($mysqli));
     }
     return $obj;
   }
