@@ -42,7 +42,7 @@ class VSQL {
 
   }
 
-//------------------------------------------------ <  _conn > ------------------------------------------------
+//------------------------------------------------ <  _conn > ----------------------------------------------------------
   private function _conn() {
     return mysqli_connect(
         $_ENV["vsql_servername"],
@@ -58,7 +58,7 @@ class VSQL {
     $this->concat_name     = !isset($arr["concat_name"]) ? true : $arr["concat_name"];
   }
 
-//------------------------------------------------ <  store > ------------------------------------------------
+//------------------------------------------------ <  store > ----------------------------------------------------------
   public static function save(string $var,  $config = array()) : VSQL {
     $CONN = new VSQL();
     $CONN->config($config);
@@ -66,7 +66,7 @@ class VSQL {
     return $CONN;
   }
 
-//------------------------------------------------ <  TRANSACTION > ------------------------------------------------
+//------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
   public static function START_TRANSACTION(string $var, $config = array()) : VSQL {
 
     if(!empty($_ENV["vsql_db_$var"])){
@@ -106,13 +106,13 @@ class VSQL {
 
     return $yep;
   }
-//------------------------------------------------ <  _error_msg > ------------------------------------------------
+//------------------------------------------------ <  _error_msg > -----------------------------------------------------
   public function _error_msg($error_msg) {
     self::_show_example("<div>".$error_msg."</div>");
     die();
   }
 
-//------------------------------------------------ <  global_scope > ------------------------------------------------
+//------------------------------------------------ <  global_scope > ---------------------------------------------------
   public function tags(array $params){
     $this->tags = array_merge($this->tags, $params );
   }
@@ -124,13 +124,49 @@ class VSQL {
 
     $query_string = $this->_quote_check($query_string);
     $query_string = $this->_var_transform($query_string);
+    $query_string = $this->_find_objects($query_string);
     $this->query_string = $query_string;
+
 
     if($debug){
       $this->_error_msg("DEBUG");
     }
 
     return $query_string;
+  }
+//------------------------------------------------ <  _find_objects > --------------------------------------------------
+  private function _find_objects($query_string){
+
+    foreach ( $this->_btwn($query_string, '(',')',false ) as $key => $found ){
+
+      $obj = 'OBJV(' . $found;
+      if (strpos($query_string, $obj) !== false) {
+          $var = preg_replace('![^<](=>)!', ',' , $found );
+          $query_string = str_replace($obj,'JSON_OBJECT('. $found , $query_string);
+      }
+    }
+
+    return $query_string;
+  }
+
+//------------------------------------------------ <  _btwn > ----------------------------------------------------------
+ private function _btwn($str, $start='(', $end= ')', $with_from_to = true){
+    $arr = [];
+    $lp = 0;
+    $lp = strpos($str, $start, $lp);
+
+    while ($lp !== false) {
+        $t = strpos($str, $end, $lp);
+
+        $arr[] = ($with_from_to ? $start : '').substr(
+            $str, $lp + 1, $t - $lp - 1
+        ).($with_from_to ? $end : '');
+
+        $lp = strpos($str, $start, $lp + 1);
+        break;
+    }
+
+    return $arr;
   }
 
 //------------------------------------------------ <  _var_transform > -------------------------------------------------
@@ -430,7 +466,7 @@ class VSQL {
     return $row;
   }
 
-// ------------------------------------------------ <  _transform_get > ----------------------------------------------------
+// ------------------------------------------------ <  _transform_get > ------------------------------------------------
   public function _transform_get($val, string $datatype, string $key) {
     $key = explode("=>", $key);
 
@@ -453,27 +489,33 @@ class VSQL {
         246 =>array('decimal','float')
     );
 
-    $dt_str = $mysql_data_type_hash[$datatype][1];
+    $dt_str = "string";
+    if (isset($mysql_data_type_hash[$datatype][1])){
+      $dt_str = $mysql_data_type_hash[$datatype][1];
+    }
+
     settype($val, $dt_str);
 
-    switch ($key[1]) {
-      case 'json':
+    if (isset($key[1])) {
+      switch ($key[1]) {
+        case 'json':
         $val = json_decode(utf8_decode($val),true);
         settype($val, "array");
         break;
 
-      case 'duplex':
+        case 'duplex':
         $val = $this->_duplex($key[2],$val, false);
         break;
 
-      case null:
+        case null:
         break;
+      }
     }
 
     return array($val, $key[0]);
   }
 
-// ------------------------------------------------ <  _show_example > ----------------------------------------------------
+// ------------------------------------------------ <  _show_example > -------------------------------------------------
   public function _show_example($error = "") {
     echo "
     <!DOCTYPE html>
@@ -639,7 +681,7 @@ class VSQL {
     ";
   }
 
-  // ------------------------------------------------ <  _duplex > ----------------------------------------------------
+  // ------------------------------------------------ <  _duplex > -----------------------------------------------------
   private function _duplex($from, $needle ,$addslashes = true) {
       $array = $this->_tvar($from);
 
@@ -656,5 +698,32 @@ class VSQL {
       return null;
   }
 
-
 }
+
+
+$_ENV["vsql_servername"] = "172.17.0.2";
+$_ENV["vsql_username"] = "root";
+$_ENV["vsql_password"] = "dotravel";
+$_ENV["vsql_database"] = "dotravel";
+
+$vsql = new VSQL();
+$query = $vsql->query("SELECT
+VOBJ(
+  'id'     => s.id ,
+  'orders' => s.orders,
+  'status' => s.status,
+  'items'  => (
+      SELECT JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'id'      => s.id ,
+        'orders'  => s.orders,
+        'status'  => s.status,
+        'content' => JSON_MERGE('{}', content )
+      )) FROM items WHERE id_section = s.id
+  )
+
+)
+
+", array(),true );
+
+$vsql->get();
