@@ -11,6 +11,7 @@ class VSQL {
   private $query_string = "";
   private $trows_exteption = true;
   private $concat_name = true;
+  private $_transformed = array();
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
   function __construct($id = "") {
@@ -137,33 +138,45 @@ class VSQL {
 //------------------------------------------------ <  _find_objects > --------------------------------------------------
   private function _find_objects($query_string){
 
-    foreach ( $this->_btwn($query_string, '(',')',false ) as $key => $found ){
-
-      $obj = 'OBJV(' . $found;
-      if (strpos($query_string, $obj) !== false) {
-          $var = preg_replace('![^<](=>)!', ',' , $found );
-          $query_string = str_replace($obj,'JSON_OBJECT('. $found , $query_string);
-      }
-    }
+    // foreach ( $this->_btwn($query_string, '(',')') as $key => $found ){
+    //   $re = "!\Q$found\E\s*?\)\s*\w{2}\s*(.*)\s*!";
+    //   preg_match_all($re, $query_string, $match );
+    //
+    //   echo "<textarea>";
+    //   echo $re;
+    //   echo "</textarea>";
+    //   echo "<hr>";
+    //
+    //
+    //   var_dump($match);
+    //   die;
+    //
+    //   $obj = 'OBJV(' . $found;
+    //   if (strpos($query_string, $obj) !== false) {
+    //       $var = preg_replace('![^<](=>)!', ',' , $found );
+    //       $query_string = str_replace($obj,'JSON_OBJECT('. $found , $query_string);
+    //   }
+    //
+    //
+    // }
 
     return $query_string;
   }
 
 //------------------------------------------------ <  _btwn > ----------------------------------------------------------
- private function _btwn($str, $start='(', $end= ')', $with_from_to = true){
+ private function _btwn($str, $start='(', $end= ')'){
     $arr = [];
-    $lp = 0;
-    $lp = strpos($str, $start, $lp);
 
-    while ($lp !== false) {
-        $t = strpos($str, $end, $lp);
+    $founds = 0; $ends = 0;
+    for ($i = 0; $i < strlen($str); $i++) {
+      $val = substr($str, 0+$i , 1 );
+      if($val == $start){ $founds++; }
 
-        $arr[] = ($with_from_to ? $start : '').substr(
-            $str, $lp + 1, $t - $lp - 1
-        ).($with_from_to ? $end : '');
+      for ($x=0; $x < $founds; $x++) {
+        $arr[$x] = (isset($arr[$x]) ? $arr[$x] : '') . $val;
+      }
 
-        $lp = strpos($str, $start, $lp + 1);
-        break;
+      if($val == $end){ $founds--; }
     }
 
     return $arr;
@@ -500,7 +513,6 @@ class VSQL {
       switch ($key[1]) {
         case 'json':
         $val = json_decode(utf8_decode($val),true);
-        settype($val, "array");
         break;
 
         case 'duplex':
@@ -708,21 +720,21 @@ $_ENV["vsql_database"] = "dotravel";
 
 $vsql = new VSQL();
 $query = $vsql->query("SELECT
-VOBJ(
-  'id'     => s.id ,
-  'orders' => s.orders,
-  'status' => s.status,
-  'items'  => (
-      SELECT JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'id'      => s.id ,
-        'orders'  => s.orders,
-        'status'  => s.status,
-        'content' => JSON_MERGE('{}', content )
-      )) FROM items WHERE id_section = s.id
-  )
 
-)
+  VOBJ(
+    'id'     => s.id ,
+    'orders' => s.orders,
+    'status' => s.status,
+    'items'  => (
+        SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id'      => s.id ,
+          'orders'  => s.orders,
+          'status'  => s.status,
+          'content' => JSON_MERGE('{}', content )
+        )) FROM items WHERE id_section = s.id
+    )
+  ) as youmana
 
 ", array(),true );
 
