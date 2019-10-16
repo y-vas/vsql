@@ -137,7 +137,7 @@ class VSQL {
     return $query_string;
   }
 
-
+//------------------------------------------------ <  _inspect > ----------------------------------------------------------
   private function _inspect($debug){
     switch ($debug) {
       case 'show':
@@ -145,6 +145,7 @@ class VSQL {
         break;
 
       case 'dump_get':
+
         ob_start();
         var_dump($this->get());
         $result = ob_get_clean();
@@ -178,6 +179,7 @@ class VSQL {
           }
 
           switch ($match[1][0]) {
+
             case 'JSON':
               $query_string = str_replace( $match[1][0]. "_" . $obj , 'JSON_OBJECT' . $var , $query_string );
               $this->_transformed[$match[2][0]] = ['json'];
@@ -187,6 +189,7 @@ class VSQL {
               $query_string = str_replace( $match[1][0]. "_" . $obj , 'JSON_OBJECT' . $var , $query_string );
               $this->_transformed[$match[2][0]] = ['json_array'];
               break;
+
           }
 
       }
@@ -729,10 +732,40 @@ class VSQL {
     </html>
 
     ";
+
+    // $_ENV["vsql_servername"] = "172.17.0.2";
+    // $_ENV["vsql_username"] = "root";
+    // $_ENV["vsql_password"] = "dotravel";
+    // $_ENV["vsql_database"] = "dotravel";
+
+    // $vsql = new VSQL();
+    // $query = $vsql->query("SELECT
+    //   cat.*
+    //
+    //   , JSON_VSQL(
+    //       'path' => img_path,
+    //       'name' => img_name,
+    //       'alt'  => m.name
+    //   ) AS media
+    //
+    //   , JRAY_VSQL(
+    //       'path' => img_path,
+    //       'name' => img_name,
+    //       'alt'  => m.name
+    //   ) AS media_array
+    //
+    //   FROM categories cat
+    //   INNER JOIN `category_meta` AS m on cat.id = m.id_category
+    //
+    // ", array(), "dump_get" );
+    //
+    //
+    // $vsql->get();
+
   }
 
   // ------------------------------------------------ <  _duplex > -----------------------------------------------------
-  private function _duplex($from, $needle ,$addslashes = true) {
+  private function _duplex($from, $needle , $addslashes = true) {
       $array = $this->_tvar($from);
 
       if (is_int($needle) || ctype_digit((string)$needle)) {
@@ -749,37 +782,3 @@ class VSQL {
   }
 
 }
-
-
-
-
-//
-
-$_ENV["vsql_servername"] = "172.17.0.2";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "dotravel";
-$_ENV["vsql_database"] = "dotravel";
-
-$vsql = new VSQL();
-$query = $vsql->query("SELECT
-  cat.*
-
-  , JSON_VSQL(
-      'path' => img_path,
-      'name' => img_name,
-      'alt'  => m.name
-  ) AS media
-
-  , JRAY_VSQL(
-      'path' => img_path,
-      'name' => img_name,
-      'alt'  => m.name
-  ) AS media_array
-
-  FROM categories cat
-  INNER JOIN `category_meta` AS m on cat.id = m.id_category
-
-", array(), "dump_get" );
-
-
-$vsql->get();
