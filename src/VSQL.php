@@ -808,7 +808,7 @@ class VSQL {
   }
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
-  public function _mkfunction( $table, $fun ){
+  private function _mkfunction( $table, $fun ){
 
     $this->query("
       SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database>
@@ -828,11 +828,13 @@ class VSQL {
   }
 
   private function _sel($vals, $table){
-
     $sW = [];
+    $sl = [];
     foreach ($vals as $key => $value) {
+      $rp = str_repeat(" ",15 - strlen($value->Field));
+
       $sl[] = "\n\t`$value->Field`";
-      $sW[] = " \n\t{{ AND `$value->Field` = <:$value->Field> }}";
+      $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field> $rp}}";
     }
 
     $this->_error_msg("<strong>SELECT</strong><br><code class='php'>
@@ -841,6 +843,7 @@ class VSQL {
 
       \$vsql->query(\"SELECT ".implode($sl,',')."
       FROM $table WHERE TRUE".implode($sW,',')."
+      {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
     \")
     }
 
