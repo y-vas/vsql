@@ -10,7 +10,7 @@ class VSQL {
   private $query_vars = array();
   private $query_string = "";
   private $trows_exteption = true;
-  private $concat_name = true;
+  private $concat_name = false;
   private $_transformed = array();
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
@@ -38,7 +38,11 @@ class VSQL {
       $this->CONN = self::_conn();
 
       if ($this->CONN->connect_errno) {
-        $this->_error_msg("Falló la conexión a MySQL: (" . $this->CONN->connect_errno . ") " . $this->CONN->connect_error);
+
+        $this->_error_msg("Connection Fail: (" .
+                 $this->CONN->connect_errno
+        . ") " . $this->CONN->connect_error);
+
       }
 
   }
@@ -56,7 +60,7 @@ class VSQL {
 //------------------------------------------------ <  trow_exceptions > ------------------------------------------------
   public function config(array $arr) {
     $this->trows_exteption = !isset($arr["exceptions"]) ? true   : $arr["exceptions"];
-    $this->concat_name     = !isset($arr["concat_name"]) ? true : $arr["concat_name"];
+    $this->concat_name     = !isset($arr["concat_name"]) ? false : $arr["concat_name"];
   }
 
 //------------------------------------------------ <  store > ----------------------------------------------------------
@@ -119,64 +123,105 @@ class VSQL {
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-  public function query(string $query_string, array $query_vars, $debug = false) : string {
+  public function query(string $query_string, array $query_vars, $debug = "") : string {
     $this->query_vars = $query_vars;
     $this->query_string = $query_string;
 
+    $query_string = $this->_find_objects($query_string);
     $query_string = $this->_quote_check($query_string);
     $query_string = $this->_var_transform($query_string);
-    $query_string = $this->_find_objects($query_string);
     $this->query_string = $query_string;
 
-
-    if($debug){
-      $this->_error_msg("DEBUG");
-    }
+    $this->_inspect($debug);
 
     return $query_string;
   }
+
+
+  private function _inspect($debug){
+    switch ($debug) {
+      case 'show':
+        $this->_error_msg("DEBUG");
+        break;
+
+      case 'dump_get':
+        ob_start();
+        var_dump($this->get());
+        $result = ob_get_clean();
+
+        $this->_error_msg("<strong>VAR DUMP</strong> : <br>".$result);
+        break;
+    }
+    echo "string";
+  }
+
 //------------------------------------------------ <  _find_objects > --------------------------------------------------
   private function _find_objects($query_string){
 
-    // foreach ( $this->_btwn($query_string, '(',')') as $key => $found ){
-    //   $re = "!\Q$found\E\s*?\)\s*\w{2}\s*(.*)\s*!";
-    //   preg_match_all($re, $query_string, $match );
-    //
-    //   echo "<textarea>";
-    //   echo $re;
-    //   echo "</textarea>";
-    //   echo "<hr>";
-    //
-    //
-    //   var_dump($match);
-    //   die;
-    //
-    //   $obj = 'OBJV(' . $found;
-    //   if (strpos($query_string, $obj) !== false) {
-    //       $var = preg_replace('![^<](=>)!', ',' , $found );
-    //       $query_string = str_replace($obj,'JSON_OBJECT('. $found , $query_string);
-    //   }
-    //
-    //
-    // }
+
+    foreach ( $this->_btwn($query_string) as $key => $found ){
+      $obj = 'VSQL' . $found;
+
+      $re = "!(\w*?)_\Q$obj\E\s*?\s*\w{2}\s*(.*)\s*!";
+      preg_match_all($re, $query_string, $match);
+
+      if (strpos($query_string, $obj) !== false) {
+          $var = preg_replace('![^<](=>)!', ',' , $found );
+
+          if(empty($match[1][0])){
+            $this->_error_msg("IS NOT AN VSQL OBJECT : <br> <code class=\"sql\"> $obj</code>");
+          }
+
+          if(empty($match[2][0])){
+            $this->_error_msg("OBJECT DOESN'T HAVE A NAME:
+            <br> <code class=\"sql\"> " . $match[1][0] .
+            "_" . "$obj /* add AS example_name */ </code>");
+          }
+
+          switch ($match[1][0]) {
+            case 'JSON':
+              $query_string = str_replace( $match[1][0]. "_" . $obj , 'JSON_OBJECT' . $var , $query_string );
+              $this->_transformed[$match[2][0]] = ['json'];
+              break;
+
+            case 'JRAY':
+              $query_string = str_replace( $match[1][0]. "_" . $obj , 'JSON_OBJECT' . $var , $query_string );
+              $this->_transformed[$match[2][0]] = ['json_array'];
+              break;
+          }
+
+      }
+
+    }
 
     return $query_string;
   }
 
 //------------------------------------------------ <  _btwn > ----------------------------------------------------------
- private function _btwn($str, $start='(', $end= ')'){
+ private function _btwn($str){
     $arr = [];
 
-    $founds = 0; $ends = 0;
-    for ($i = 0; $i < strlen($str); $i++) {
-      $val = substr($str, 0+$i , 1 );
-      if($val == $start){ $founds++; }
+    // the order of the things can alter the result
+    preg_match_all('!\(([^\(\)]+)\)!', $str, $match );
 
-      for ($x=0; $x < $founds; $x++) {
-        $arr[$x] = (isset($arr[$x]) ? $arr[$x] : '') . $val;
+    while (count($match[0]) != 0) {
+      preg_match_all('!\(([^\(\)]+)\)!', $str, $match );
+
+      foreach ($match[0] as $key => $value) {
+        $num = rand(500, 10000000000);
+        $arr["$num"] = $value;
+        $str = str_replace($value,"<:$num>", $str);
       }
 
-      if($val == $end){ $founds--; }
+    }
+
+    foreach ($arr as $key => $value) {
+      preg_match_all('!<:(.*?)>!', $value, $match);
+
+      foreach ($match[0] as $kk => $tr) {
+        $arr[$key] = str_replace($tr,$arr[$match[1][$kk]], $arr[$key]);
+      }
+
     }
 
     return $arr;
@@ -472,6 +517,7 @@ class VSQL {
       if ($this->concat_name == true) {
         $key = $direct->orgtable."__".$key;
       }
+
       $row->$key = $ret[0];
       $count++;
     }
@@ -481,7 +527,6 @@ class VSQL {
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
   public function _transform_get($val, string $datatype, string $key) {
-    $key = explode("=>", $key);
 
     $mysql_data_type_hash = array(
         1   =>array('tinyint','int'),
@@ -509,22 +554,31 @@ class VSQL {
 
     settype($val, $dt_str);
 
-    if (isset($key[1])) {
-      switch ($key[1]) {
-        case 'json':
-        $val = json_decode(utf8_decode($val),true);
-        break;
+    foreach ($this->_transformed as $k => $value) {
+      if($key == $k){
 
-        case 'duplex':
-        $val = $this->_duplex($key[2],$val, false);
-        break;
+        foreach ($value as $t => $tr) {
+          $val = $this->_transform($tr,$val);
+        }
 
-        case null:
-        break;
       }
     }
 
-    return array($val, $key[0]);
+    return array( $val, $key );
+  }
+
+// ------------------------------------------------ <  _transform > -------------------------------------------------
+  private function _transform($transform, $val){
+    switch ($transform) {
+      case 'json':
+        return (object) json_decode(utf8_decode($val),true);
+        break;
+
+      case 'json_array':
+        return json_decode(utf8_decode($val),true);
+        break;
+    }
+    return $val;
   }
 
 // ------------------------------------------------ <  _show_example > -------------------------------------------------
@@ -553,15 +607,8 @@ class VSQL {
 
     <div class=\"container\" style=\"line-height: 70%;\">
 
-      <div class=\"row\">
-        <div class=\"col-sm-12\">
-          <h2>ERROR INFO</h2>
-          <p>
-          $error
-          </p>
-        </div>
-      </div>
-
+      <h2>ERROR INFO</h2>
+      <pre>$error</pre>
       <pre><code class='sql'>" . htmlentities($this->query_string) . "</code></pre>
 
       <div class=\"row\">
@@ -677,14 +724,6 @@ class VSQL {
       </div>
 
       <br>
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
-      <br>
     </div>
 
     </body>
@@ -711,31 +750,33 @@ class VSQL {
   }
 
 }
-
-
-$_ENV["vsql_servername"] = "172.17.0.2";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "dotravel";
-$_ENV["vsql_database"] = "dotravel";
-
-$vsql = new VSQL();
-$query = $vsql->query("SELECT
-
-  VOBJ(
-    'id'     => s.id ,
-    'orders' => s.orders,
-    'status' => s.status,
-    'items'  => (
-        SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'id'      => s.id ,
-          'orders'  => s.orders,
-          'status'  => s.status,
-          'content' => JSON_MERGE('{}', content )
-        )) FROM items WHERE id_section = s.id
-    )
-  ) as youmana
-
-", array(),true );
-
-$vsql->get();
+// 
+//
+// $_ENV["vsql_servername"] = "172.17.0.2";
+// $_ENV["vsql_username"] = "root";
+// $_ENV["vsql_password"] = "dotravel";
+// $_ENV["vsql_database"] = "dotravel";
+//
+// $vsql = new VSQL();
+// $query = $vsql->query("SELECT
+//   cat.*
+//
+//   , JSON_VSQL(
+//       'path' => img_path,
+//       'name' => img_name,
+//       'alt'  => m.name
+//   ) AS media
+//
+//   , JRAY_VSQL(
+//       'path' => img_path,
+//       'name' => img_name,
+//       'alt'  => m.name
+//   ) AS media_array
+//
+//   FROM categories cat
+//   INNER JOIN `category_meta` AS m on cat.id = m.id_category
+//
+// ", array(), "dump_get" );
+//
+//
+// $vsql->get();
