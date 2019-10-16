@@ -13,7 +13,6 @@ namespace VSQL\VSQL;
 //
 
 
-
 class ExVSQL extends \Exception { }
 
 class VSQL {
