@@ -149,11 +149,10 @@ class VSQL {
   private function _inspect($debug){
 
     $extra = '';
-
     if (strpos($debug, ':') !== false){
       $p = explode(":", $debug);
       $debug = $p[0];
-      $extra = $p[1];
+      $extra = $p;
     }
 
     switch ($debug) {
@@ -163,9 +162,13 @@ class VSQL {
 
       case 'dump_get':
         ob_start();
-        var_dump($this->get(($extra == "all")));
+        var_dump($this->get(($extra[1] == "all")));
         $result = ob_get_clean();
         $this->_error_msg("<strong>VAR DUMP</strong> : <br> <code class='scss'> $result </code>");
+        break;
+
+      case 'mk_funk':
+        $this->_mkfunction($extra[1],$extra[2]);
         break;
     }
   }
@@ -820,11 +823,7 @@ class VSQL {
       case 'select':
         $this->_sel($vals ,$table);
         break;
-
     }
-
-    var_dump($vals);
-    die;
   }
 
   private function _sel($vals, $table){
@@ -854,11 +853,11 @@ class VSQL {
 
 }
 
-$_ENV["vsql_servername"] = "172.17.0.2";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "dotravel";
-$_ENV["vsql_database"] = "dotravel";
-
-$v = new VSQL();
-
-$v->_mkfunction("category_meta",'select');
+// $_ENV["vsql_servername"] = "172.17.0.2";
+// $_ENV["vsql_username"] = "root";
+// $_ENV["vsql_password"] = "dotravel";
+// $_ENV["vsql_database"] = "dotravel";
+//
+// $v = new VSQL();
+//
+// $v->query("",array(),"mk_funk:category_meta:select");
