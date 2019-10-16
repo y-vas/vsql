@@ -152,7 +152,6 @@ class VSQL {
         $this->_error_msg("<strong>VAR DUMP</strong> : <br>".$result);
         break;
     }
-    echo "string";
   }
 
 //------------------------------------------------ <  _find_objects > --------------------------------------------------
@@ -750,33 +749,37 @@ class VSQL {
   }
 
 }
-// 
+
+
+
+
 //
-// $_ENV["vsql_servername"] = "172.17.0.2";
-// $_ENV["vsql_username"] = "root";
-// $_ENV["vsql_password"] = "dotravel";
-// $_ENV["vsql_database"] = "dotravel";
-//
-// $vsql = new VSQL();
-// $query = $vsql->query("SELECT
-//   cat.*
-//
-//   , JSON_VSQL(
-//       'path' => img_path,
-//       'name' => img_name,
-//       'alt'  => m.name
-//   ) AS media
-//
-//   , JRAY_VSQL(
-//       'path' => img_path,
-//       'name' => img_name,
-//       'alt'  => m.name
-//   ) AS media_array
-//
-//   FROM categories cat
-//   INNER JOIN `category_meta` AS m on cat.id = m.id_category
-//
-// ", array(), "dump_get" );
-//
-//
-// $vsql->get();
+
+$_ENV["vsql_servername"] = "172.17.0.2";
+$_ENV["vsql_username"] = "root";
+$_ENV["vsql_password"] = "dotravel";
+$_ENV["vsql_database"] = "dotravel";
+
+$vsql = new VSQL();
+$query = $vsql->query("SELECT
+  cat.*
+
+  , JSON_VSQL(
+      'path' => img_path,
+      'name' => img_name,
+      'alt'  => m.name
+  ) AS media
+
+  , JRAY_VSQL(
+      'path' => img_path,
+      'name' => img_name,
+      'alt'  => m.name
+  ) AS media_array
+
+  FROM categories cat
+  INNER JOIN `category_meta` AS m on cat.id = m.id_category
+
+", array(), "dump_get" );
+
+
+$vsql->get();
