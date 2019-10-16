@@ -2,20 +2,19 @@
 
 namespace VSQL\VSQL;
 
-
 //
-//                                           ██╗   ██╗███████╗ ██████╗ ██╗
-//                                           ██║   ██║██╔════╝██╔═══██╗██║
+//                                           ██╗     ██╗███████╗ ██████╗ ██╗
+//                                           ██║    ██║██╔════╝██╔═══██╗██║
 //                                           ██║   ██║███████╗██║   ██║██║
 //                                          ╚██╗ ██╔╝╚════██║██║▄▄ ██║██║
 //                                           ╚████╔╝ ███████║╚██████╔╝███████╗
 //                                             ╚═══╝  ╚══════╝ ╚══▀▀═╝ ╚══════╝
 //
 
-
 class ExVSQL extends \Exception { }
 
 class VSQL {
+
   private $CONN = null;
   private $tags = array();
   private $query_vars = array();
@@ -26,7 +25,6 @@ class VSQL {
 
 //------------------------------------------------ <  __construct > ----------------------------------------------------
   function __construct($id = "") {
-
       if(!empty($id)){
           $con = null;
           if (!empty($_ENV["vsql_db_$id"])) {
@@ -55,7 +53,6 @@ class VSQL {
         . ") " . $this->CONN->connect_error);
 
       }
-
   }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
@@ -148,20 +145,27 @@ class VSQL {
     return $query_string;
   }
 
-//------------------------------------------------ <  _inspect > ----------------------------------------------------------
+//------------------------------------------------ <  _inspect > -------------------------------------------------------
   private function _inspect($debug){
+
+    $extra = '';
+
+    if (strpos($debug, ':') !== false){
+      $p = explode(":", $debug);
+      $debug = $p[0];
+      $extra = $p[1];
+    }
+
     switch ($debug) {
       case 'show':
         $this->_error_msg("DEBUG");
         break;
 
       case 'dump_get':
-
         ob_start();
-        var_dump($this->get());
+        var_dump($this->get(($extra == "all")));
         $result = ob_get_clean();
-
-        $this->_error_msg("<strong>VAR DUMP</strong> : <br>".$result);
+        $this->_error_msg("<strong>VAR DUMP</strong> : <br> <code class='scss'> $result </code>");
         break;
     }
   }
@@ -580,7 +584,7 @@ class VSQL {
     return array( $val, $key );
   }
 
-// ------------------------------------------------ <  _transform > -------------------------------------------------
+// ------------------------------------------------ <  _transform > ----------------------------------------------------
   private function _transform($transform, $val){
     switch ($transform) {
       case 'json':
@@ -669,6 +673,7 @@ class VSQL {
           <pre><code class='sql'>
           SELECT * FROM items
           WHERE TRUE
+
             /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
             /*  <b>'!'</b> forces value to be used basically */
             AND  `id` = <&#33;:id>
@@ -696,6 +701,46 @@ class VSQL {
             \"IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)\"
             */
             AND  content_type = < json_get:img,content>
+            ;
+
+            /* MULTIPLE QUERYES ARE ALLOWED */
+
+            /*   VSQL OBJECTS     */
+            SELECT
+            cat.*
+
+            , JSON_VSQL(
+                   'path' => path,
+                   'name' => name,
+                   'alt'  => alt
+            ) AS media
+
+            /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
+
+            , JSON_OBJECT(
+                   'path' , path,
+                   'name' , name,
+                   'alt'  , alt
+            ) AS media_original
+
+            /*----------------------------------------------*/
+
+            , JRAY_VSQL(
+                   'path' => path,
+                   'name' => name,
+                   'alt'  => alt
+            ) AS media_array
+
+            /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
+
+            , JSON_OBJECT(
+                   'path' , path,
+                   'name' , name,
+                   'alt'  , alt
+            ) AS media_array_original
+
+            FROM images
+
           </code></pre>
 
          <i class=\"tab text-success\">\"</i> , <i class=\"text-info\">array</i>(
@@ -743,39 +788,9 @@ class VSQL {
     </html>
 
     ";
-
-    // $_ENV["vsql_servername"] = "172.17.0.2";
-    // $_ENV["vsql_username"] = "root";
-    // $_ENV["vsql_password"] = "dotravel";
-    // $_ENV["vsql_database"] = "dotravel";
-
-    // $vsql = new VSQL();
-    // $query = $vsql->query("SELECT
-    //   cat.*
-    //
-    //   , JSON_VSQL(
-    //       'path' => img_path,
-    //       'name' => img_name,
-    //       'alt'  => m.name
-    //   ) AS media
-    //
-    //   , JRAY_VSQL(
-    //       'path' => img_path,
-    //       'name' => img_name,
-    //       'alt'  => m.name
-    //   ) AS media_array
-    //
-    //   FROM categories cat
-    //   INNER JOIN `category_meta` AS m on cat.id = m.id_category
-    //
-    // ", array(), "dump_get" );
-    //
-    //
-    // $vsql->get();
-
   }
 
-  // ------------------------------------------------ <  _duplex > -----------------------------------------------------
+// ------------------------------------------------ <  _duplex > -------------------------------------------------------
   private function _duplex($from, $needle , $addslashes = true) {
       $array = $this->_tvar($from);
 
@@ -792,4 +807,55 @@ class VSQL {
       return null;
   }
 
+//------------------------------------------------ <  makemodel > ------------------------------------------------------
+  public function _mkfunction( $table, $fun ){
+
+    $this->query("
+      SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database>
+    ", array('tb' => $table) );
+
+    $vals = $this->get(true);
+
+    switch ($fun) {
+      case 'select':
+        $this->_sel($vals ,$table);
+        break;
+
+    }
+
+    var_dump($vals);
+    die;
+  }
+
+  private function _sel($vals, $table){
+
+    $sW = [];
+    foreach ($vals as $key => $value) {
+      $sl[] = "\n\t`$value->Field`";
+      $sW[] = " \n\t{{ AND `$value->Field` = <:$value->Field> }}";
+    }
+
+    $this->_error_msg("<strong>SELECT</strong><br><code class='php'>
+    public static function get( array \$arr, \$list = false)  {
+      \$vsql = new VSQL();
+
+      \$vsql->query(\"SELECT ".implode($sl,',')."
+      FROM $table WHERE TRUE".implode($sW,',')."
+    \")
+    }
+
+    return \$vsql->get(\$list);
+    </code>");
+  }
+
+
 }
+
+$_ENV["vsql_servername"] = "172.17.0.2";
+$_ENV["vsql_username"] = "root";
+$_ENV["vsql_password"] = "dotravel";
+$_ENV["vsql_database"] = "dotravel";
+
+$v = new VSQL();
+
+$v->_mkfunction("category_meta",'select');
