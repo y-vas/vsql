@@ -697,8 +697,14 @@ class VSQL {
             /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
             /*  <b>'!'</b> forces value to be used basically */
             AND  `id` = <&#33;:id>
-            /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
-         {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
+
+           /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
+           {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
+
+           /* if the section delimited by <b>{{ }}</b> has a some tag will only appear if the tag is set */
+           /* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
+           {{tag:id: AND `status` = 1 }}
+
             /* <b>@ or @T or @t</b> simbols will fetch a value from the inserted tags */
             AND `model` = <@:model>
             /* <b>@e or @E</b> //simbols will fetch a value from the \$_ENV Superglobal Variable */
@@ -870,48 +876,4 @@ class VSQL {
     </code>");
   }
 
-
 }
-
-$_ENV["vsql_servername"] = "172.17.0.2";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "dotravel";
-$_ENV["vsql_database"] = "dotravel";
-
-$v = new VSQL();
-
-$v->query("SELECT
-cat.*
-
-, JSON_VSQL(
-    'path' => img_path,
-    'name' => img_name,
-    'alt'  => m.name
-) AS media
-
-{{tag:, JSON_VSQL(
-    'title'       => m.seo_title,
-    'description' => m.seo_description,
-    'keywords'    => m.seo_keywords,
-    'url'         => m.seo_url
-) AS seo }}
-
-, m.description
-
-FROM categories cat
-INNER JOIN `category_meta` AS m on cat.id = m.id_category
-WHERE TRUE
-
-{{ AND cat.`id`               = <i:id>              }}
-{{ AND cat.`img_path`         = <:img_path>         }}
-{{ AND cat.`img_name`         = <:img_name>         }}
-{{ AND cat.`type`             = <:type>             }}
-{{ AND cat.`status`           = <:status>           }}
-
-{{tag: ORDER BY <:order_by> }}
-{{ LIMIT <i:limit> {{, <i:limit_end> }} }}
-{{ OFFSET <i:offset> }}",array(
-  'order_by'=>1,
-  // 'tag'=>true,
-
-),"debug");
