@@ -22,8 +22,7 @@ class VSQL {
   private $trows_exteption = true;
   private $concat_name = false;
   private $_transformed = array();
-
-//------------------------------------------------ <  __construct > ----------------------------------------------------
+//------------------------------------------------ <  _construct > -----------------------------------------------------
   function __construct($id = "") {
       if(!empty($id)){
           $con = null;
@@ -157,7 +156,8 @@ class VSQL {
 
     switch ($debug) {
       case 'show':
-        $this->_error_msg("DEBUG");
+      case 'debug':
+        $this->_error_msg(" DEBUG ");
         break;
 
       case 'dump_get':
@@ -280,16 +280,33 @@ class VSQL {
 
 //------------------------------------------------ <  _quote_check > ---------------------------------------------------
   private function _quote_check(string $query_string) : string {
-    preg_match_all("!{{([^]*?\X*?[^{{]*?)}}!", $query_string, $match_brakets);
+    preg_match_all("!{{([\w*?:]*)([^]*?\X*?[^{{]*?)}}!", $query_string, $match_brakets);
 
     while (count($match_brakets[0]) != 0) {
 
-      foreach ($match_brakets[1] as $key => $value) {
+      foreach ($match_brakets[2] as $key => $value) {
+
+        $tags = explode(':',$match_brakets[1][$key]);
+        if (count($tags) > 1) {
+          $show = false;
+
+          foreach ($tags as $h => $t) {
+            if(isset($this->query_vars[$t])){
+              $show = true;
+              break;
+            }
+          }
+
+          if ($show == false) {
+            $value = "";
+          }
+        }
+
         $res = $this->_var_transform($value , true);
         $query_string = str_replace($match_brakets[0][$key], $res, $query_string);
       }
 
-      preg_match_all("!{{([^]*?\X*?[^{{]*?)}}!", $query_string, $match_brakets);
+      preg_match_all("!{{([\w*?:]*)([^]*?\X*?[^{{]*?)}}!", $query_string, $match_brakets);
     }
 
     return $query_string;
@@ -830,35 +847,71 @@ class VSQL {
   private function _sel($vals, $table){
     $sW = [];
     $sl = [];
-    foreach ($vals as $key => $value) {
-      $rp = str_repeat(" ",15 - strlen($value->Field));
 
+    foreach ($vals as $key => $value) {
+      $rp = str_repeat(" ",20 - strlen($value->Field));
       $sl[] = "\n\t`$value->Field`";
       $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field> $rp}}";
     }
 
-    $this->_error_msg("<strong>SELECT</strong><br><code class='php'>
+    $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" .
+    htmlentities("
     public static function get( array \$arr, \$list = false)  {
       \$vsql = new VSQL();
 
       \$vsql->query(\"SELECT ".implode($sl,',')."
       FROM $table WHERE TRUE".implode($sW,',')."
       {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
-    \")
+    \");
+      return \$vsql->get(\$list);
     }
+    ")."
 
-    return \$vsql->get(\$list);
     </code>");
   }
 
 
 }
 
-// $_ENV["vsql_servername"] = "172.17.0.2";
-// $_ENV["vsql_username"] = "root";
-// $_ENV["vsql_password"] = "dotravel";
-// $_ENV["vsql_database"] = "dotravel";
-//
-// $v = new VSQL();
-//
-// $v->query("",array(),"mk_funk:category_meta:select");
+$_ENV["vsql_servername"] = "172.17.0.2";
+$_ENV["vsql_username"] = "root";
+$_ENV["vsql_password"] = "dotravel";
+$_ENV["vsql_database"] = "dotravel";
+
+$v = new VSQL();
+
+$v->query("SELECT
+cat.*
+
+, JSON_VSQL(
+    'path' => img_path,
+    'name' => img_name,
+    'alt'  => m.name
+) AS media
+
+{{tag:, JSON_VSQL(
+    'title'       => m.seo_title,
+    'description' => m.seo_description,
+    'keywords'    => m.seo_keywords,
+    'url'         => m.seo_url
+) AS seo }}
+
+, m.description
+
+FROM categories cat
+INNER JOIN `category_meta` AS m on cat.id = m.id_category
+WHERE TRUE
+
+{{ AND cat.`id`               = <i:id>              }}
+{{ AND cat.`img_path`         = <:img_path>         }}
+{{ AND cat.`img_name`         = <:img_name>         }}
+{{ AND cat.`type`             = <:type>             }}
+{{ AND cat.`status`           = <:status>           }}
+
+{{tag: ORDER BY <:order_by> }}
+{{ LIMIT <i:limit> {{, <i:limit_end> }} }}
+{{ OFFSET <i:offset> }}",array(
+  'order_by'=>1,
+  // 'tag'=>true,
+
+),"debug");
