@@ -824,6 +824,7 @@ class VSQL {
         $this->_sel($vals ,$table);
         break;
     }
+
   }
 
   private function _sel($vals, $table){
