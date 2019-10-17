@@ -280,7 +280,7 @@ class VSQL {
 
 //------------------------------------------------ <  _quote_check > ---------------------------------------------------
   private function _quote_check(string $query_string) : string {
-    preg_match_all("!{{([\w*?:]*)([^]*?\X*?[^{{]*?)}}!", $query_string, $match_brakets);
+    preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
     while (count($match_brakets[0]) != 0) {
 
@@ -306,7 +306,7 @@ class VSQL {
         $query_string = str_replace($match_brakets[0][$key], $res, $query_string);
       }
 
-      preg_match_all("!{{([\w*?:]*)([^]*?\X*?[^{{]*?)}}!", $query_string, $match_brakets);
+      preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
     }
 
     return $query_string;
