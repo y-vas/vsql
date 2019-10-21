@@ -178,111 +178,44 @@ class VSQL {
 
 //------------------------------------------------ <  _find_objects > --------------------------------------------------
   private function _find_objects($query_string){
+    preg_match_all('!(\w*?)_VSQL\(([^\(\)]+)\)(?:\s*?\s*\w{2}\s*(.*)\s*)?!', $query_string, $match );
 
+    while (count($match[0]) != 0) {
 
-    foreach ( $this->_btwn($query_string) as $key => $found ){
-      $obj = 'VSQL' . $found;
-
-      $re = "!(\w*?)_\Q$obj\E\s*?\s*\w{2}\s*(.*)\s*!";
-      preg_match_all($re, $query_string, $match);
-
-      if (strpos($query_string, $obj) !== false) {
-          $var = preg_replace('![^<](=>)!', ',' , $found );
-
-          $req = array("JSON",'TOJSON','JRAY');
-
-          if(empty($match[1][0]) && in_array($match[1][0], $req)){
-            $this->_error_msg("IS NOT AN VSQL OBJECT : <br> <code class=\"sql\"> $obj</code>");
-          }
-
-          if(empty($match[2][0]) && in_array($match[1][0], $req)){
-            $this->_error_msg("OBJECT DOESN'T HAVE A NAME:
-            <br> <code class=\"sql\"> " . $match[1][0] .
-            "_" . "$obj /* add AS example_name */ </code>");
-          }
-
-          switch ($match[1][0]) {
-
-            case 'JSON':
-              $query_string = str_replace( $match[1][0]. "_" . $obj , 'JSON_OBJECT' . $var , $query_string );
-              $this->_transformed[$match[2][0]] = ['json'];
-              break;
-
-            case 'TOSTD':
-              $query_string = str_replace( "TOSTD_" . $obj , $var , $query_string );
-              $this->_transformed[$match[2][0]] = ['json_child'];
-              break;
-
-            case 'STD':
-              $nobj = substr($var, 1);
-              $nobj = substr_replace($nobj ,"",-1);
-
-              $query_string = str_replace( $match[1][0]. "_" . $obj ,"
-
-              -- STD <<<<<<<<
-              CONCAT('[', GROUP_CONCAT( JSON_OBJECT(
-
-                $nobj
-
-              ) SEPARATOR ',') , ']')
-              -- STD >>>>>>>>
-
-              " , $query_string );
-
-              if(!empty($match[2][0])){
-                $this->_transformed[$match[2][0]] = ['json_child'];
-              }
-
-              break;
-
-            case 'JRAY':
-              $query_string = str_replace( $match[1][0]. "_" . $obj , 'JSON_OBJECT' . $var , $query_string );
-              $this->_transformed[$match[2][0]] = ['json_array'];
-              break;
-
-          }
-
+      foreach ($match[2] as $key => $value) {
+        $replace = $this->_vsql_function($match[1][$key],$match[2][$key],$match[3][$key]);
+        $query_string = str_replace($match[0][$key], $replace , $query_string);
       }
 
-    }
-
-    preg_match_all('!_VSQL\(!', $query_string, $match);
-    if(count($match[0]) > 0){
-      $query_string = $this->_find_objects($query_string);
+      preg_match_all("!(\w*?)_VSQL\(([^\(\)]+)\)(?:\s*?\s*\w{2}\s*(.*)\s*)?!", $query_string, $match);
     }
 
     return $query_string;
   }
 
-//------------------------------------------------ <  _btwn > ----------------------------------------------------------
- private function _btwn($str){
-    $arr = [];
 
-    // the order of the things can alter the result
-    preg_match_all('!\(([^\(\)]+)\)!', $str, $match );
+  private function _vsql_function($func, $vals, $name){
 
-    while (count($match[0]) != 0) {
-      preg_match_all('!\(([^\(\)]+)\)!', $str, $match );
-
-      foreach ($match[0] as $key => $value) {
-        $num = rand(500, 10000000000);
-        $arr["$num"] = $value;
-        $str = str_replace($value,"<:$num>", $str);
+      $lname = "";
+      if (!empty($name)) {
+        $lname = " AS $name \n\n";
       }
 
-    }
+      $vals = preg_replace('![^<](=>)!', ',' , $vals );
 
-    foreach ($arr as $key => $value) {
-      preg_match_all('!<:(.*?)>!', $value, $match);
+      switch ($func) {
+        case 'STD':
+          $this->_transformed[$name] = ['json'];
+          return 'JSON_OBJECT(' . $vals . ')'. $lname;
+          break;
 
-      foreach ($match[0] as $kk => $tr) {
-        $arr[$key] = str_replace($tr,$arr[$match[1][$kk]], $arr[$key]);
+        case 'ARRAY':
+          $this->_transformed[$name] = ['array'];
+          return 'JSON_OBJECT(' . $vals . ')'. $lname;
+          break;
       }
 
-    }
-
-
-    return array_reverse($arr);
+    return  "";
   }
 
 //------------------------------------------------ <  _var_transform > -------------------------------------------------
@@ -649,40 +582,14 @@ class VSQL {
       case 'json':
         return (object) json_decode(utf8_decode($val),true);
 
-      case 'json_array':
+      case 'array':
         return json_decode(utf8_decode($val),true);
 
-      case 'json_child':
-        return $this->jodecode($val);
     }
 
     return $val;
   }
 
-// ------------------------------------------------ <  _show_example > -------------------------------------------------
-  public function jodecode($val){
-
-    $decoded = NULL;
-
-    if(is_string($val)){
-      if(empty($val)){return "";}
-      $decoded = json_decode(utf8_decode($val),true);
-    }
-
-    if ($decoded != NULL) {
-      echo "DECODING";
-      echo "<HR>";
-      foreach ($decoded as $key => $value) {
-        $value = $this->jodecode($value);
-      }
-    }
-
-    echo "{{{    ";
-    var_dump($decoded);
-    echo "}}}<HR>";
-
-    return $decoded;
-  }
 // ------------------------------------------------ <  _show_example > -------------------------------------------------
   public function _show_example($error = "") {
     echo "
@@ -959,30 +866,3 @@ class VSQL {
   }
 
 }
-
-$_ENV["vsql_servername"] = "172.17.0.2";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "dotravel";
-$_ENV["vsql_database"] = "dotravel";
-
-$vsql = new VSQL();
-
-$query = $vsql->query("SELECT
-  id,
-  TOSTD_VSQL( SELECT STD_VSQL(
-        'id'             => s.id ,
-        'item' => ( SELECT STD_VSQL(
-                   'id'           => id ,
-                   'content' => '{1,2}'
-            ) FROM items WHERE id_section = s.id limit 1
-         )
-
-    ) FROM section s WHERE s.id_article = art.id limit 1
-
-  ) AS sect
-
-  FROM articulos AS art
-
-", []);
-
-var_dump($vsql->get());
