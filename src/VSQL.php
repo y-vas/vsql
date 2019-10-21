@@ -195,7 +195,6 @@ class VSQL {
 
 
   private function _vsql_function($func, $vals, $name){
-
       $lname = "";
       if (!empty($name)) {
         $lname = " AS $name \n\n";
