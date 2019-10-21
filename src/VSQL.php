@@ -213,6 +213,16 @@ class VSQL {
           $this->_transformed[$name] = ['array'];
           return 'JSON_OBJECT(' . $vals . ')'. $lname;
           break;
+
+        case 'TO_STD':
+          $this->_transformed[$name] = ['json'];
+          return '(' . $vals . ')'. $lname;
+          break;
+
+        case 'TO_ARRAY':
+          $this->_transformed[$name] = ['array'];
+          return '(' . $vals . ')'. $lname;
+          break;
       }
 
     return  "";
