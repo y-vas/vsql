@@ -20,39 +20,37 @@ class VSQL {
   private $query_vars = array();
   private $query_string = "";
   private $query_original = "";
-  private $trows_exteption = true;
+  private $trows_exteption = "default";
   private $concat_name = false;
   private $_transformed = array();
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-  function __construct($id = "") {
-      if(!empty($id)){
-          $con = null;
-          if (!empty($_ENV["vsql_db_$id"])) {
-            $con = $_ENV["vsql_db_$id"];
-          }else {
-            $con = VSQL::save($id);
-          }
-          $this->CONN = $con->CONN;
-          $this->trows_exteption = $con->trows_exteption;
-          $this->is_transaction = $con->is_transaction;
-          return;
+  function __construct($id = "", $exception = "default") {
+
+    $this->trows_exteption = $exception;
+
+    foreach (array('servername','username','password','database') as $value) {
+      if (!isset($_ENV["vsql_".$value])) {
+        $this->_error_msg("Enviroment value < \$_ENV['vsql_".$value."'] > is not set!");
+      }
+    }
+
+    if(!empty($id)){
+      if (empty($_ENV["vsql_db_$id"])) {
+        $_ENV["vsql_db_$id"] = self::_conn();
       }
 
-      foreach (array('servername','username','password','database') as $value) {
-        if (!isset($_ENV["vsql_".$value])) {
-          $this->_error_msg("Enviroment value < \$_ENV['vsql_".$value."'] > is not set!");
-        }
-      }
-
+      $this->CONN = $_ENV["vsql_db_$id"];
+    }else {
       $this->CONN = self::_conn();
+    }
 
-      if ($this->CONN->connect_errno) {
+    if ($this->CONN->connect_errno) {
+      $this->_error_msg("Connection Fail: (" .
+                   $this->CONN->connect_errno
+          . ") " . $this->CONN->connect_error
+      );
+    }
 
-        $this->_error_msg("Connection Fail: (" .
-                 $this->CONN->connect_errno
-        . ") " . $this->CONN->connect_error);
-
-      }
   }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
@@ -63,20 +61,6 @@ class VSQL {
         $_ENV["vsql_password"],
         $_ENV["vsql_database"]
     );
-  }
-
-//------------------------------------------------ <  trow_exceptions > ------------------------------------------------
-  public function config(array $arr) {
-    $this->trows_exteption = !isset($arr["exceptions"]) ? true   : $arr["exceptions"];
-    $this->concat_name     = !isset($arr["concat_name"]) ? false : $arr["concat_name"];
-  }
-
-//------------------------------------------------ <  store > ----------------------------------------------------------
-  public static function save(string $var,  $config = array()) : VSQL {
-    $CONN = new VSQL();
-    $CONN->config($config);
-    $_ENV["vsql_db_$var"] = $CONN;
-    return $CONN;
   }
 
 //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
@@ -121,8 +105,16 @@ class VSQL {
   }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
   public function _error_msg($error_msg) {
-    self::_show_example("<div>".$error_msg."</div>");
-    die();
+
+    if ($this->trows_exteption == 'pretty') {
+      self::_show_example("<div>".$error_msg."</div>");
+    }
+
+    if ($this->trows_exteption == 'default') {
+      throw new \Exception("Error :" . $error_msg );
+    }
+
+    throw new ExVSQL("Error :". $error_msg);
   }
 
 //------------------------------------------------ <  global_scope > ---------------------------------------------------
@@ -193,7 +185,7 @@ class VSQL {
     return $query_string;
   }
 
-
+//------------------------------------------------ <  _vsql_function > -------------------------------------------------
   private function _vsql_function($func, $vals, $name){
       $lname = "";
       if (!empty($name)) {
@@ -239,10 +231,6 @@ class VSQL {
 
       if ($var == null) {
         if ($not_null == "!") {
-
-          if ($this->trows_exteption) {
-            throw new ExVSQL("$var_key field is empty!", 1);
-          }
 
           $this->_error_msg("$var_key key resulted in null!");
         }
@@ -512,10 +500,8 @@ class VSQL {
       $obj = $this->_fetch_row($result, $proceso);
     };
 
-    if(mysqli_error($mysqli) && $this->trows_exteption){
+    if(mysqli_error($mysqli)){
       $this->_error_msg(mysqli_error($mysqli));
-    }else {
-      $_ENV['VSQL_LOGS'][] = mysqli_error($mysqli);
     }
 
     return $obj;
@@ -848,6 +834,7 @@ class VSQL {
 
   }
 
+//------------------------------------------------ <  makemodel > ------------------------------------------------------
   private function _sel($vals, $table){
     $sW = [];
     $sl = [];
@@ -875,3 +862,5 @@ class VSQL {
   }
 
 }
+
+$vs = new VSQL('AAA','pretty');
