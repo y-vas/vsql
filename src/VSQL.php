@@ -130,6 +130,13 @@ class VSQL {
     $this->query_string = $query_string;
 
     $query_string = $this->_find_objects($query_string);
+
+    // echo "<textarea>";
+    // var_dump($this->query_vars);
+    // echo $query_string;
+    // echo "</textarea>";
+    // die;
+
     $query_string = $this->_quote_check($query_string);
     $query_string = $this->_var_transform($query_string);
     $this->query_string = $query_string;
@@ -185,7 +192,7 @@ class VSQL {
         $str = $str . $lt;
       }
 
-      preg_match_all('!(\w*?)_VSQL\(\Q' .$str. '\E\)(?:\s*?\s*\w{2}\s*(.*)\s*)?!', $query_string, $match );
+      preg_match_all('!(\w*?)_VSQL\(\Q' .$str. '\E\)(?:\s*?\s*\w{2}\s*(\w*)\s*)?!', $query_string, $match );
 
       foreach ($match[2] as $key => $value) {
         $replace = $this->_vsql_function($match[1][$key],$str,$match[2][$key]);
@@ -200,7 +207,6 @@ class VSQL {
 
 //------------------------------------------------ <  _vsql_function > -------------------------------------------------
   private function _vsql_function($func, $vals, $name){
-    
       $lname = "";
       if (!empty($name)) {
         $lname = " AS $name \n\n";
@@ -565,6 +571,8 @@ class VSQL {
         246 =>array('decimal','float')
     );
 
+
+
     $dt_str = "string";
     if (isset($mysql_data_type_hash[$datatype][1])){
       $dt_str = $mysql_data_type_hash[$datatype][1];
@@ -573,8 +581,7 @@ class VSQL {
     settype($val, $dt_str);
 
     foreach ($this->_transformed as $k => $value) {
-      if($key == $k){
-
+      if(trim($key) == trim($k)){
         foreach ($value as $t => $tr) {
           $val = $this->_transform($tr,$val);
         }
@@ -876,4 +883,73 @@ class VSQL {
     </code>");
   }
 
+//------------------------------------------------ <  _cache > ---------------------------------------------------------
+  private function _cache(){
+
+  }
+
 }
+
+// $_ENV["vsql_servername"] = "172.17.0.2";
+// $_ENV["vsql_username"] = "root";
+// $_ENV["vsql_password"] = "dotravel";
+// $_ENV["vsql_database"] = "dotravel";
+//
+// $vsql = new VSQL('','pretty');
+// $dataType = '';
+// $_COOKIE['id_language'] = 1;
+//
+// $vsql->query("SELECT
+// STD_VSQL(
+//     'type__id' => type.id,
+//     'type__name' => type.name
+// ) AS destination{$dataType}__type,
+// STD_VSQL(
+//     'media__id'   => 0,
+//     'media__path' => d.img_path,
+//     'media__name' => d.img_name,
+//     'media__alt'  => m.img_alt
+// ) AS destination{$dataType}__media,
+// STD_VSQL(
+//     'seo__id'          => 0,
+//     'seo__title'       => m.seo_title,
+//     'seo__description' => m.seo_description,
+//     'seo__keywords'    => m.seo_keywords,
+//     'seo__url'         => m.seo_url
+// ) AS destination{$dataType}__seo,
+// m.name AS destination{$dataType}__name,
+// m.summary AS destination{$dataType}__summary,
+// m.description AS destination{$dataType}__description,
+// (SELECT count(*) FROM product_destination pd WHERE id_destination = d.id) AS destination{$dataType}__n_experiences
+//
+// FROM `destinations` AS d
+// INNER JOIN `destination_meta` AS m ON d.id = m.id_destination
+// INNER JOIN `type` ON type.id = d.type
+//
+// {{ INNER JOIN destination_parent dp ON d.id = dp.id_child AND dp.id_parent = <:id_parent> }}
+// {{ INNER JOIN destination_parent dp ON dp.id_child = d.id
+//  INNER JOIN destination_parent dpc ON dp.id_parent = dpc.id_child AND dpc.id_parent = <:id_grandparent> }}
+//
+// WHERE TRUE
+//
+// {{ AND d.`id`              = <i:id> }}
+// {{ AND d.`type`            = <i:type> }}
+// {{ AND d.`type` = (SELECT id from `type` t where t.group = 'destinations_type' and t.`name` = <s:type_like> ) }}
+// {{ AND d.`img_path`        = <s:img_path> }}
+// {{ AND d.`img_name`        = <s:img_name> }}
+// {{ AND d.`status`          = <i:status> }}
+// {{ AND d.`status`          = ( SELECT id FROM status WHERE name = <s:status_name> ) }}
+// {{ AND m.`name`            = <s:name> }}
+// {{ AND m.`description`     = <s:description> }}
+// {{ AND m.`summary`         = <s:summary>   }}
+// {{ AND m.`seo_title`       = <s:seo_title> }}
+// {{ AND m.`seo_description` = <s:seo_description> }}
+// {{ AND m.`seo_keywords`    = <s:seo_keywords> }}
+// {{ AND m.`seo_url`         = <s:seo_url> }}
+// {{ AND m.`img_alt`         = <s:img_alt> }}
+//
+//
+// AND m.`id_language`       = <@C!:id_language>
+// {{ AND (select count(dp.id_child) from destination_parent dp where d.id = dp.id_parent and dp.id_child = <i:id_child>) > 0 }}
+// {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
+// ", array(), 'dump_get' );
