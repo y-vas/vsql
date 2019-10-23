@@ -35,6 +35,7 @@ class VSQL {
     }
 
     if(!empty($id)){
+
       if (empty($_ENV["vsql_db_$id"])) {
         $_ENV["vsql_db_$id"] = self::_conn();
       }
@@ -64,45 +65,44 @@ class VSQL {
   }
 
 //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
-  public static function START_TRANSACTION(string $var, $config = array()) : VSQL {
-
-    if(!empty($_ENV["vsql_db_$var"])){
-      return $_ENV["vsql_db_$var"];
-    }
-
-    $CONN = new VSQL();
-    $config["exceptions"] = !isset($config["exceptions"]) ? false   : $config["exceptions"];
-    $CONN->config($config);
-    $CONN->is_transaction = true;
-    $CONN->query("START TRANSACTION;", array() );
-    $CONN->run();
-
-    $_ENV["vsql_db_$var"] = $CONN;
-    return $CONN;
-  }
-
-  public static function END_TRANSACTION($name, $show = false)  : bool {
-
-    $vsql = new VSQL($name);
-
-    $yep = true;
-    $err = "";
-    foreach ($_ENV['VSQL_LOGS'] as $key => $value) {
-      if ($show) { $err = "<br>" . $value . "<br>". $err; }
-      if (!empty($value)) { $yep = false; }
-    }
-
-    if ($show && !$yep) {
-      $vsql->_error_msg( $err );
-    }
-
-    $vsql->query("COMMIT;", array() );
-    $vsql->run();
-
-    $_ENV["vsql_db_$name"] = null;
-
-    return $yep;
-  }
+  // public static function START_TRANSACTION(string $var, $config = array()) : VSQL {
+  //
+  //   if(!empty($_ENV["vsql_db_$var"])){
+  //     return $_ENV["vsql_db_$var"];
+  //   }
+  //
+  //   $CONN = new VSQL();
+  //   $config["exceptions"] = !isset($config["exceptions"]) ? false   : $config["exceptions"];
+  //   $CONN->config($config);
+  //   $CONN->is_transaction = true;
+  //   $CONN->query("START TRANSACTION;", array() );
+  //   $CONN->run();
+  //
+  //   $_ENV["vsql_db_$var"] = $CONN;
+  //   return $CONN;
+  // }
+  // public static function END_TRANSACTION($name, $show = false)  : bool {
+  //
+  //   $vsql = new VSQL($name);
+  //
+  //   $yep = true;
+  //   $err = "";
+  //   foreach ($_ENV['VSQL_LOGS'] as $key => $value) {
+  //     if ($show) { $err = "<br>" . $value . "<br>". $err; }
+  //     if (!empty($value)) { $yep = false; }
+  //   }
+  //
+  //   if ($show && !$yep) {
+  //     $vsql->_error_msg( $err );
+  //   }
+  //
+  //   $vsql->query("COMMIT;", array() );
+  //   $vsql->run();
+  //
+  //   $_ENV["vsql_db_$name"] = null;
+  //
+  //   return $yep;
+  // }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
   public function _error_msg($error_msg) {
 
@@ -141,6 +141,7 @@ class VSQL {
 
 //------------------------------------------------ <  _inspect > -------------------------------------------------------
   private function _inspect($debug){
+    $this->trows_exteption = "pretty";
 
     $extra = '';
     if (strpos($debug, ':') !== false){
@@ -170,16 +171,28 @@ class VSQL {
 
 //------------------------------------------------ <  _find_objects > --------------------------------------------------
   private function _find_objects($query_string){
-    preg_match_all('!(\w*?)_VSQL\(([^\(\)]+)\)(?:\s*?\s*\w{2}\s*(.*)\s*)?!', $query_string, $match );
+    preg_match_all('!(\w*?)_VSQL\((\X*)!', $query_string, $match );
 
     while (count($match[0]) != 0) {
 
+      $ad = 1;
+      $str = "";
+      for ($l=0; $l < strlen($match[2][0]); $l++) {
+        $lt = $match[2][0][$l];
+        if ($ad == 0){ $str = substr($str, 0, -1); break; }
+        if ($lt == ")"){ $ad--; }
+        if ($lt == "("){ $ad++; }
+        $str = $str . $lt;
+      }
+
+      preg_match_all('!(\w*?)_VSQL\(\Q' .$str. '\E\)(?:\s*?\s*\w{2}\s*(.*)\s*)?!', $query_string, $match );
+
       foreach ($match[2] as $key => $value) {
-        $replace = $this->_vsql_function($match[1][$key],$match[2][$key],$match[3][$key]);
+        $replace = $this->_vsql_function($match[1][$key],$str,$match[2][$key]);
         $query_string = str_replace($match[0][$key], $replace , $query_string);
       }
 
-      preg_match_all("!(\w*?)_VSQL\(([^\(\)]+)\)(?:\s*?\s*\w{2}\s*(.*)\s*)?!", $query_string, $match);
+      preg_match_all("!(\w*?)_VSQL\((\X*)!", $query_string, $match);
     }
 
     return $query_string;
@@ -230,14 +243,15 @@ class VSQL {
       $var = $this->_convert_var($simbol, $var_key);
 
       if ($var == null) {
-        if ($not_null == "!") {
 
+        if ($not_null == "!") {
           $this->_error_msg("$var_key key resulted in null!");
         }
 
         if ($return_empty_if_has_null_values) {
           return "";
         }
+
       }
 
       $query_string = str_replace($match[0][$key], $var, $query_string);
@@ -863,4 +877,82 @@ class VSQL {
 
 }
 
-$vs = new VSQL('AAA','pretty');
+$_ENV["vsql_servername"] = "172.17.0.2";
+$_ENV["vsql_username"] = "root";
+$_ENV["vsql_password"] = "dotravel";
+$_ENV["vsql_database"] = "dotravel";
+
+$vsql = new VSQL('','pretty');
+
+$vsql->query(" SELECT
+
+  product_type
+  , TRIM(( SELECT  metavalue FROM product_meta where id_product = p.id and metaname = 'summary' and id_language = 1 limit 1 )) as summary
+
+  ,STD_VSQL(
+      'from' => p.durationfrom_min,
+      'to'   => p.durationto_min,
+      'type' => ( SELECT metavalue FROM product_meta where id_product = p.id and metaname = 'typeHour' and id_language = 1 limit 1 )
+   ) AS duration
+
+  , show_order
+  , (SELECT seo_url FROM seo where id_product = p.id and id_language = 1 ) as seoUrl
+  , IFNULL(r.n_ratings, 0 ) AS n_ratings
+  , IFNULL(r.average_overall_rating, 0 ) AS average_overall_rating
+
+  ,TO_STD_VSQL(lg.arraylang) AS languages
+
+  ,prc.price
+  ,prc.price_offer
+
+  ,TO_STD_VSQL(SELECT JSON_OBJECT(
+        'path' => CONCAT( path, name ),
+        'name' => ( SELECT metavalue FROM product_meta where id_product = p.id and metaname = 'title' and id_language = 1 limit 1 ) ,
+        'alt'  => alt
+    ) FROM product_photos	WHERE id_product = p.id ORDER BY show_order LIMIT 1
+  ) AS media
+
+  , IFNULL((SELECT CONCAT('[', GROUP_CONCAT(id_label),']') FROM label_products WHERE id_product = p.id),'[]') as labels
+
+FROM products p
+
+LEFT JOIN (
+  SELECT
+  ( SELECT id_product FROM sub_product where id = pp.id_subproduct and id_language = 1 limit 1 ) as id_product
+  ,price
+  ,IFNULL((SELECT offer_price FROM product_priceoffer where id_productprice = pp.id limit 1),0) as price_offer
+  FROM product_prices pp
+  ORDER BY id_agegroup
+) AS prc on prc.id_product = p.id
+
+LEFT JOIN (
+  SELECT r.id_product,
+  COUNT( r.id_product ) AS n_ratings,
+  SUM( r.rating_overall ) / COUNT( r.id_product ) AS average_overall_rating
+  FROM reviews r GROUP BY r.id_product
+) AS r ON r.id_product = p.id
+
+LEFT JOIN (
+ SELECT
+  pm.id_product,
+  CONCAT('{', GROUP_CONCAT(DISTINCT JSON_OBJECT('id',l.id,'name',l.name,'short',l.short) separator ',') ,'}' ) AS arraylang
+ FROM product_meta pm
+ INNER JOIN languages l on l.id =  pm.id_language
+ GROUP BY id_product
+) AS lg ON lg.id_product = p.id
+
+WHERE TRUE
+{{ AND FIND_IN_SET(p.id, ( select GROUP_CONCAT(id_product) from product_category where id_category = <i:id_category> ) ) }}
+{{ AND p.`id`                  = <i:id_product> }}
+{{ AND p.`id_supplier`         = <i:id_supplier> }}
+{{ AND p.`city`                = <i:city> }}
+{{ AND p.`product_type`        = <i:product_type> }}
+{{ AND p.`booking_method`      = <s:booking_method> }}
+{{ AND p.`cutofftime_min`      = <s:cutofftime_min> }}
+{{ AND p.`durationfrom_min`    = <s:durationfrom_min> }}
+{{ AND p.`durationto_min`      = <s:durationto_min> }}
+{{ AND p.`show_order`          = <i:show_order> }}
+{{ AND p.`cancellation_method` = <s:cancellation_method> }}
+{{ AND p.`status`              = <i:status> }}
+{{ AND p.`status_booking`      = <s:status_booking> }}
+{{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}", array(), 'dump_get' );
