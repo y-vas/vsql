@@ -270,7 +270,7 @@ class VSQL {
   }
 
 //------------------------------------------------ <  _quote_check > ---------------------------------------------------
-  private function _quote_check(string $query_string) : string {
+  private function _quote_check(string $query_string, $cache = false ) : string {
     preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
     while (count($match_brakets[0]) != 0) {
@@ -278,10 +278,6 @@ class VSQL {
 
       foreach ($match_brakets[2] as $key => $value) {
 
-        echo $match_brakets[0][$key];
-        echo "<br>";
-        var_dump($match_brakets[2][$key]);
-        echo "<hr>";
 
         $tags = explode(':',$match_brakets[1][$key]);
         if (count($tags) > 1) {
@@ -298,12 +294,16 @@ class VSQL {
         }
 
         $res = $this->_var_transform($value , true);
+        if($cache && !empty($res)){
+          $res = $value;
+        }
         $query_string = str_replace($match_brakets[0][$key], $res, $query_string);
+
       }
 
       preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
     }
-    die;
+
 
     return $query_string;
   }
@@ -892,25 +892,33 @@ class VSQL {
 
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
   private function _cache($query_string){
+
+
+
     $query_string = $this->_find_objects($query_string);
-    $query_string = $this->_quote_check($query_string);
-    $query_string = $this->_var_transform($query_string);
-    $this->query_string = $query_string;
+    $query_string = $this->_quote_check($query_string, true);
 
 
 
 
-    echo "<textarea>";
+    echo "<textarea style='width:100%;height:100%;'>";
     var_dump($this->query_vars);
-    echo $query_string;
+    echo __DIR__;
+
+    $myfile = fopen(__DIR__."/newfile.txt", "w") or die("Unable to open file!");
+    $txt = "John Doe\n";
+    fwrite($myfile, $txt);
+    $txt = "Jane Doe\n";
+    fwrite($myfile, $txt);
+    fclose($myfile);
+    chmod($myfile, 0777)
+
+
     echo "</textarea>";
     die;
 
-
-
     return "1";
   }
-
 }
 
 $_ENV["vsql_servername"] = "172.17.0.2";
