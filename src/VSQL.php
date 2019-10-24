@@ -26,7 +26,7 @@ class VSQL {
   public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-  function __construct($id = "Test", $exception = "default") {
+  function __construct($id = "", $exception = "default") {
     $this->trows_exteption = $exception;
 
     foreach (array('servername','username','password','database') as $value) {
@@ -125,26 +125,23 @@ class VSQL {
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query(string $query_string, array $query_vars, $debug = "") : string {
-
     $this->query_original = $query_string;
     $this->query_vars = $query_vars;
     $this->query_string = $query_string;
 
-    $cache = $this->_cache($query_string);
+    $cache = $this->_cache();
 
     if(empty($cache)){
       $query_string = $this->_find_objects($query_string);
       $query_string = $this->_quote_check($query_string);
       $query_string = $this->_var_transform($query_string);
       $this->query_string = $query_string;
-
     }else {
-      $query_string = $cache;
-      $this->query_string = $cache;
+      $query_string = $this->_var_transform($cache);
+      $this->query_string = $query_string;
     }
 
     $this->_inspect($debug);
-
     return $query_string;
   }
 
@@ -274,7 +271,6 @@ class VSQL {
     preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
     while (count($match_brakets[0]) != 0) {
-
 
       foreach ($match_brakets[2] as $key => $value) {
 
@@ -630,15 +626,12 @@ class VSQL {
       <link rel=\"stylesheet\" href=\"//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css\">
       <script src=\"//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js\"></script>
       <script>hljs.initHighlightingOnLoad();</script>
-
     </head>
     <body>
 
-    <div class=\"jumbotron text-center\">
-      <h1>VSQL INFO</h1>
-    </div>
+    <div class=\"jumbotron text-center\"> <h1>VSQL INFO</h1> </div>
 
-    <div class=\"container\" style=\"line-height: 70%;\">
+    <div class=\"container\" style=\"line-height:70%;\">
 
       <h2>ERROR INFO</h2>
       <pre>$error</pre>
@@ -660,6 +653,10 @@ class VSQL {
           <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_username\"</b>] = <b class=\"text-success\">\"root\";</b></p>
           <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_password\"</b>] = <b class=\"text-success\">\"password\";</b></p>
           <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_database\"</b>] = <b class=\"text-success\">\"dotravel4\";</b></p>
+          <br>
+          <p> Use it if you want better performance </p>
+
+          <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_cache_dir\"</b>] = <b class=\"text-success\">\"/var/www/html/....\";</b></p>
         </div>
       </div>
       <div class=\"row\">
@@ -730,8 +727,7 @@ class VSQL {
             /* <b>json_get</b> ///will transorm the value to
             \"IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)\"
             */
-            AND  content_type = < json_get:img,content>
-            ;
+            AND  content_type = < json_get:img,content> ;
 
             /* MULTIPLE QUERYES ARE ALLOWED */
 
@@ -739,7 +735,7 @@ class VSQL {
             SELECT
             cat.*
 
-            , JSON_VSQL(
+            , STD_VSQL(
                    'path' => path,
                    'name' => name,
                    'alt'  => alt
@@ -891,96 +887,67 @@ class VSQL {
   }
 
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
-  private function _cache($query_string){
+  private function _cache(){
+    $query_string = $this->query_string;
 
 
+    if(empty($_ENV['vsql_cache_dir'])){
+      $this->_error_msg("The cache directory is not set : use \$ENV['vsql_cache_dir'] = '/var/www/html/vsql_cache'; to declare it!");
+    }
 
-    $query_string = $this->_find_objects($query_string);
-    $query_string = $this->_quote_check($query_string, true);
+    $filename = 'def';
+    $check_data = 0;
 
+    $e = new \Exception();
+    foreach ($e->getTrace() as $key => $value) {
+      if($value['function'] == 'query'){
+        $bodytag = str_replace(DIRECTORY_SEPARATOR, "",$value['file']);
+        $check_data = filemtime($value['file']);
+        $filename = $_ENV['vsql_cache_dir'] . DIRECTORY_SEPARATOR . $bodytag . '.json';
+        break;
+      }
+    }
 
+    if (!file_exists($filename)) {
+      /* if file cache don't exists we make a new one */
+      return $this->_save_json_cache($query_string, array(), $check_data, $filename);
+    } else {
+      /* if file exists we get the content */
+      $data = json_decode(utf8_decode(file_get_contents($filename)),true);
 
+      if(!isset($data[$this->id])){
+        /* if the id is not set in the file we add it */
+        return $this->_save_json_cache($query_string, $data, $check_data, $filename);
+      }else {
 
-    echo "<textarea style='width:100%;height:100%;'>";
-    var_dump($this->query_vars);
-    echo __DIR__;
+        /* if the id is set and the file has not been updated we return the query */
+        if ($data[$this->id]['last_cache_update'] == $check_data) {
+          return $data[$this->id]['sql'];
+        }
 
-    $myfile = fopen(__DIR__."/newfile.txt", "w") or die("Unable to open file!");
-    $txt = "John Doe\n";
-    fwrite($myfile, $txt);
-    $txt = "Jane Doe\n";
-    fwrite($myfile, $txt);
-    fclose($myfile);
-    chmod($myfile, 0777)
+        /* we update the query */
+        return $this->_save_json_cache($query_string, $data, $check_data, $filename);
+      }
+    }
 
-
-    echo "</textarea>";
-    die;
-
-    return "1";
+    return "";
   }
+
+//------------------------------------------- <  _save_json_cache > ----------------------------------------------------
+  private function _save_json_cache($query_string, $data, $date, $filename) {
+
+    $data[$this->id] = array(
+        'last_cache_update' => $date,
+        'sql'  => $this->_quote_check(
+                        $this->_find_objects($query_string)
+                , true)
+    );
+
+    $myfile = fopen($filename, "w");
+    fwrite($myfile, json_encode($data));
+    fclose($myfile);
+
+    return $data[$this->id]['sql'];
+  }
+
 }
-
-$_ENV["vsql_servername"] = "172.17.0.2";
-$_ENV["vsql_username"] = "root";
-$_ENV["vsql_password"] = "dotravel";
-$_ENV["vsql_database"] = "dotravel";
-
-$vsql = new VSQL('','pretty');
-$dataType = '';
-$_COOKIE['id_language'] = 1;
-
-$vsql->query("SELECT
-STD_VSQL(
-    'type__id' => type.id,
-    'type__name' => type.name
-) AS destination{$dataType}__type,
-STD_VSQL(
-    'media__id'   => 0,
-    'media__path' => d.img_path,
-    'media__name' => d.img_name,
-    'media__alt'  => m.img_alt
-) AS destination{$dataType}__media,
-STD_VSQL(
-    'seo__id'          => 0,
-    'seo__title'       => m.seo_title,
-    'seo__description' => m.seo_description,
-    'seo__keywords'    => m.seo_keywords,
-    'seo__url'         => m.seo_url
-) AS destination{$dataType}__seo,
-m.name AS destination{$dataType}__name,
-m.summary AS destination{$dataType}__summary,
-m.description AS destination{$dataType}__description,
-(SELECT count(*) FROM product_destination pd WHERE id_destination = d.id) AS destination{$dataType}__n_experiences
-
-FROM `destinations` AS d
-INNER JOIN `destination_meta` AS m ON d.id = m.id_destination
-INNER JOIN `type` ON type.id = d.type
-
-{{ INNER JOIN destination_parent dp ON d.id = dp.id_child AND dp.id_parent = <:id_parent> }}
-{{ INNER JOIN destination_parent dp ON dp.id_child = d.id
- INNER JOIN destination_parent dpc ON dp.id_parent = dpc.id_child AND dpc.id_parent = <:id_grandparent> }}
-
-WHERE TRUE
-
-{{ AND d.`id`              = <i:id> }}
-{{ AND d.`type`            = <i:type> }}
-{{ AND d.`type` = (SELECT id from `type` t where t.group = 'destinations_type' and t.`name` = <s:type_like> ) }}
-{{ AND d.`img_path`        = <s:img_path> }}
-{{ AND d.`img_name`        = <s:img_name> }}
-{{ AND d.`status`          = <i:status> }}
-{{ AND d.`status`          = ( SELECT id FROM status WHERE name = <s:status_name> ) }}
-{{ AND m.`name`            = <s:name> }}
-{{ AND m.`description`     = <s:description> }}
-{{ AND m.`summary`         = <s:summary>   }}
-{{ AND m.`seo_title`       = <s:seo_title> }}
-{{ AND m.`seo_description` = <s:seo_description> }}
-{{ AND m.`seo_keywords`    = <s:seo_keywords> }}
-{{ AND m.`seo_url`         = <s:seo_url> }}
-{{ AND m.`img_alt`         = <s:img_alt> }}
-
-
-AND m.`id_language`       = <@C!:id_language>
-{{ AND (select count(dp.id_child) from destination_parent dp where d.id = dp.id_parent and dp.id_child = <i:id_child>) > 0 }}
-{{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
-", array( "id" => 1230 ), 'dump_get' );
