@@ -475,7 +475,6 @@ class VSQL {
     if (mysqli_multi_query($mysqli, $this->query_string)) {
         if ($list) {
           do {
-
             if ($result = mysqli_store_result($mysqli)) {
 
               while ($proceso = mysqli_fetch_assoc($result)) {
@@ -484,6 +483,7 @@ class VSQL {
                 else { $obj->$nr = $rt; }
                 $nr ++;
               }
+
               mysqli_free_result($result);
             }
 
@@ -899,6 +899,9 @@ class VSQL {
   private function _cache(){
     $query_string = $this->query_string;
 
+    if (!file_exists($_ENV['vsql_cache_dir'])) {
+      mkdir($_ENV['vsql_cache_dir'], 0755, true);
+    }
 
     if(empty($_ENV['vsql_cache_dir'])){
       $this->_error_msg("The cache directory is not set : use \$ENV['vsql_cache_dir'] = '/var/www/html/vsql_cache'; to declare it!");
