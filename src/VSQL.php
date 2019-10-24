@@ -175,7 +175,7 @@ class VSQL {
     }
   }
 
-//------------------------------------------------ <  _find_objects > --------------------------------------------------
+//-------------------------------------------- <  _find_objects > ------------------------------------------------------
   private function _find_objects($query_string){
     preg_match_all('!(\w*?)_VSQL\((\X*)!', $query_string, $match );
 
@@ -204,7 +204,7 @@ class VSQL {
     return $query_string;
   }
 
-//------------------------------------------------ <  _vsql_function > -------------------------------------------------
+//-------------------------------------------- <  _vsql_function > -----------------------------------------------------
   private function _vsql_function($func, $vals, $name){
       $lname = "";
       if (!empty($name)) {
@@ -238,7 +238,7 @@ class VSQL {
     return  "";
   }
 
-//------------------------------------------------ <  _var_transform > -------------------------------------------------
+//------------------------------------------- <  _var_transform > ------------------------------------------------------
   private function _var_transform(string $query_string, $return_empty_if_has_null_values = false) : string {
     preg_match_all('!<(.*?)?(\!)?:(.*?)>!', $query_string, $match );
 
@@ -266,7 +266,7 @@ class VSQL {
     return $query_string;
   }
 
-//------------------------------------------------ <  _quote_check > ---------------------------------------------------
+//--------------------------------------------- <  _quote_check > ------------------------------------------------------
   private function _quote_check(string $query_string, $cache = false ) : string {
     preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
