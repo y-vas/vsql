@@ -461,19 +461,28 @@ class VSQL {
   }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-  public function get($list = false) {
+  public function get($list = false, $type = "array") {
     $mysqli = $this->CONN;
-    $obj = new \stdClass();
+    $obj = null;
+
+    if ($type == "array") {
+      $obj = array();
+    }else {
+      $obj = new \stdClass();
+    }
 
     $nr = 0;
     if (mysqli_multi_query($mysqli, $this->query_string)) {
         if ($list) {
           do {
+
             if ($result = mysqli_store_result($mysqli)) {
 
               while ($proceso = mysqli_fetch_assoc($result)) {
-                  $obj->$nr = $this->_fetch_row($result, $proceso);
-                  $nr ++;
+                $rt = $this->_fetch_row($result, $proceso);
+                if ($type == "array"){ $obj[$nr] = $rt; }
+                else { $obj->$nr = $rt; }
+                $nr ++;
               }
               mysqli_free_result($result);
             }
