@@ -16,7 +16,6 @@ class ExVSQL extends \Exception { }
 class VSQL {
 
   private $CONN = null;
-  private $tags = array();
   private $query_vars = array();
   private $query_string = "";
   private $query_original = "";
@@ -118,11 +117,6 @@ class VSQL {
     throw new ExVSQL("Error :". $error_msg);
   }
 
-//------------------------------------------------ <  global_scope > ---------------------------------------------------
-  public function tags(array $params){
-    $this->tags = array_merge($this->tags, $params );
-  }
-
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query(string $query_string, array $query_vars, $debug = "") : string {
     $this->query_original = $query_string;
@@ -217,6 +211,20 @@ class VSQL {
         case 'STD':
           $this->_transformed[$name] = ['json'];
           return 'JSON_OBJECT(' . $vals . ')'. $lname;
+          break;
+
+        case 'JGET':
+          $this->_transformed[$name] = ['json'];
+
+          $vales = explode(",", $vals);
+          if(count($vales) != 2) {
+            $this->_error_msg('JGET_VSQL('.$vals.') : Requieres only 2 values !');
+          }
+
+          $v1 = trim($vales[0]);
+          $v2 = trim($vales[1]);
+
+          return "(SELECT IF (JSON_VALID($v1),JSON_UNQUOTE(JSON_EXTRACT($v1,'$.$v2')), NULL))". $lname;
           break;
 
         case 'ARRAY':
@@ -379,29 +387,12 @@ class VSQL {
         $result = $res != null ? "'".$res."'" : $res;
         break;
 
-      // <json_get:from,what>
-      case 'json_get':
-        $js = explode(',',$var);
-        $from = $js[0];
-        $val = $js[1];
-
-        $result = "IF (JSON_VALID($from), JSON_UNQUOTE( JSON_EXTRACT($from, '$.$val')),NULL)";
-        break;
-
       // <&:from,what>
       case '&':
         $js = explode(',',$var);
         $from = $js[0];
         $val = $js[1];
         $result = $this->_duplex($from , $this->_qvar($val));
-        break;
-
-      // <get:from,what>
-      case 'get':
-        $js = explode(',',$var);
-        $from = $js[0];
-        $val = $js[1];
-        $result = $this->_duplex($from , $val);
         break;
 
       // trims the value
@@ -417,18 +408,7 @@ class VSQL {
         $result = $res != null ? "'".$res."'" : $res;
         break;
 
-      // trigger the {{ }} to be executed
-      case 'n':
-        if($this->_qvar($var) != null){
-          $result = "
-          -- triggered
-          ";
-        }
-        break;
-
-
     }
-    //-------------------------------------------
 
     return $result;
 	}
@@ -673,28 +653,15 @@ class VSQL {
           <h2>Query Maker Examples!</h2>
 
           <div class=\"text-muted\">
-            <p> //starter </p>
             <p> //initializes the sql proces </p>
           </div>
 
-          <p> <b class=\"text-danger\">\$vas</b> = new <b class=\"text-warning\">VSQL</b>(
-            <i class=\"text-info\">true </i>
-            <i class=\"text-muted\"> /* displays the vsql info (boolean) */  </i>
+          <p> <b class=\"text-danger\">\$vas</b> = new <b class=\"text-warning\">VSQL</b>(<br><br>
+            <i class=\"text-muted\"> /* save the query in the cache and also will store the connection to use it for multiple  */<br><br>  </i>
+            <i class=\"text-success\">'name' </i>
+            <i class=\"text-muted\"> <br><br> /* will debug the proces */<br><br>  </i>
+            <i class=\"text-success\"> 'debug' </i><br><br>
           ); </p>
-          <br>
-
-          <div class=\"text-muted\">
-            <p> /* This field is optional */ </p>
-          </div>
-          <p> <b class=\"text-danger\">\$vas->tags</b>(<i class=\"text-info\">array</i>(</p>
-          <div class=\" tab text-muted\">
-            <p> /* here you initialize the global values that on the query will be replaced with the desired values*/ </p>
-          </div>
-            <p class=\"tab\"> <i class=\"text-success\">\"lang\"</i> => <i class=\"text-success\">\"English\"</i>, </p>
-            <p class=\"tab\"> <i class=\"text-success\">\"user\"</i> => <i class=\"text-success\">\"Mateo\"</i>, </p>
-            <p class=\"tab\"> <i class=\"text-success\">\"tester\"</i> => <i class=\"text-success\">\"Vasyl\"</i>, </p>
-            <p class=\"tab\"> <i class=\"text-success\">\"model\"</i> => <i class=\"text-success\">\"icon\"</i>, </p>
-          <p> )); </p>
           <br>
 
           <p class=\"text-muted\">/* \$query = \$vas->query(\" //can be used to return the safe Query (Optional)*/</p>
@@ -715,8 +682,6 @@ class VSQL {
            /* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
            {{tag:id: AND `status` = 1 }}
 
-            /* <b>@ or @T or @t</b> simbols will fetch a value from the inserted tags */
-            AND `model` = <@:model>
             /* <b>@e or @E</b> //simbols will fetch a value from the \$_ENV Superglobal Variable */
             AND `model` = <@E:vsql_username>
             /* <b>@c or @C</b> //simbols will fetch a value from the \$_COOKIE Superglobal Variable */
@@ -760,7 +725,7 @@ class VSQL {
 
             /*----------------------------------------------*/
 
-            , JRAY_VSQL(
+            , ARRAY_VSQL(
                    'path' => path,
                    'name' => name,
                    'alt'  => alt
@@ -904,7 +869,7 @@ class VSQL {
     }
 
     if(empty($_ENV['vsql_cache_dir'])){
-      $this->_error_msg("The cache directory is not set : use \$ENV['vsql_cache_dir'] = '/var/www/html/vsql_cache'; to declare it!");
+      $this->_error_msg("The cache directory is not set : use \$_ENV['vsql_cache_dir'] = '/var/www/html/vsql_cache'; to declare it!");
     }
 
     $filename = 'def';
@@ -934,6 +899,7 @@ class VSQL {
 
         /* if the id is set and the file has not been updated we return the query */
         if ($data[$this->id]['last_cache_update'] == $check_data) {
+          $this->_transformed = isset($data[$this->id]['transformed']) ? $data[$this->id]['transformed'] : [];
           return $data[$this->id]['sql'];
         }
 
@@ -948,11 +914,14 @@ class VSQL {
 //------------------------------------------- <  _save_json_cache > ----------------------------------------------------
   private function _save_json_cache($query_string, $data, $date, $filename) {
 
+    $chekd = $this->_quote_check(
+              $this->_find_objects($query_string)
+    , true);
+
     $data[$this->id] = array(
         'last_cache_update' => $date,
-        'sql'  => $this->_quote_check(
-                  $this->_find_objects($query_string)
-        , true)
+        'transformed' => $this->_transformed,
+        'sql'  => $chekd
     );
 
     $myfile = fopen($filename, "w");
@@ -963,3 +932,18 @@ class VSQL {
   }
 
 }
+
+// $_ENV["vsql_servername"] = '172.17.0.2';
+// $_ENV[ "vsql_username" ] = 'root';
+// $_ENV[ "vsql_password" ] = 'dotravel';
+// $_ENV[ "vsql_database" ] = 'dotravel';
+// $_ENV["vsql_cache_dir" ] = __DIR__;
+//
+// $vsql = new VSQL('test');
+// $vsql->query("SELECT
+//
+// , JGET_VSQL( content => type ) as s
+//
+// FROM items
+//
+// ",[],'debug');
