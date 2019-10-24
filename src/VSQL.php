@@ -939,8 +939,8 @@ class VSQL {
     $data[$this->id] = array(
         'last_cache_update' => $date,
         'sql'  => $this->_quote_check(
-                        $this->_find_objects($query_string)
-                , true)
+                  $this->_find_objects($query_string)
+        , true)
     );
 
     $myfile = fopen($filename, "w");
