@@ -333,14 +333,6 @@ class VSQL {
         $result = $this->_ecape_qvar($var);
         break;
 
-      // @ or @T = fetch value from tags
-      case '@':
-      case '@T':
-      case '@t':
-        $result = empty($this->tags[$var]) ? null: $this->tags[$var];
-        $result = $this->_sql_escape($result);
-        break;
-
       // @E = fetch value from $ENV
       case '@e':
       case '@E':
@@ -385,14 +377,6 @@ class VSQL {
         $x = $this->_qvar($var);
         $res = $this->_sql_escape(implode(',', $x));
         $result = $res != null ? "'".$res."'" : $res;
-        break;
-
-      // <&:from,what>
-      case '&':
-        $js = explode(',',$var);
-        $from = $js[0];
-        $val = $js[1];
-        $result = $this->_duplex($from , $this->_qvar($val));
         break;
 
       // trims the value
