@@ -111,10 +111,10 @@ class VSQL {
     }
 
     if ($this->trows_exteption == 'default') {
-      throw new \Exception("Error :" . $error_msg );
+      throw new \Exception("Error : " . $error_msg );
     }
 
-    throw new ExVSQL("Error :". $error_msg);
+    throw new ExVSQL("Error : ". $error_msg);
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
@@ -158,7 +158,7 @@ class VSQL {
 
       case 'dump_get':
         ob_start();
-        var_dump($this->get(($extra[1] == "all")));
+        var_dump($this->get(isset($extra[1])));
         $result = ob_get_clean();
         $this->_error_msg("<strong>VAR DUMP</strong> : <br> <code class='scss'> $result </code>");
         break;
