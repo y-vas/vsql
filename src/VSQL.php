@@ -110,7 +110,6 @@ class VSQL {
   //   $vsql->run();
   //
   //   $_ENV["vsql_db_$name"] = null;
-  //
   //   return $yep;
   // }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
@@ -232,6 +231,7 @@ class VSQL {
 //-------------------------------------------- <  _vsql_function > -----------------------------------------------------
   private function _vsql_function($func, $vals, $name){
       $lname = "";
+
       if (!empty($name)) {
         $lname = " AS $name \n\n";
       }
@@ -294,7 +294,9 @@ class VSQL {
               $k = trim( str_replace("'","",str_replace("\"","",$value)) );
               $f = $fields[$key+1];
 
-              $tr .= "\nCONCAT('{\"$k\":',  IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))  ,'}'),";
+              $tr .= "\nCONCAT('{\"$k\":',
+                 IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
+                ,'}')\n,";
 
             }
           }
@@ -563,6 +565,7 @@ class VSQL {
             }
             mysqli_free_result($result);
           }
+
       }
 
     }else {
@@ -788,7 +791,7 @@ class VSQL {
 //           'type'    => type,
 //           'status'  => status,
 //           'site'    => site,
-//           'content' => JSON_MERGE('{}', content )
+//           'content' => content
 //     ) FROM items where id_section = s.id ))
 //
 // FROM section s WHERE s.id_article = art.id
@@ -796,4 +799,4 @@ class VSQL {
 //
 // FROM articulos AS art
 // WHERE TRUE
-// ",[],'debug');
+// ",[],'dump_get');
