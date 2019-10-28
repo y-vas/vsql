@@ -28,6 +28,16 @@ class VSQL {
   function __construct($id = "", $exception = "default") {
     $this->trows_exteption = $exception;
 
+    if ($id == "vasyl_test") {
+      $this->trows_exteption = 'pretty';
+
+      $_ENV["vsql_servername"] = '172.17.0.2';
+      $_ENV[ "vsql_username" ] = 'root';
+      $_ENV[ "vsql_password" ] = 'dotravel';
+      $_ENV[ "vsql_database" ] = 'dotravel';
+      $_ENV["vsql_cache_dir" ] = __DIR__;
+    }
+
     foreach (array('servername','username','password','database') as $value) {
       if (!isset($_ENV["vsql_".$value])) {
         $this->_error_msg("Enviroment value < \$_ENV['vsql_".$value."'] > is not set!");
@@ -104,14 +114,23 @@ class VSQL {
   //   return $yep;
   // }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
-  public function _error_msg($error_msg, $type = '') {
-
-    if (!empty($type)) {
-      $this->trows_exteption = $type;
-    }
+  public function _error_msg($error_msg) {
 
     if ($this->trows_exteption == 'pretty') {
-      self::_show_example("<div>".$error_msg."</div>");
+      $content = file_get_contents(str_replace(DIRECTORY_SEPARATOR, "",'info.html'));
+
+      $values = array(
+        "error_messages"    => "<div>".$error_msg."</div>",
+        "original_query"    => htmlentities($this->query_original),
+        "transformed_query" => htmlentities( $this->query_string )
+      );
+
+      foreach ($values as $key => $value) {
+        $content = str_replace("<$key>", $value, $content);
+      }
+
+      echo $content;
+      die;
     }
 
     if ($this->trows_exteption == 'default') {
@@ -638,229 +657,10 @@ class VSQL {
     return $val;
   }
 
-// ------------------------------------------------ <  _show_example > -------------------------------------------------
-  public function _show_example($error = "") {
-    echo "
-    <!DOCTYPE html>
-    <html lang=\"en\">
-    <head>
-      <title>VSQL INFO</title>
-      <meta charset=\"utf-8\">
-      <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-      <link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css\">
-      <script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js\"></script>
-      <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js\"></script>
-      <script src=\"https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js\"></script>
-      <link rel=\"stylesheet\" href=\"//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css\">
-      <script src=\"//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js\"></script>
-      <script>hljs.initHighlightingOnLoad();</script>
-    </head>
-    <body>
-
-    <div class=\"jumbotron text-center\"> <h1>VSQL INFO</h1> </div>
-
-    <div class=\"container\" style=\"line-height:70%;\">
-
-      <h2>ERROR INFO</h2>
-      <pre>$error</pre>
-      <div class=\"row\">
-        <div class=\"col-sm-6\">
-        <button class='btn float-right' onclick=\"copyToClipboard('.m2')\">Copy</button>
-          <pre><code class='sql'>ORIGINAL<hr><div class='m2'>" . htmlentities($this->query_original) . "</div></code></pre>
-        </div>
-        <div class=\"col-sm-6\">
-        <button class='btn float-right' onclick=\"copyToClipboard('.m1')\">Copy</button>
-          <pre><code class='sql'>TRANSFORMED<hr><div class='m1'>" . htmlentities($this->query_string) . "</div></code></pre>
-        </div>
-      </div>
-      <div class=\"row\">
-        <div class=\"col-sm-12\">
-          <h2>INITIALIZE</h2>
-          <p>Set on the SUPERGLOBAL <strong>\$_ENV</strong> your db values: (example) </p>
-          <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_servername\"</b>] = <b class=\"text-success\">\"127.0.0.1\";</b></p>
-          <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_username\"</b>] = <b class=\"text-success\">\"root\";</b></p>
-          <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_password\"</b>] = <b class=\"text-success\">\"password\";</b></p>
-          <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_database\"</b>] = <b class=\"text-success\">\"dotravel4\";</b></p>
-          <br>
-          <p> Use it if you want better performance </p>
-
-          <p><b class=\"text-danger\">\$_ENV</b>[<b class=\"text-success\">\"vsql_cache_dir\"</b>] = <b class=\"text-success\">\"/var/www/html/....\";</b></p>
-        </div>
-      </div>
-      <div class=\"row\">
-        <div class=\"col-sm-12\" >
-          <h2>Query Maker Examples!</h2>
-
-          <div class=\"text-muted\">
-            <p> //initializes the sql proces </p>
-          </div>
-
-          <p> <b class=\"text-danger\">\$vas</b> = new <b class=\"text-warning\">VSQL</b>(<br><br>
-            <i class=\"text-muted\"> /* save the query in the cache and also will store the connection to use it for multiple  */<br><br>  </i>
-            <i class=\"text-success\">'name' </i>
-            <i class=\"text-muted\"> <br><br> /* will debug the proces */<br><br>  </i>
-            <i class=\"text-success\"> 'debug' </i><br><br>
-          ); </p>
-          <br>
-
-          <p class=\"text-muted\">/* \$query = \$
-          vas->query(\" //can be used to return the safe Query (Optional)*/</p>
-          <p><b class=\"text-danger\">\$vas</b>-><i class=\"text-info\">query</i>(<i class=\"text-success\">\"</i></p>
-
-          <pre><code class='sql'>
-          SELECT * FROM items
-          WHERE TRUE
-
-            /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
-            /*  <b>'!'</b> forces value to be used basically */
-            AND  `id` = <&#33;:id>
-
-           /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
-           {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
-
-           /* if the section delimited by <b>{{ }}</b> has a some tag will only appear if the tag is set */
-           /* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
-           {{tag:id: AND `status` = 1 }}
-
-            /* <b>@e or @E</b> //simbols will fetch a value from the \$_ENV Superglobal Variable */
-            AND `model` = <@E:vsql_username>
-            /* <b>@c or @C</b> //simbols will fetch a value from the \$_COOKIE Superglobal Variable */
-            AND `time` = <@C:cookie_time>
-            /* <b>@s or @S</b> //simbols will fetch a value from the \$_SESSION Superglobal Variable */
-            AND  `supplier_id` = <@S!:supplier_id>
-            /* <b>i or I</b> //simbols will cast the value to integer */
-            AND  `customer` = <@i!:customer>
-            /* <b>f or F</b> //simbols will cast the value to float */
-            AND  `height` = <F!:height>
-            /* <b>t or T</b> ///will trim the value */
-            AND  location LIKE \"%< t!:location>%\"
-            /* <b>s or S</b> ///add slashes to value */
-            AND  program LIKE \"%< s:program>%\"
-            /* <b>implode</b> //will implode the array */
-            AND  FIND_IN_SET(name, \"< implode!:name>\")
-            /* <b>json_get</b> ///will transorm the value to
-            \"IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)\"
-            */
-            AND  content_type = < json_get:img,content> ;
-
-            /* MULTIPLE QUERYES ARE ALLOWED */
-
-            /*   VSQL OBJECTS     */
-            SELECT
-            cat.*
-
-            , STD_VSQL(
-                   'path' => path,
-                   'name' => name,
-                   'alt'  => alt
-            ) AS media
-
-            /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
-
-            , JSON_OBJECT(
-                   'path' , path,
-                   'name' , name,
-                   'alt'  , alt
-            ) AS media_original
-
-            /*----------------------------------------------*/
-
-            , ARRAY_VSQL(
-                   'path' => path,
-                   'name' => name,
-                   'alt'  => alt
-            ) AS media_array
-
-            /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
-
-            , JSON_OBJECT(
-                   'path' , path,
-                   'name' , name,
-                   'alt'  , alt
-            ) AS media_array_original
-
-            FROM images
-
-          </code></pre>
-
-         <i class=\"tab text-success\">\"</i> , <i class=\"text-info\">array</i>(
-
-         <p> </p>
-
-
-          <div class=\" t2 text-muted\">
-            <p> /* here you set the values for the query */ </p>
-          </div>
-
-            <p class=\"t2\"> <i class=\"text-success\">\"program\"</i> => <i class=\"text-success\">\"default\"</i>, </p>
-            <p class=\"t2\"> <i class=\"text-success\">\"location\"</i> => <i class=\"text-success\">\"us\"</i>, </p>
-            <p class=\"t2\"> <i class=\"text-success\">\"img\"</i> => <i class=\"text-success\">\"/user/default.jpg\"</i>, </p>
-            <p class=\"t2\"> <i class=\"text-success\">\"name\"</i> => <i class=\"text-success\">\"Wondeful icon\"</i>, </p>
-            <p class=\"t2\"> <i class=\"text-success\">\"height\"</i> => <i class=\"text-success\">\"1.454\"</i>, </p>
-            <p class=\"\"> )); </p>
-          <br>
-
-          <div class=\" text-muted\">
-            <p> /* this will fetch the values in 1 row and return ans stdClass */ </p>
-          </div>
-          <p> <i class=\"text-danger\">\$vas</i>-><i class=\"text-info\">get</i>();</p>
-          <br>
-
-          <div class=\" text-muted\">
-            <p> /* this will return a list of all rows*/ </p>
-          </div>
-          <p> <i class=\"text-danger\">\$vas</i>-><i class=\"text-info\">get</i>(<i class=\"text-warning\">true</i>);</p>
-
-          <br>
-
-          <div class=\" text-muted\">
-            <p> /* this will execute the query and return the \$msqly object */ </p>
-          </div>
-          <p> <i class=\"text-danger\">\$vas</i>-><i class=\"text-info\">run</i>();</p>
-
-        </div>
-      </div>
-
-      <br>
-    </div>
-
-    </body>
-    <script>
-    function copyToClipboard(element) {
-        var \$temp = $(\"<input>\");
-        $(\"body\").append(\$temp);
-        \$temp.val($(element).text()).select();
-        document.execCommand(\"copy\");
-        \$temp.remove();
-      }
-    </script>
-      </html>
-
-    ";
-  }
-
-// ------------------------------------------------ <  _duplex > -------------------------------------------------------
-  private function _duplex($from, $needle , $addslashes = true) {
-      $array = $this->_tvar($from);
-
-      if (is_int($needle) || ctype_digit((string)$needle)) {
-          foreach ($array as $keyStr => $valueInt) {
-              if ($needle == $valueInt) {
-                  return $addslashes ? "'$keyStr'" : $keyStr;
-              }
-          }
-      }else {
-        return $array[$needle] === null ? null : "".$array[$needle];
-      }
-
-      return null;
-  }
-
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
   private function _mkfunction( $table, $fun ){
 
-    $this->query("SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database> ",
-    array('tb' => $table) );
+    $this->query("SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database> ", array('tb' => $table) );
 
     $vals = $this->get(true);
 
@@ -972,13 +772,9 @@ class VSQL {
 
 }
 
-// $_ENV["vsql_servername"] = '172.17.0.2';
-// $_ENV[ "vsql_username" ] = 'root';
-// $_ENV[ "vsql_password" ] = 'dotravel';
-// $_ENV[ "vsql_database" ] = 'dotravel';
-// $_ENV["vsql_cache_dir" ] = __DIR__;
+
 //
-// $vsql = new VSQL();
+// $vsql = new VSQL('vasyl_test');
 // $vsql->query("SELECT
 // art.*,
 //
@@ -993,8 +789,7 @@ class VSQL {
 //           'status'  => status,
 //           'site'    => site,
 //           'content' => JSON_MERGE('{}', content )
-//     ) FROM items where id_section = s.id )
-// )
+//     ) FROM items where id_section = s.id ))
 //
 // FROM section s WHERE s.id_article = art.id
 // ) AS sections
