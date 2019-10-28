@@ -104,7 +104,11 @@ class VSQL {
   //   return $yep;
   // }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
-  public function _error_msg($error_msg) {
+  public function _error_msg($error_msg, $type = '') {
+
+    if (!empty($type)) {
+      $this->trows_exteption = $type;
+    }
 
     if ($this->trows_exteption == 'pretty') {
       self::_show_example("<div>".$error_msg."</div>");
@@ -123,7 +127,10 @@ class VSQL {
     $this->query_vars = $query_vars;
     $this->query_string = $query_string;
 
-    $cache = $this->_cache();
+    $cache = "";
+    if (!empty($this->id)) {
+      $cache = $this->_cache();
+    }
 
     if(empty($cache)){
       $query_string = $this->_find_objects($query_string);
@@ -173,7 +180,13 @@ class VSQL {
   private function _find_objects($query_string){
     preg_match_all('!(\w*?)_VSQL\((\X*)!', $query_string, $match );
 
+    $counter = 0;
     while (count($match[0]) != 0) {
+      $counter ++;
+
+      if($counter > 100){
+        $this->_error_msg("Query to large! OR some function is not set propertly!");
+      }
 
       $ad = 1;
       $str = "";
@@ -185,8 +198,7 @@ class VSQL {
         $str = $str . $lt;
       }
 
-      preg_match_all('!(\w*?)_VSQL\(\Q' .$str. '\E\)(?:\s*?\s*\w{2}\s*(\w*)\s*)?!', $query_string, $match );
-
+      preg_match_all('!(\w*?)_VSQL\(\Q' .$str. '\E\)(?:\s*?\s*(?:as|AS)\s*(\w*)\s*)?!', $query_string, $match );
       foreach ($match[2] as $key => $value) {
         $replace = $this->_vsql_function($match[1][$key],$str,$match[2][$key]);
         $query_string = str_replace($match[0][$key], $replace , $query_string);
@@ -230,6 +242,49 @@ class VSQL {
         case 'ARRAY':
           $this->_transformed[$name] = ['array'];
           return 'JSON_OBJECT(' . $vals . ')'. $lname;
+          break;
+
+        case 'JAGG':
+          $this->_transformed[$name] = ['json'];
+          $tr = trim($vals);
+
+          $part = "";
+          $fields = [];
+          $ad = 0;
+          for ($l=0; $l < strlen($tr); $l++) {
+            $lt = $tr[$l];
+            $part .= $lt;
+            if ($lt == ")"){ $ad--; }
+            if ($lt == "("){ $ad++; }
+            if($lt == ',' && $ad == 0){
+              $fields[] = trim(substr_replace($part ,"", -1));
+              $part = '';
+            }
+          }
+
+          $fields[] = $part;
+          $tr = "";
+
+          foreach ($fields as $key => $value) {
+            if($key % 2 == 0){
+
+              if(!isset($fields[$key+1])){
+                $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
+              }
+
+              $k = trim( str_replace("'","",str_replace("\"","",$value)) );
+              $f = $fields[$key+1];
+
+              $tr .= "\nCONCAT('{\"$k\":',  IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))  ,'}'),";
+
+            }
+          }
+
+          return '
+                CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
+                  ' . $tr . '
+                \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\'
+                )'. $lname ." \n\n";
           break;
 
         case 'TO_STD':
@@ -648,7 +703,8 @@ class VSQL {
           ); </p>
           <br>
 
-          <p class=\"text-muted\">/* \$query = \$vas->query(\" //can be used to return the safe Query (Optional)*/</p>
+          <p class=\"text-muted\">/* \$query = \$
+          vas->query(\" //can be used to return the safe Query (Optional)*/</p>
           <p><b class=\"text-danger\">\$vas</b>-><i class=\"text-info\">query</i>(<i class=\"text-success\">\"</i></p>
 
           <pre><code class='sql'>
@@ -803,9 +859,8 @@ class VSQL {
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
   private function _mkfunction( $table, $fun ){
 
-    $this->query("
-      SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database>
-    ", array('tb' => $table) );
+    $this->query("SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database> ",
+    array('tb' => $table) );
 
     $vals = $this->get(true);
 
@@ -825,15 +880,15 @@ class VSQL {
     foreach ($vals as $key => $value) {
       $rp = str_repeat(" ",20 - strlen($value->Field));
       $sl[] = "\n\t`$value->Field`";
-      $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field> $rp}}";
+      $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field>$rp}}";
     }
 
     $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" .
     htmlentities("
-    public static function get( array \$arr, \$list = false)  {
-      \$vsql = new VSQL();
+    public static function get( array \$arr, \$list = false, \$stored = '')  {
+      \$vsql = new VSQL(\$stored);
 
-      \$vsql->query(\"SELECT " . implode($sl,',') . "
+      \$vsql->query(\"SELECT " .implode($sl,',') . "
       FROM $table WHERE TRUE" . implode($sW,'') . "
       {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
     \");
@@ -923,11 +978,27 @@ class VSQL {
 // $_ENV[ "vsql_database" ] = 'dotravel';
 // $_ENV["vsql_cache_dir" ] = __DIR__;
 //
-// $vsql = new VSQL('test');
+// $vsql = new VSQL();
 // $vsql->query("SELECT
+// art.*,
 //
-// , JGET_VSQL( content => type ) as s
+// TO_STD_VSQL( SELECT JAGG_VSQL(
+//    'id'     => s.id,
+//    'orders' => s.orders,
+//    'status' => s.status ,
+//    'items'  => ( SELECT JAGG_VSQL(
+//           'id'      => id ,
+//           'orders'  => orders,
+//           'type'    => type,
+//           'status'  => status,
+//           'site'    => site,
+//           'content' => JSON_MERGE('{}', content )
+//     ) FROM items where id_section = s.id )
+// )
 //
-// FROM items
+// FROM section s WHERE s.id_article = art.id
+// ) AS sections
 //
+// FROM articulos AS art
+// WHERE TRUE
 // ",[],'debug');
