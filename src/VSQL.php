@@ -296,7 +296,7 @@ class VSQL {
 
               $tr .= "\nCONCAT('{\"$k\":',
                  IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
-                ,'}')\n,";
+              ,'}')\n,";
 
             }
           }
@@ -304,8 +304,8 @@ class VSQL {
           return '
                 CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
                   ' . $tr . '
-                \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\'
-                )'. $lname ." \n\n";
+                \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\')
+                '. $lname ." \n\n";
           break;
 
         case 'TO_STD':
@@ -683,7 +683,7 @@ class VSQL {
     foreach ($vals as $key => $value) {
       $rp = str_repeat(" ",20 - strlen($value->Field));
       $sl[] = "\n\t`$value->Field`";
-      $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field>$rp}}";
+      $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field>$rp }}";
     }
 
     $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" .
