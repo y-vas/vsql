@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
+
+
 <head>
   <title>VSQL INFO</title>
   <meta charset="utf-8">
@@ -10,8 +13,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js"></script>
   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/styles/default.min.css">
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script>
+  <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
 </head>
+
+
+
 <body>
 
 <div class="jumbotron text-center"> <h1>VSQL INFO</h1> </div>
@@ -21,13 +27,14 @@
   <h2>ERROR INFO</h2>
   <pre>  <error_messages>  </pre>
   <div class="row">
+
     <div class="col-sm-6">
-    <button class='btn float-right' onclick="copyToClipboard('.m2')">Copy</button>
-      <pre><code class='sql'>ORIGINAL<hr><div class='m2'> <original_query> </div></code></pre>
+      <button class='btn float-right' data-clipboard-target=".m2" >Copy</button>
+      <pre><code class='sql' style="height:600px;">ORIGINAL<hr><div class='m2'> <original_query> </div></code></pre>
     </div>
     <div class="col-sm-6">
-    <button class='btn float-right' onclick="copyToClipboard('.m1')">Copy</button>
-      <pre><code class='sql'>TRANSFORMED<hr><div class='m1'> <transformed_query> </div></code></pre>
+      <button class='btn float-right' data-clipboard-target=".m1" >Copy</button>
+      <pre><code class='sql' style="height:600px;">TRANSFORMED<hr><div class='m1' > <transformed_query> </div></code></pre>
     </div>
   </div>
   <div class="row">
@@ -181,16 +188,12 @@
   <br>
 </div>
 
+
 </body>
 
-
-<script>
-function copyToClipboard(element) {
-    var $temp = $("<input>");
-    $("body").append($temp);
-    $temp.val($(element).text()).select();
-    document.execCommand("copy");
-    $temp.remove();
-  }
+<script type="text/javascript">
+  hljs.initHighlightingOnLoad();
+  var clipboard = new ClipboardJS('.btn');
 </script>
+
 </html>

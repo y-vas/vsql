@@ -121,7 +121,7 @@ class VSQL {
       $values = array(
         "error_messages"    => "<div>".$error_msg."</div>",
         "original_query"    => htmlentities($this->query_original),
-        "transformed_query" => htmlentities( $this->query_string )
+        "transformed_query" => htmlentities( $this->query_string ),
       );
 
       foreach ($values as $key => $value) {
@@ -773,30 +773,56 @@ class VSQL {
     return $data[$this->id]['sql'];
   }
 
+  private function _example_query() {
+    return "SELECT
+      art.*,
+
+      TO_STD_VSQL( SELECT JAGG_VSQL(
+         'id'     => s.id,
+         'orders' => s.orders,
+         'status' => s.status ,
+         'items'  => ( SELECT JAGG_VSQL(
+                'id'      => id ,
+                'orders'  => orders,
+                'type'    => type,
+                'status'  => status,
+                'site'    => site,
+                'content' => content
+          ) FROM items where id_section = s.id ))
+
+      FROM section s WHERE s.id_article = art.id
+      ) AS sections
+
+      FROM articulos AS art
+      WHERE TRUE
+
+    ";
+  }
+
+
 }
 
 
-//
-// $vsql = new VSQL('vasyl_test');
-// $vsql->query("SELECT
-// art.*,
-//
-// TO_STD_VSQL( SELECT JAGG_VSQL(
-//    'id'     => s.id,
-//    'orders' => s.orders,
-//    'status' => s.status ,
-//    'items'  => ( SELECT JAGG_VSQL(
-//           'id'      => id ,
-//           'orders'  => orders,
-//           'type'    => type,
-//           'status'  => status,
-//           'site'    => site,
-//           'content' => content
-//     ) FROM items where id_section = s.id ))
-//
-// FROM section s WHERE s.id_article = art.id
-// ) AS sections
-//
-// FROM articulos AS art
-// WHERE TRUE
-// ",[],'dump_get');
+$vsql = new VSQL('vasyl_test');
+$vsql->query("SELECT
+art.*,
+
+TO_STD_VSQL( SELECT JAGG_VSQL(
+   'id'     => s.id,
+   'orders' => s.orders,
+   'status' => s.status ,
+   'items'  => ( SELECT JAGG_VSQL(
+          'id'      => id ,
+          'orders'  => orders,
+          'type'    => type,
+          'status'  => status,
+          'site'    => site,
+          'content' => content
+    ) FROM items where id_section = s.id ))
+
+FROM section s WHERE s.id_article = art.id
+) AS sections
+
+FROM articulos AS art
+WHERE TRUE
+",[],'debug');
