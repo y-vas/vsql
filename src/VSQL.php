@@ -61,10 +61,10 @@ class VSQL {
 
     if ($this->CONN->connect_errno) {
       $this->_error_msg("Connection Fail: (" .
-                   $this->CONN->connect_errno
-          . ") " . $this->CONN->connect_error
-      );
-    }
+               $this->CONN->connect_errno
+        .") ". $this->CONN->connect_error
+    ); }
+
   }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
@@ -813,5 +813,4 @@ class VSQL {
 
 }
 
-
-$vsql = new VSQL('vasyl_test');
+// $vsql = new VSQL('vasyl_test');
