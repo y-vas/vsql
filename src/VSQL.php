@@ -36,6 +36,10 @@ class VSQL {
       $_ENV[ "vsql_password" ] = 'dotravel';
       $_ENV[ "vsql_database" ] = 'dotravel';
       $_ENV["vsql_cache_dir" ] = __DIR__;
+
+      $this->CONN = self::_conn();
+      $this->query($this->_example_query(),[],'debug');
+
     }
 
     foreach (array('servername','username','password','database') as $value) {
@@ -61,7 +65,6 @@ class VSQL {
           . ") " . $this->CONN->connect_error
       );
     }
-
   }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
@@ -352,7 +355,7 @@ class VSQL {
 
 //--------------------------------------------- <  _quote_check > ------------------------------------------------------
   private function _quote_check(string $query_string, $cache = false ) : string {
-    preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
+    preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
     while (count($match_brakets[0]) != 0) {
 
@@ -364,10 +367,13 @@ class VSQL {
           $show = false;
 
           foreach ($tags as $h => $t) {
-            if(isset($this->query_vars[$t])){
+            $tl = trim(str_replace('!','',$t));
+
+            if(isset($this->query_vars[$tl]) || trim($t) != $tl){
               $show = true;
               break;
             }
+
           }
 
           if ($show == false) { $value = ""; }
@@ -377,11 +383,12 @@ class VSQL {
         if($cache && !empty($res)){
           $res = $value;
         }
+
         $query_string = str_replace($match_brakets[0][$key], $res, $query_string);
 
       }
 
-      preg_match_all("!{{([\w*?:]*)([^{{]*?)}}!", $query_string, $match_brakets);
+      preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
     }
 
 
@@ -774,7 +781,8 @@ class VSQL {
   }
 
   private function _example_query() {
-    return "SELECT
+    return "SELECT {{!count:
+
       art.*,
 
       TO_STD_VSQL( SELECT JAGG_VSQL(
@@ -790,6 +798,9 @@ class VSQL {
                 'content' => content
           ) FROM items where id_section = s.id ))
 
+
+      }} {{count: count(*) as num }}
+
       FROM section s WHERE s.id_article = art.id
       ) AS sections
 
@@ -804,25 +815,3 @@ class VSQL {
 
 
 $vsql = new VSQL('vasyl_test');
-$vsql->query("SELECT
-art.*,
-
-TO_STD_VSQL( SELECT JAGG_VSQL(
-   'id'     => s.id,
-   'orders' => s.orders,
-   'status' => s.status ,
-   'items'  => ( SELECT JAGG_VSQL(
-          'id'      => id ,
-          'orders'  => orders,
-          'type'    => type,
-          'status'  => status,
-          'site'    => site,
-          'content' => content
-    ) FROM items where id_section = s.id ))
-
-FROM section s WHERE s.id_article = art.id
-) AS sections
-
-FROM articulos AS art
-WHERE TRUE
-",[],'debug');
