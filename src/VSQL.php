@@ -148,6 +148,7 @@ class VSQL {
     $this->query_vars = $query_vars;
     $this->query_string = $query_string;
 
+
     $cache = "";
     if (!empty($this->id)) {
       $cache = $this->_cache();
@@ -361,15 +362,20 @@ class VSQL {
 
       foreach ($match_brakets[2] as $key => $value) {
 
-
         $tags = explode(':',$match_brakets[1][$key]);
         if (count($tags) > 1) {
           $show = false;
 
-          foreach ($tags as $h => $t) {
+            foreach ($tags as $h => $t) {
             $tl = trim(str_replace('!','',$t));
+            $negate = (trim($t) != $tl);
 
-            if(isset($this->query_vars[$tl]) || trim($t) != $tl){
+            if($negate && !isset($this->query_vars[$tl]) ){
+              $show = true;
+              break;
+            }
+
+            if( isset($this->query_vars[$tl]) && $negate == false){
               $show = true;
               break;
             }
