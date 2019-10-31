@@ -644,12 +644,17 @@ class VSQL {
       $dt_str = $mysql_data_type_hash[$datatype][1];
     }
 
+
     settype($val, $dt_str);
+    if ($dt_str){
+      $val = utf8_encode($val);
+    }
 
     foreach ($this->_transformed as $k => $value) {
       if(trim($key) == trim($k)){
         foreach ($value as $t => $tr) {
           $val = $this->_transform($tr,$val);
+
         }
 
       }
