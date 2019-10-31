@@ -119,7 +119,7 @@ class VSQL {
   public function _error_msg($error_msg) {
 
     if ($this->trows_exteption == 'pretty') {
-      $content = file_get_contents(str_replace(DIRECTORY_SEPARATOR, "",'info.html'));
+      $content = file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'info.html');
 
       $values = array(
         "error_messages"    => "<div>".$error_msg."</div>",
