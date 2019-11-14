@@ -11,39 +11,31 @@ namespace VSQL\VSQL;
 //                                             ╚═══╝  ╚══════╝ ╚══▀▀═╝ ╚══════╝
 //
 
-class ExVSQL extends \Exception
+use Exception;
+
+class ExVSQL extends Exception
 {
 }
 
 class VSQL
 {
-
     private $CONN = null;
     private $query_vars = array();
     private $query_string = "";
     private $query_original = "";
-    private $trows_exteption = "default";
+    private $throws_exception = "default";
     private $concat_name = false;
     private $_transformed = array();
     public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($CONN = null, $id = "", $exception = "default")
+    function __construct($id = "", string $exception = "default")
     {
-        if ($_ENV["SQL_DB" . $id] instanceof VSQL) {
-            return $this;
-        }
+        $this->id = $id;
+        $this->throws_exception = $exception;
 
-        $this->trows_exteption = $exception;
-
-        if ($id == "vasyl_test") {
-            $this->trows_exteption = 'pretty';
-
-//            $_ENV["vsql_servername"] = '172.17.0.2';
-//            $_ENV["vsql_username"] = 'root';
-//            $_ENV["vsql_password"] = 'dotravel';
-//            $_ENV["vsql_database"] = 'dotravel';
-//            $_ENV["vsql_cache_dir"] = __DIR__;
+        if ($id === "vasyl_test") {
+            $this->throws_exception = 'pretty';
 
             $_ENV["sql_host"] = '172.17.0.2';
             $_ENV["sql_user"] = 'root';
@@ -51,8 +43,8 @@ class VSQL
             $_ENV["sql_db"] = 'dotravel';
             $_ENV["vsql_cache_dir"] = __DIR__;
 
-            if (!empty($CONN)) {
-                $this->CONN = $CONN;
+            if (!empty($_ENV["SQL_CONN{$id}"])) {
+                $this->CONN = $_ENV["SQL_CONN{$id}"];
             } else {
                 $this->CONN = self::_conn();
             }
@@ -65,19 +57,10 @@ class VSQL
             }
         }
 
-        if (!empty($CONN)) {
-            $this->CONN = $CONN;
+        if (!empty($_ENV["SQL_CONN{$id}"])) {
+            $this->CONN = $_ENV["SQL_CONN{$id}"];
         } else {
-            if (!empty($id)) {
-                $this->id = $id;
-                if (empty($_ENV["vsql_db_$id"])) {
-                    $_ENV["vsql_db_$id"] = self::_conn();
-                }
-
-                $this->CONN = $_ENV["vsql_db_$id"];
-            } else {
-                $this->CONN = self::_conn();
-            }
+            $this->CONN = self::_conn();
         }
 
         if ($this->CONN->connect_errno) {
@@ -87,16 +70,15 @@ class VSQL
             );
         }
 
-        $_ENV["SQL_DB" . $id] = $this;
+        $_ENV["SQL_CONN{$id}"] = $this->CONN;
     }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
-    private
-    function _conn()
+    private function _conn()
     {
         return mysqli_connect(
             $_ENV['sql_host'],
-            $_ENV['sql_name'],
+            $_ENV['sql_user'],
             $_ENV['sql_pass'],
             $_ENV['sql_db']
         );
@@ -141,12 +123,11 @@ class VSQL
     //   return $yep;
     // }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
-    public
-    function _error_msg(
+    public function _error_msg(
         $error_msg
     ) {
 
-        if ($this->trows_exteption == 'pretty') {
+        if ($this->throws_exception == 'pretty') {
             $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
 
             $values = array(
@@ -163,16 +144,15 @@ class VSQL
             die;
         }
 
-        if ($this->trows_exteption == 'default') {
-            throw new \Exception("Error : " . $error_msg);
+        if ($this->throws_exception == 'default') {
+            throw new Exception("Error : " . $error_msg);
         }
 
         throw new ExVSQL("Error : " . $error_msg);
     }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-    public
-    function query(
+    public function query(
         string $query_string,
         array $query_vars,
         $debug = ""
@@ -202,11 +182,10 @@ class VSQL
     }
 
 //------------------------------------------------ <  _inspect > -------------------------------------------------------
-    private
-    function _inspect(
+    private function _inspect(
         $debug
     ) {
-        $this->trows_exteption = "pretty";
+        $this->throws_exception = "pretty";
 
         $extra = '';
         if (strpos($debug, ':') !== false) {
@@ -235,8 +214,7 @@ class VSQL
     }
 
 //-------------------------------------------- <  _find_objects > ------------------------------------------------------
-    private
-    function _find_objects(
+    private function _find_objects(
         $query_string
     ) {
         preg_match_all('!(\w*?)_VSQL\((\X*)!', $query_string, $match);
@@ -280,8 +258,7 @@ class VSQL
     }
 
 //-------------------------------------------- <  _vsql_function > -----------------------------------------------------
-    private
-    function _vsql_function(
+    private function _vsql_function(
         $func,
         $vals,
         $name
@@ -383,8 +360,7 @@ class VSQL
     }
 
 //------------------------------------------- <  _var_transform > ------------------------------------------------------
-    private
-    function _var_transform(
+    private function _var_transform(
         string $query_string,
         $return_empty_if_has_null_values = false
     ): string {
@@ -415,8 +391,7 @@ class VSQL
     }
 
 //--------------------------------------------- <  _quote_check > ------------------------------------------------------
-    private
-    function _quote_check(
+    private function _quote_check(
         string $query_string,
         $cache = false
     ): string {
@@ -468,24 +443,21 @@ class VSQL
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private
-    function _qvar(
+    private function _qvar(
         string $var
     ) {
         return empty($this->query_vars[$var]) ? null : $this->query_vars[$var];
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private
-    function _tvar(
+    private function _tvar(
         string $var
     ) {
         return empty($this->tags[$var]) ? null : $this->tags[$var];
     }
 
 //------------------------------------------------ <  _convert_var > ---------------------------------------------------
-    private
-    function _convert_var(
+    private function _convert_var(
         string $type,
         string $var
     ) {
@@ -495,7 +467,7 @@ class VSQL
         switch ($type) {
             // if is empty does nothing only paste the value
             case '':
-                $result = $this->_ecape_qvar($var);
+                $result = $this->_escape_qvar($var);
                 break;
 
             // @E = fetch value from $ENV
@@ -563,8 +535,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  _sql_escape > ----------------------------------------------------
-    private
-    function _sql_escape(
+    private function _sql_escape(
         $var
     ) {
         if (is_array($var)) {
@@ -588,16 +559,14 @@ class VSQL
     }
 
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
-    private
-    function _ecape_qvar(
+    private function _escape_qvar(
         string $var
     ) {
         return $this->_sql_escape($this->_qvar($var));
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-    public
-    function get(
+    public function get(
         $list = false,
         $type = "array"
     ) {
@@ -648,8 +617,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  run > ------------------------------------------------------------
-    public
-    function run(
+    public function run(
         $list = false
     ) {
         $mysqli = $this->CONN;
@@ -687,8 +655,7 @@ class VSQL
     }
 
 // ------------------------------------------------ <  _fetch_row > ----------------------------------------------------
-    private
-    function _fetch_row(
+    private function _fetch_row(
         $result,
         $proceso
     ): \stdClass {
@@ -712,8 +679,7 @@ class VSQL
     }
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
-    public
-    function _transform_get(
+    public function _transform_get(
         $val,
         string $datatype,
         string $key
@@ -764,12 +730,10 @@ class VSQL
     }
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
-    private
-    function _transform(
+    private function _transform(
         $transform,
         $val
     ) {
-
         switch ($transform) {
             case 'json':
                 return (object)json_decode(utf8_decode($val), true);
@@ -783,8 +747,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private
-    function _mkfunction(
+    private function _mkfunction(
         $table,
         $fun
     ) {
@@ -802,8 +765,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private
-    function _sel(
+    private function _sel(
         $vals,
         $table
     ) {
@@ -833,8 +795,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
-    private
-    function _cache()
+    private function _cache()
     {
         $query_string = $this->query_string;
 
@@ -849,7 +810,7 @@ class VSQL
         $filename = 'def';
         $check_data = 0;
 
-        $e = new \Exception();
+        $e = new Exception();
         foreach ($e->getTrace() as $key => $value) {
             if ($value['function'] == 'query') {
                 $bodytag = str_replace(DIRECTORY_SEPARATOR, "", $value['file']);
@@ -886,8 +847,7 @@ class VSQL
     }
 
 //------------------------------------------- <  _save_json_cache > ----------------------------------------------------
-    private
-    function _save_json_cache(
+    private function _save_json_cache(
         $query_string,
         $data,
         $date,
@@ -911,8 +871,7 @@ class VSQL
         return $data[$this->id]['sql'];
     }
 
-    private
-    function _example_query()
+    private function _example_query()
     {
         return "SELECT {{!count:
 
