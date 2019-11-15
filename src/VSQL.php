@@ -29,7 +29,7 @@ class VSQL
     public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = "", string $exception = "default")
+    function __construct($id = 0, string $exception = "default")
     {
         $this->id = $id;
         $this->throws_exception = $exception;
