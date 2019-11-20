@@ -13,12 +13,9 @@ namespace VSQL\VSQL;
 
 use Exception;
 
-class ExVSQL extends Exception
-{
-}
+class ExVSQL extends Exception{}
 
-class VSQL
-{
+class VSQL {
     private $CONN = null;
     private $query_vars = array();
     private $query_string = "";
@@ -29,17 +26,16 @@ class VSQL
     public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0, string $exception = "default")
-    {
+    function __construct($id = 0, string $exception = "default") {
         $this->id = $id;
         $this->throws_exception = $exception;
 
         if ($id === "vasyl_test") {
             $this->throws_exception = 'pretty';
 
-            $_ENV["sql_host"] = '172.17.0.2';
+            $_ENV["sql_host"] = 'localhost';
             $_ENV["sql_user"] = 'root';
-            $_ENV["sql_pass"] = 'dotravel';
+            $_ENV["sql_pass"] = '';
             $_ENV["sql_db"] = 'dotravel';
             $_ENV["vsql_cache_dir"] = __DIR__;
 
@@ -48,7 +44,8 @@ class VSQL
             } else {
                 $this->CONN = self::_conn();
             }
-            $this->query($this->_example_query(), [], 'debug');
+
+            $this->query($this->_example_query(), [1,2,3], 'debug');
         }
 
         foreach (array('host', 'user', 'pass', 'db') as $value) {
@@ -74,8 +71,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
-    private function _conn()
-    {
+    private function _conn() {
         return mysqli_connect(
             $_ENV['sql_host'],
             $_ENV['sql_user'],
@@ -131,8 +127,8 @@ class VSQL
             $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
 
             $values = array(
-                "error_messages" => "<div>" . $error_msg . "</div>",
-                "original_query" => htmlentities($this->query_original),
+                "error_messages"    => "<div>" . $error_msg . "</div>",
+                "original_query"    => htmlentities($this->query_original),
                 "transformed_query" => htmlentities($this->query_string),
             );
 
@@ -152,39 +148,108 @@ class VSQL
     }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-    public function query(
-        string $query_string,
-        array $query_vars,
-        $debug = ""
-    ): string {
+    public function query(string $query_string, array $query_vars, $debug = ""): string {
+
         $this->query_original = $query_string;
         $this->query_vars = $query_vars;
         $this->query_string = $query_string;
 
+        if(!$this->_assoc($query_vars)){
+          // SAFE SQL SYNTAX
+          $query_string = $this->_safe_sql_query($query_string,$query_vars);
 
-        $cache = "";
-        if (!empty($this->id)) {
+        }else {
+          // new SYNTAX
+          $cache = "";
+          if (!empty($this->id)) {
             $cache = $this->_cache();
-        }
+          }
 
-        if (empty($cache)) {
+          if (empty($cache)) {
             $query_string = $this->_find_objects($query_string);
             $query_string = $this->_quote_check($query_string);
             $query_string = $this->_var_transform($query_string);
-            $this->query_string = $query_string;
-        } else {
+          } else {
             $query_string = $this->_var_transform($cache);
-            $this->query_string = $query_string;
+          }
+
         }
+        $this->query_string = $query_string;
 
         $this->_inspect($debug);
         return $query_string;
     }
 
+//--------------------------------------- <  safe_sql_query > ----------------------------------------------------------
+  private function _safe_sql_query($query_string, $query_vars) {
+    $_var_count = count($query_vars);
+
+    if($_var_count != preg_match_all('!%[sSiIfFcClLqQnN]!', $query_string, $_match)) {
+      $this->_error_msg('Unmatched number of vars and % placeholders: ');
+    }
+
+    $_var_pos = array();
+    $_curr_pos = 0;
+
+    for( $_x = 0; $_x < $_var_count; $_x++ ) {
+      $_var_pos[$_x] = strpos($query_string, $_match[0][$_x], $_curr_pos);
+      $_curr_pos = $_var_pos[$_x] + 1;
+    }
+
+    $_last_removed_pos = null;
+    $_last_var_pos = null;
+
+    for( $_x = $_var_count-1; $_x >= 0; $_x-- ) {
+
+      if( isset($_last_removed_pos) && $_last_removed_pos < $_var_pos[$_x] ) {
+          continue;
+      }
+
+      // escape string
+      $query_vars[$_x] = $this->_sql_escape($query_vars[$_x]);
+
+
+      if(in_array($_match[0][$_x], array('%S','%I','%F','%C','%L','%Q','%N'))) {
+
+        // get positions of [ and ]
+        $_right_pos = strpos($query_string, ']', isset($_last_var_pos) ? $_last_var_pos : $_var_pos[$_x]);
+
+        // no way to get strpos from the right side starting in the middle
+        // of the string, so slice the first part out then find it
+
+        $_str_slice = substr($query_string, 0, $_var_pos[$_x]);
+        $_left_pos = strrpos($_str_slice, '[');
+
+        if($_right_pos === false || $_left_pos === false) {
+          $this->_error_msg('Missing or unmatched brackets: ');
+        }
+        if(in_array($query_vars[$_x], $this->_drop_values, true)) {
+          $_last_removed_pos = $_left_pos;
+          // remove entire part of string
+          $query_string = substr_replace($query_string, '', $_left_pos, $_right_pos - $_left_pos + 1);
+          $_last_var_pos = null;
+          } else if ($_x > 0 && $_var_pos[$_x-1] > $_left_pos) {
+              // still variables left in brackets, leave them and just replace var
+              $_convert_var = $this->_convert_var($_match[0][$_x],$query_vars[$_x]);
+              $query_string = substr_replace($query_string, $_convert_var, $_var_pos[$_x], 2);
+              $_last_var_pos = $_var_pos[$_x] + strlen($_convert_var);
+          } else {
+            // remove the brackets only, and replace %S
+            $query_string = substr_replace($query_string, '', $_right_pos, 1);
+            $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x]), $_var_pos[$_x], 2);
+            $query_string = substr_replace($query_string, '', $_left_pos, 1);
+            $_last_var_pos = null;
+          }
+      } else {
+        $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x] ), $_var_pos[$_x], 2);
+      }
+    }
+
+
+    return $query_string;
+  }
 //------------------------------------------------ <  _inspect > -------------------------------------------------------
-    private function _inspect(
-        $debug
-    ) {
+    private function _inspect( $debug ) {
         $this->throws_exception = "pretty";
 
         $extra = '';
@@ -214,9 +279,7 @@ class VSQL
     }
 
 //-------------------------------------------- <  _find_objects > ------------------------------------------------------
-    private function _find_objects(
-        $query_string
-    ) {
+    private function _find_objects( $query_string ) {
         preg_match_all('!(\w*?)_VSQL\((\X*)!', $query_string, $match);
 
         $counter = 0;
@@ -457,10 +520,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  _convert_var > ---------------------------------------------------
-    private function _convert_var(
-        string $type,
-        string $var
-    ) {
+    private function _convert_var( string $type, string $var ) {
 
         $result = null;
         //---------------------- cases -----------------
@@ -529,15 +589,63 @@ class VSQL
                 $result = $res != null ? "'" . $res . "'" : $res;
                 break;
 
+            // ------------------------------------------- safe sql varypes
+
+            case '%i':
+      			case '%I':
+      				// cast to integer
+      				settype($var, 'integer');
+              $result = $var;
+      				break;
+      			case '%f':
+      			case '%F':
+      				// cast to float
+      				settype($var, 'float');
+              $result = $var;
+
+      				break;
+      			case '%c':
+      			case '%C':
+      				// comma separate
+      				settype($var, 'array');
+      				for($_x = 0 , $_y = count($var); $_x < $_y; $_x++) {
+      					// cast to integers
+      					settype($var[$_x], 'integer');
+      				}
+      				$var = implode(',', $var);
+      				if($var == '') {
+      					// force 0, keep syntax from breaking
+      					$var = '0';
+      				}
+
+              $result = $var;
+      				break;
+      			case '%l':
+      			case '%L':
+      				// comma separate
+      				settype($var, 'array');
+              $result = implode(',', $var);
+
+      				break;
+      			case '%q':
+      			case '%Q':
+      				settype($var, 'array');
+      				// quote comma separate
+      				$result = "'" . implode("','", $var) . "'";
+      				break;
+                  case '%n':
+                  case '%N':
+                      if($var != 'NULL')
+                          $result = "'" . $var . "'";
+                      break;
+
         }
 
         return $result;
     }
 
 //------------------------------------------------ <  _sql_escape > ----------------------------------------------------
-    private function _sql_escape(
-        $var
-    ) {
+    private function _sql_escape( $var ) {
         if (is_array($var)) {
             foreach ($var as $_element) {
                 $_newvar[] = $this->_sql_escape($_element);
@@ -559,9 +667,7 @@ class VSQL
     }
 
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
-    private function _escape_qvar(
-        string $var
-    ) {
+    private function _escape_qvar( string $var ) {
         return $this->_sql_escape($this->_qvar($var));
     }
 
@@ -794,6 +900,12 @@ class VSQL
     </code>");
     }
 
+//------------------------------------------------ <  isAssoc > ---------------------------------------------------------
+    private function _assoc(array $arr){
+      if (array() === $arr) return false;
+      return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
     private function _cache()
     {
@@ -871,9 +983,8 @@ class VSQL
         return $data[$this->id]['sql'];
     }
 
-    private function _example_query()
-    {
-        return "SELECT {{!count:
+    private function _example_query(){
+      return "SELECT {{!count:
 
       art.*,
 
@@ -896,6 +1007,10 @@ class VSQL
       FROM section s WHERE s.id_article = art.id
       ) AS sections
 
+      %i
+      %i
+      %i
+
       FROM articulos AS art
       WHERE TRUE
 
@@ -905,4 +1020,4 @@ class VSQL
 
 }
 
-// $vsql = new VSQL('vasyl_test');
+$vsql = new VSQL('vasyl_test');
