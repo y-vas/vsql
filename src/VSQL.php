@@ -13,15 +13,16 @@ namespace VSQL\VSQL;
 
 use Exception;
 
-class ExVSQL extends Exception{}
+class ExVSQL extends Exception {}
 
 class VSQL {
-    private $CONN = null;
+    public $CONN = null;
     private $query_vars = array();
     private $query_string = "";
     private $query_original = "";
     private $throws_exception = "default";
     private $concat_name = false;
+    private $is_transaction = false;
     private $_transformed = array();
     public $id = '';
 
@@ -81,47 +82,15 @@ class VSQL {
     }
 
 //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
-    // public static function START_TRANSACTION(string $var, $config = array()) : VSQL {
-    //
-    //   if(!empty($_ENV["vsql_db_$var"])){
-    //     return $_ENV["vsql_db_$var"];
-    //   }
-    //
-    //   $CONN = new VSQL();
-    //   $config["exceptions"] = !isset($config["exceptions"]) ? false   : $config["exceptions"];
-    //   $CONN->config($config);
-    //   $CONN->is_transaction = true;
-    //   $CONN->query("START TRANSACTION;", array() );
-    //   $CONN->run();
-    //
-    //   $_ENV["vsql_db_$var"] = $CONN;
-    //   return $CONN;
-    // }
-    // public static function END_TRANSACTION($name, $show = false)  : bool {
-    //
-    //   $vsql = new VSQL($name);
-    //
-    //   $yep = true;
-    //   $err = "";
-    //   foreach ($_ENV['VSQL_LOGS'] as $key => $value) {
-    //     if ($show) { $err = "<br>" . $value . "<br>". $err; }
-    //     if (!empty($value)) { $yep = false; }
-    //   }
-    //
-    //   if ($show && !$yep) {
-    //     $vsql->_error_msg( $err );
-    //   }
-    //
-    //   $vsql->query("COMMIT;", array() );
-    //   $vsql->run();
-    //
-    //   $_ENV["vsql_db_$name"] = null;
-    //   return $yep;
-    // }
+    public function start_transaction() {
+      $this->is_transaction = true;
+      $this->CONN->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+    }
+    public function end_transaction() {
+      $this->CONN->commit();
+    }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
-    public function _error_msg(
-        $error_msg
-    ) {
+    public function _error_msg( $error_msg ) {
 
         if ($this->throws_exception == 'pretty') {
             $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
@@ -181,73 +150,73 @@ class VSQL {
     }
 
 //--------------------------------------- <  safe_sql_query > ----------------------------------------------------------
-  private function _safe_sql_query($query_string, $query_vars) {
-    $_var_count = count($query_vars);
+    private function _safe_sql_query($query_string, $query_vars) {
+      $_var_count = count($query_vars);
 
-    if($_var_count != preg_match_all('!%[sSiIfFcClLqQnN]!', $query_string, $_match)) {
-      $this->_error_msg('Unmatched number of vars and % placeholders: ');
-    }
-
-    $_var_pos = array();
-    $_curr_pos = 0;
-
-    for( $_x = 0; $_x < $_var_count; $_x++ ) {
-      $_var_pos[$_x] = strpos($query_string, $_match[0][$_x], $_curr_pos);
-      $_curr_pos = $_var_pos[$_x] + 1;
-    }
-
-    $_last_removed_pos = null;
-    $_last_var_pos = null;
-
-    for( $_x = $_var_count-1; $_x >= 0; $_x-- ) {
-
-      if( isset($_last_removed_pos) && $_last_removed_pos < $_var_pos[$_x] ) {
-          continue;
+      if($_var_count != preg_match_all('!%[sSiIfFcClLqQnN]!', $query_string, $_match)) {
+        $this->_error_msg('Unmatched number of vars and % placeholders: ');
       }
 
-      // escape string
-      $query_vars[$_x] = $this->_sql_escape($query_vars[$_x]);
+      $_var_pos = array();
+      $_curr_pos = 0;
 
+      for( $_x = 0; $_x < $_var_count; $_x++ ) {
+        $_var_pos[$_x] = strpos($query_string, $_match[0][$_x], $_curr_pos);
+        $_curr_pos = $_var_pos[$_x] + 1;
+      }
 
-      if(in_array($_match[0][$_x], array('%S','%I','%F','%C','%L','%Q','%N'))) {
+      $_last_removed_pos = null;
+      $_last_var_pos = null;
 
-        // get positions of [ and ]
-        $_right_pos = strpos($query_string, ']', isset($_last_var_pos) ? $_last_var_pos : $_var_pos[$_x]);
+      for( $_x = $_var_count-1; $_x >= 0; $_x-- ) {
 
-        // no way to get strpos from the right side starting in the middle
-        // of the string, so slice the first part out then find it
-
-        $_str_slice = substr($query_string, 0, $_var_pos[$_x]);
-        $_left_pos = strrpos($_str_slice, '[');
-
-        if($_right_pos === false || $_left_pos === false) {
-          $this->_error_msg('Missing or unmatched brackets: ');
+        if( isset($_last_removed_pos) && $_last_removed_pos < $_var_pos[$_x] ) {
+            continue;
         }
-        if(in_array($query_vars[$_x], $this->_drop_values, true)) {
-          $_last_removed_pos = $_left_pos;
-          // remove entire part of string
-          $query_string = substr_replace($query_string, '', $_left_pos, $_right_pos - $_left_pos + 1);
-          $_last_var_pos = null;
-          } else if ($_x > 0 && $_var_pos[$_x-1] > $_left_pos) {
-              // still variables left in brackets, leave them and just replace var
-              $_convert_var = $this->_convert_var($_match[0][$_x],$query_vars[$_x]);
-              $query_string = substr_replace($query_string, $_convert_var, $_var_pos[$_x], 2);
-              $_last_var_pos = $_var_pos[$_x] + strlen($_convert_var);
-          } else {
-            // remove the brackets only, and replace %S
-            $query_string = substr_replace($query_string, '', $_right_pos, 1);
-            $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x]), $_var_pos[$_x], 2);
-            $query_string = substr_replace($query_string, '', $_left_pos, 1);
-            $_last_var_pos = null;
+
+        // escape string
+        $query_vars[$_x] = $this->_sql_escape($query_vars[$_x]);
+
+
+        if(in_array($_match[0][$_x], array('%S','%I','%F','%C','%L','%Q','%N'))) {
+
+          // get positions of [ and ]
+          $_right_pos = strpos($query_string, ']', isset($_last_var_pos) ? $_last_var_pos : $_var_pos[$_x]);
+
+          // no way to get strpos from the right side starting in the middle
+          // of the string, so slice the first part out then find it
+
+          $_str_slice = substr($query_string, 0, $_var_pos[$_x]);
+          $_left_pos = strrpos($_str_slice, '[');
+
+          if($_right_pos === false || $_left_pos === false) {
+            $this->_error_msg('Missing or unmatched brackets: ');
           }
-      } else {
-        $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x] ), $_var_pos[$_x], 2);
+          if(in_array($query_vars[$_x], $this->_drop_values, true)) {
+            $_last_removed_pos = $_left_pos;
+            // remove entire part of string
+            $query_string = substr_replace($query_string, '', $_left_pos, $_right_pos - $_left_pos + 1);
+            $_last_var_pos = null;
+            } else if ($_x > 0 && $_var_pos[$_x-1] > $_left_pos) {
+                // still variables left in brackets, leave them and just replace var
+                $_convert_var = $this->_convert_var($_match[0][$_x],$query_vars[$_x]);
+                $query_string = substr_replace($query_string, $_convert_var, $_var_pos[$_x], 2);
+                $_last_var_pos = $_var_pos[$_x] + strlen($_convert_var);
+            } else {
+              // remove the brackets only, and replace %S
+              $query_string = substr_replace($query_string, '', $_right_pos, 1);
+              $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x]), $_var_pos[$_x], 2);
+              $query_string = substr_replace($query_string, '', $_left_pos, 1);
+              $_last_var_pos = null;
+            }
+        } else {
+          $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x] ), $_var_pos[$_x], 2);
+        }
       }
+
+
+      return $query_string;
     }
-
-
-    return $query_string;
-  }
 //------------------------------------------------ <  _inspect > -------------------------------------------------------
     private function _inspect( $debug ) {
         $this->throws_exception = "pretty";
@@ -395,7 +364,7 @@ class VSQL {
                         $f = $fields[$key + 1];
 
                         $tr .= "\nCONCAT('{\"$k\":',
-                 IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
+                          IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
               ,'}')\n,";
 
                     }
@@ -454,10 +423,7 @@ class VSQL {
     }
 
 //--------------------------------------------- <  _quote_check > ------------------------------------------------------
-    private function _quote_check(
-        string $query_string,
-        $cache = false
-    ): string {
+    private function _quote_check(string $query_string, $cache = false ): string {
         preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
         while (count($match_brakets[0]) != 0) {
@@ -506,16 +472,12 @@ class VSQL {
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private function _qvar(
-        string $var
-    ) {
+    private function _qvar( string $var ) {
         return empty($this->query_vars[$var]) ? null : $this->query_vars[$var];
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private function _tvar(
-        string $var
-    ) {
+    private function _tvar( string $var ) {
         return empty($this->tags[$var]) ? null : $this->tags[$var];
     }
 
@@ -672,10 +634,7 @@ class VSQL {
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-    public function get(
-        $list = false,
-        $type = "array"
-    ) {
+    public function get( $list = false, $type = "array" ) {
         $mysqli = $this->CONN;
         $obj = null;
 
@@ -723,48 +682,24 @@ class VSQL {
     }
 
 //------------------------------------------------ <  run > ------------------------------------------------------------
-    public function run(
-        $list = false
-    ) {
+    public function run( $list = false ) {
         $mysqli = $this->CONN;
 
-        $obj = new \stdClass();
-        $nr = 0;
-        mysqli_multi_query($mysqli, $this->query_string);
+        $mysqli->query($this->query_string);
 
-        if ($list) {
+        // if (!empty($mysqli->error)){
+        //   $msg = $mysqli->error;
+        //   if ($this->is_transaction){
+        //     $mysqli->rollback();
+        //   }
+        //   $this->_error_msg($msg);
+        // }
 
-            while (mysqli_more_results($mysqli)) {
-                mysqli_next_result($mysqli);
-
-                if ($result = mysqli_store_result($mysqli)) {
-                    while ($proceso = mysqli_fetch_assoc($result)) {
-                        $obj->$nr = $this->_fetch_row($result, $proceso);
-                        $nr++;
-                    }
-                    mysqli_free_result($result);
-                }
-
-            }
-
-        } else {
-            $result = mysqli_store_result($mysqli);
-            $proceso = mysqli_fetch_assoc($result);
-            $obj = $this->_fetch_row($result, $proceso);
-        };
-
-        if (mysqli_error($mysqli)) {
-            $this->_error_msg(mysqli_error($mysqli));
-        }
-
-        return $obj;
+        return $mysqli;
     }
 
 // ------------------------------------------------ <  _fetch_row > ----------------------------------------------------
-    private function _fetch_row(
-        $result,
-        $proceso
-    ): \stdClass {
+    private function _fetch_row( $result, $proceso ): \stdClass {
         $row = new \stdClass();
 
         $count = 0;
@@ -873,8 +808,7 @@ class VSQL {
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
     private function _sel(
         $vals,
-        $table
-    ) {
+        $table ) {
         $sW = [];
         $sl = [];
 
@@ -884,8 +818,7 @@ class VSQL {
             $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field>$rp }}";
         }
 
-        $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" .
-            htmlentities("
+        $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" . htmlentities("
     public static function get( array \$arr, \$list = false, \$stored = '')  {
       \$vsql = new VSQL(\$stored);
 
@@ -907,8 +840,7 @@ class VSQL {
     }
 
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
-    private function _cache()
-    {
+    private function _cache() {
         $query_string = $this->query_string;
 
         if (!file_exists($_ENV['vsql_cache_dir'])) {
@@ -959,12 +891,7 @@ class VSQL {
     }
 
 //------------------------------------------- <  _save_json_cache > ----------------------------------------------------
-    private function _save_json_cache(
-        $query_string,
-        $data,
-        $date,
-        $filename
-    ) {
+    private function _save_json_cache(   $query_string,  $data,   $date, $filename  ) {
 
         $chekd = $this->_quote_check(
             $this->_find_objects($query_string)
@@ -1007,17 +934,39 @@ class VSQL {
       FROM section s WHERE s.id_article = art.id
       ) AS sections
 
-      %i
-      %i
-      %i
-
       FROM articulos AS art
       WHERE TRUE
 
     ";
     }
-
-
 }
+// 
+// $_ENV["sql_host"] = 'localhost';
+// $_ENV["sql_user"] = 'root';
+// $_ENV["sql_pass"] = '';
+// $_ENV["sql_db"] = 'dotravel';
+// $_ENV["vsql_cache_dir"] = __DIR__;
+//
+//
+// $db = new VSQL('con');
+//
+// // $db->start_transaction();
+// // $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')",[]);
+// // $db->run();
+// // $db->query("INSERT INTO `setting` (`id``st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')",[]);
+// // $db->run();
+// // $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','ccc')",[]);
+// // $db->run();
+// // $db->end_transaction();
+//
+// $db = new VSQL();
+// $db = $db->CONN;
+//
+// $db->query("START TRANSACTION;");
+// $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')");
+// $db->query("INSERT INTO `setting` (`id`,`st_group``st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')");
+// $db->query("ROLLBACK;");
+//
 
-$vsql = new VSQL('vasyl_test');
+
+// -------------

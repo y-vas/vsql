@@ -72,6 +72,19 @@
       <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(<i class="text-success">"</i></p>
 
       <pre><code class='sql'>
+
+    /*===================== Safe SQL syntax ================================*\
+    	Input:    $var - the variable
+    			  $type - the type to convert to:
+  			  	%i, %I - cast to integer
+    				%f, %F - cast to float
+    				%c, %C - comma separate, cast each element to integer
+    				%l, %L - comma separate, no quotes, no casting
+    				%q, %Q - quote/comma separate
+    				%n, %N - wrap value in single quotes unless NULL
+    \*======================================================================*/
+
+
       SELECT * FROM items
       WHERE TRUE
 
