@@ -3,12 +3,12 @@
 namespace VSQL\VSQL;
 
 //
-//                                           ██╗     ██╗███████╗ ██████╗ ██╗
-//                                           ██║    ██║██╔════╝██╔═══██╗██║
-//                                           ██║   ██║███████╗██║   ██║██║
-//                                          ╚██╗ ██╔╝╚════██║██║▄▄ ██║██║
-//                                           ╚████╔╝ ███████║╚██████╔╝███████╗
-//                                             ╚═══╝  ╚══════╝ ╚══▀▀═╝ ╚══════╝
+//                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
+//                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
+//                                           ██║   ██║ ███████╗ ██║   ██║ ██║
+//                                          ╚██╗  ██║ ╚════██║ ██║▄▄ ██║ ██║
+//                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
+//                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 //
 
 use Exception;
@@ -84,10 +84,20 @@ class VSQL {
 //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
     public function start_transaction() {
       $this->is_transaction = true;
-      $this->CONN->begin_transaction(MYSQLI_TRANS_START_READ_WRITE);
+      $this->CONN->autocommit(FALSE);
+
+      $this->CONN->begin_transaction(
+          MYSQLI_TRANS_START_READ_WRITE
+      );
     }
+
+  //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
     public function end_transaction() {
       $this->CONN->commit();
+    }
+
+    public function rollback_transaction() {
+      $this->CONN->rollback();
     }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
     public function _error_msg( $error_msg ) {
@@ -290,11 +300,7 @@ class VSQL {
     }
 
 //-------------------------------------------- <  _vsql_function > -----------------------------------------------------
-    private function _vsql_function(
-        $func,
-        $vals,
-        $name
-    ) {
+    private function _vsql_function( $func, $vals, $name ) {
         $lname = "";
 
         if (!empty($name)) {
@@ -311,8 +317,8 @@ class VSQL {
 
             case 'JGET':
                 $this->_transformed[$name] = ['json'];
-
                 $vales = explode(",", $vals);
+
                 if (count($vales) != 2) {
                     $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
                 }
@@ -320,12 +326,12 @@ class VSQL {
                 $v1 = trim($vales[0]);
                 $v2 = trim($vales[1]);
 
-                return "(SELECT IF (JSON_VALID($v1),JSON_UNQUOTE(JSON_EXTRACT($v1,'$.$v2')), NULL))" . $lname;
+                return "(SELECT IF( JSON_VALID($v1), JSON_UNQUOTE( JSON_EXTRACT($v1,'$.$v2') ), NULL) )" . $lname;
                 break;
 
             case 'ARRAY':
                 $this->_transformed[$name] = ['array'];
-                return 'JSON_OBJECT(' . $vals . ')' . $lname;
+                return 'JSON_OBJECT('.$vals.')'.$lname;
                 break;
 
             case 'JAGG':
@@ -338,12 +344,8 @@ class VSQL {
                 for ($l = 0; $l < strlen($tr); $l++) {
                     $lt = $tr[$l];
                     $part .= $lt;
-                    if ($lt == ")") {
-                        $ad--;
-                    }
-                    if ($lt == "(") {
-                        $ad++;
-                    }
+                    if ($lt == ")") { $ad--; }
+                    if ($lt == "(") { $ad++; }
                     if ($lt == ',' && $ad == 0) {
                         $fields[] = trim(substr_replace($part, "", -1));
                         $part = '';
@@ -776,12 +778,10 @@ class VSQL {
         $val
     ) {
         switch ($transform) {
-            case 'json':
-                return (object)json_decode(utf8_decode($val), true);
-
-            case 'array':
-                return json_decode(utf8_decode($val), true);
-
+          case 'json':
+              return (object)json_decode(utf8_decode($val), true);
+          case 'array':
+              return json_decode(utf8_decode($val), true);
         }
 
         return $val;
@@ -928,7 +928,6 @@ class VSQL {
                 'content' => content
           ) FROM items where id_section = s.id ))
 
-
       }} {{count: count(*) as num }}
 
       FROM section s WHERE s.id_article = art.id
@@ -940,33 +939,36 @@ class VSQL {
     ";
     }
 }
-// 
-// $_ENV["sql_host"] = 'localhost';
-// $_ENV["sql_user"] = 'root';
-// $_ENV["sql_pass"] = '';
-// $_ENV["sql_db"] = 'dotravel';
-// $_ENV["vsql_cache_dir"] = __DIR__;
-//
-//
-// $db = new VSQL('con');
-//
-// // $db->start_transaction();
-// // $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')",[]);
-// // $db->run();
-// // $db->query("INSERT INTO `setting` (`id``st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')",[]);
-// // $db->run();
-// // $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','ccc')",[]);
-// // $db->run();
-// // $db->end_transaction();
-//
+
+// ---------------------------------------------------------------------------------------------------------------------
+$_ENV["sql_host"] = 'localhost';
+$_ENV["sql_user"] = 'root';
+$_ENV["sql_pass"] = '';
+$_ENV["sql_db"] = 'dotravel';
+$_ENV["vsql_cache_dir"] = __DIR__;
+
+$db = new VSQL('con','pretty');
+$db->start_transaction();
+$db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')",[]);
+$db->run();
+$db->query("INSERT INTO `setting` (`id``st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')",[]);
+$db->run();
+$db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','ccc')",[]);
+$db->run();
+$db->end_transaction();
 // $db = new VSQL();
-// $db = $db->CONN;
+
+// $mysqli = $db->CONN;
+// if ($resultado = $mysqli->query("SELECT @@autocommit")) {
+//     $fila = $resultado->fetch_row();
+//     printf("El estado de la autoconsigna es %s\n", $fila[0]);
+//     $resultado->free();
+// }
+// $mysqli->close();
+
 //
 // $db->query("START TRANSACTION;");
 // $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')");
 // $db->query("INSERT INTO `setting` (`id`,`st_group``st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')");
 // $db->query("ROLLBACK;");
-//
-
-
-// -------------
+// ---------------------------------------------------------------------------------------------------------------------
