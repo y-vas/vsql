@@ -521,6 +521,12 @@ class VSQL {
                 $result = $res != null ? "'" . $res . "'" : $res;
                 break;
 
+            case 'array':
+                $x = $this->_qvar($var);
+                $res = $this->_sql_escape(implode(',', $x));
+                $result = $res != null ? $res : '';
+                break;
+
             // trims the value
             case 't':
             case 'T':
@@ -953,8 +959,10 @@ class VSQL {
 //       'status' => r.status
 //     ) as col
 // from reviews r
-// where r.id_product = <:id_product>
+// where TRUE
+// {{ AND r.id_product = <:id_product> }}
+// {{ AND r.id_product in (<array:products>) }}
 // group by r.id_product
-// ",array("id_product"=>1230),"dump_get");
+// ",array("products"=>array(1230,1231)),"dump_get:all");
 
 // ---------------------------------------------------------------------------------------------------------------------
