@@ -87,12 +87,14 @@ class VSQL {
         if ($this->throws_exception == 'pretty') {
             $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
             $safe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'safesql.html');
+            $nsafe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'vsql.html');
 
             $values = array(
                 "error_messages"    => "<div>" . $error_msg . "</div>",
                 "original_query"    => htmlentities($this->query_original),
                 "transformed_query" => htmlentities($this->query_string),
                 "SafeSQL_MySQL" => $safe,
+                "newSafeSql" => $nsafe,
             );
 
             foreach ($values as $key => $value) {
