@@ -166,17 +166,11 @@ class VSQL {
             continue;
         }
 
-        // escape string
         $query_vars[$_x] = $this->_sql_escape($query_vars[$_x]);
-
 
         if(in_array($_match[0][$_x], array('%S','%I','%F','%C','%L','%Q','%N'))) {
 
-          // get positions of [ and ]
           $_right_pos = strpos($query_string, ']', isset($_last_var_pos) ? $_last_var_pos : $_var_pos[$_x]);
-
-          // no way to get strpos from the right side starting in the middle
-          // of the string, so slice the first part out then find it
 
           $_str_slice = substr($query_string, 0, $_var_pos[$_x]);
           $_left_pos = strrpos($_str_slice, '[');
@@ -677,7 +671,7 @@ class VSQL {
     }
 
 //------------------------------------------------ <  run > ------------------------------------------------------------
-    public function run( $list = false ) {
+    public function run() {
         $mysqli = $this->CONN;
 
         $mysqli->query($this->query_string);
@@ -750,12 +744,8 @@ class VSQL {
         foreach ($this->_transformed as $k => $value) {
             if (trim($key) == trim($k)) {
                 foreach ($value as $t => $tr) {
-                    $val = $this->_transform($tr, $val);
-
-                }
-
-            }
-        }
+                  $val = $this->_transform($tr, $val);
+        }}}
 
         return array($val, $key);
     }
@@ -812,31 +802,27 @@ class VSQL {
     }
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private function _sel(
-        $vals,
-        $table ) {
+    private function _sel( $vals, $table ) {
         $sW = [];
         $sl = [];
 
         foreach ($vals as $key => $value) {
             $rp = str_repeat(" ", 20 - strlen($value->Field));
             $sl[] = "\n\t`$value->Field`";
-            $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field>$rp }}";
+            $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field> $rp }}";
         }
 
         $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" . htmlentities("
-    public static function get( array \$arr, \$list = false, \$stored = '')  {
-      \$vsql = new VSQL(\$stored);
+        public static function get( array \$arr, \$list = false, \$stored = '')  {
+          \$vsql = new VSQL(\$stored);
 
-      \$vsql->query(\"SELECT " . implode($sl, ',') . "
-      FROM $table WHERE TRUE" . implode($sW, '') . "
-      {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
-    \");
-      return \$vsql->get(\$list);
-    }
-    ") . "
-
-    </code>");
+          \$vsql->query(\"SELECT " . implode($sl, ',') . "
+          FROM $table WHERE TRUE" . implode($sW, '') . "
+          {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
+        \");
+          return \$vsql->get(\$list);
+        }
+        ") . " </code>");
     }
 
 //------------------------------------------------ <  isAssoc > ---------------------------------------------------------
@@ -940,35 +926,35 @@ class VSQL {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-$_ENV["sql_host"] = 'localhost';
-$_ENV["sql_user"] = 'vas';
-$_ENV["sql_pass"] = 'dotravel';
-$_ENV["sql_db"] = 'dotravel';
-$_ENV["vsql_cache_dir"] = __DIR__;
-
-$db = new VSQL('','pretty');
-
-$db->query("SELECT
-  r.id_product,
-  COLLECTION_VSQL(
-      'id' => r.id,
-      'id_costumer' => r.id_customer,
-      'id_cartitem' => r.id_cartitem,
-      'title' => r.title,
-      'text' => r.text,
-      'date' => r.date,
-      'rating_valueformoney' => r.rating_valueformoney,
-      'rating_convenience' => r.rating_convenience,
-      'rating_accessibility' => r.rating_accessibility,
-      'rating_overall' => r.rating_overall,
-      'type_travel' =>  r.type_travel,
-      'display_name' => r.display_name,
-      'dotravel_rate' => r.dotravel_rate,
-      'status' => r.status
-    ) as col
-from reviews r
-where r.id_product = <:id_product>
-group by r.id_product
-",array("id_product"=>1230),"dump_get");
+// $_ENV["sql_host"] = 'localhost';
+// $_ENV["sql_user"] = 'vas';
+// $_ENV["sql_pass"] = 'dotravel';
+// $_ENV["sql_db"] = 'dotravel';
+// $_ENV["vsql_cache_dir"] = __DIR__;
+//
+// $db = new VSQL('','pretty');
+//
+// $db->query("SELECT
+//   r.id_product,
+//   COLLECTION_VSQL(
+//       'id' => r.id,
+//       'id_costumer' => r.id_customer,
+//       'id_cartitem' => r.id_cartitem,
+//       'title' => r.title,
+//       'text' => r.text,
+//       'date' => r.date,
+//       'rating_valueformoney' => r.rating_valueformoney,
+//       'rating_convenience' => r.rating_convenience,
+//       'rating_accessibility' => r.rating_accessibility,
+//       'rating_overall' => r.rating_overall,
+//       'type_travel' =>  r.type_travel,
+//       'display_name' => r.display_name,
+//       'dotravel_rate' => r.dotravel_rate,
+//       'status' => r.status
+//     ) as col
+// from reviews r
+// where r.id_product = <:id_product>
+// group by r.id_product
+// ",array("id_product"=>1230),"dump_get");
 
 // ---------------------------------------------------------------------------------------------------------------------
