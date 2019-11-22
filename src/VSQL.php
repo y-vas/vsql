@@ -367,7 +367,7 @@ class VSQL {
                 break;
 
             case 'COLLECTION':
-                $this->_transformed[$name] = ['json'];
+                $this->_transformed[$name] = ['array-std'];
                 return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
                 break;
 
@@ -741,11 +741,11 @@ class VSQL {
             $dt_str = $mysql_data_type_hash[$datatype][1];
         }
 
-
         settype($val, $dt_str);
         if ($dt_str) {
             $val = utf8_encode($val);
         }
+        settype($val, $dt_str);
 
         foreach ($this->_transformed as $k => $value) {
             if (trim($key) == trim($k)) {
@@ -769,12 +769,26 @@ class VSQL {
                 return (object) $non;
               }
               return (object)json_decode(utf8_decode($val), true);
+
           case 'array':
               $non = json_decode($val,true);
               if ($non!=null){
                 return $non;
               }
               return json_decode(utf8_decode($val), true);
+
+          case 'array-std':
+              $non = json_decode($val,true);
+
+              if ($non==null){
+                $non = json_decode(utf8_decode($val), true);
+              }
+
+              foreach ($non as $key => $value) {
+                $non[$key] = (object) $value;
+              }
+
+              return $non;
         }
         return $val;
     }
@@ -925,36 +939,36 @@ class VSQL {
     }
 }
 
-// // ---------------------------------------------------------------------------------------------------------------------
-// $_ENV["sql_host"] = 'localhost';
-// $_ENV["sql_user"] = 'vas';
-// $_ENV["sql_pass"] = 'dotravel';
-// $_ENV["sql_db"] = 'dotravel';
-// $_ENV["vsql_cache_dir"] = __DIR__;
-//
-// $db = new VSQL('','pretty');
-//
-// $db->query("SELECT
-//   r.id_product,
-//   COLLECTION_VSQL(
-//       'id' => r.id,
-//       'id_costumer' => r.id_customer,
-//       'id_cartitem' => r.id_cartitem,
-//       'title' => r.title,
-//       'text' => r.text,
-//       'date' => r.date,
-//       'rating_valueformoney' => r.rating_valueformoney,
-//       'rating_convenience' => r.rating_convenience,
-//       'rating_accessibility' => r.rating_accessibility,
-//       'rating_overall' => r.rating_overall,
-//       'type_travel' =>  r.type_travel,
-//       'display_name' => r.display_name,
-//       'dotravel_rate' => r.dotravel_rate,
-//       'status' => r.status
-//     ) as json
-// from reviews r
-// where r.id_product = <:id_product>
-// group by r.id_product
-// ",array("id_product"=>1230),"dump_get");
-//
-// // ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
+$_ENV["sql_host"] = 'localhost';
+$_ENV["sql_user"] = 'vas';
+$_ENV["sql_pass"] = 'dotravel';
+$_ENV["sql_db"] = 'dotravel';
+$_ENV["vsql_cache_dir"] = __DIR__;
+
+$db = new VSQL('','pretty');
+
+$db->query("SELECT
+  r.id_product,
+  COLLECTION_VSQL(
+      'id' => r.id,
+      'id_costumer' => r.id_customer,
+      'id_cartitem' => r.id_cartitem,
+      'title' => r.title,
+      'text' => r.text,
+      'date' => r.date,
+      'rating_valueformoney' => r.rating_valueformoney,
+      'rating_convenience' => r.rating_convenience,
+      'rating_accessibility' => r.rating_accessibility,
+      'rating_overall' => r.rating_overall,
+      'type_travel' =>  r.type_travel,
+      'display_name' => r.display_name,
+      'dotravel_rate' => r.dotravel_rate,
+      'status' => r.status
+    ) as col
+from reviews r
+where r.id_product = <:id_product>
+group by r.id_product
+",array("id_product"=>1230),"dump_get");
+
+// ---------------------------------------------------------------------------------------------------------------------
