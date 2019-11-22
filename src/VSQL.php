@@ -1,5 +1,4 @@
 <?php
-
 namespace VSQL\VSQL;
 
 //
@@ -35,9 +34,9 @@ class VSQL {
             $this->throws_exception = 'pretty';
 
             $_ENV["sql_host"] = 'localhost';
-            $_ENV["sql_user"] = 'root';
-            $_ENV["sql_pass"] = '';
-            $_ENV["sql_db"] = 'dotravel';
+            $_ENV["sql_user"] = 'vas';
+            $_ENV["sql_pass"] = 'dotravel';
+            $_ENV["sql_db"] = 'dotravel8';
             $_ENV["vsql_cache_dir"] = __DIR__;
 
             if (!empty($_ENV["SQL_CONN{$id}"])) {
@@ -46,7 +45,7 @@ class VSQL {
                 $this->CONN = self::_conn();
             }
 
-            $this->query($this->_example_query(), [1,2,3], 'debug');
+            $this->query($this->_example_query(), array("id"=>1), 'dump_get');
         }
 
         foreach (array('host', 'user', 'pass', 'db') as $value) {
@@ -384,6 +383,11 @@ class VSQL {
                 return '(' . $vals . ')' . $lname;
                 break;
 
+            case 'JCON':
+                $this->_transformed[$name] = ['json'];
+                return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
+                break;
+
             case 'TO_ARRAY':
                 $this->_transformed[$name] = ['array'];
                 return '(' . $vals . ')' . $lname;
@@ -674,7 +678,11 @@ class VSQL {
             } else {
                 $result = mysqli_store_result($mysqli);
                 $proceso = mysqli_fetch_assoc($result);
-                $obj = $this->_fetch_row($result, $proceso);
+                if($proceso == null){
+                  $obj = null;
+                }else {
+                  $obj = $this->_fetch_row($result, $proceso);
+                }
             };
 
         } else {
@@ -722,12 +730,7 @@ class VSQL {
     }
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
-    public function _transform_get(
-        $val,
-        string $datatype,
-        string $key
-    ) {
-
+    public function _transform_get( $val, string $datatype, string $key ) {
         $mysql_data_type_hash = array(
             1 => array('tinyint', 'int'),
             2 => array('smallint', 'int'),
@@ -773,10 +776,7 @@ class VSQL {
     }
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
-    private function _transform(
-        $transform,
-        $val
-    ) {
+    private function _transform( $transform, $val ) {
         switch ($transform) {
           case 'json':
               return (object)json_decode(utf8_decode($val), true);
@@ -911,10 +911,9 @@ class VSQL {
     }
 
     private function _example_query(){
-      return "SELECT {{!count:
+      return "SELECT
 
       art.*,
-
       TO_STD_VSQL( SELECT JAGG_VSQL(
          'id'     => s.id,
          'orders' => s.orders,
@@ -926,49 +925,46 @@ class VSQL {
                 'status'  => status,
                 'site'    => site,
                 'content' => content
-          ) FROM items where id_section = s.id ))
-
-      }} {{count: count(*) as num }}
+          ) FROM items where id_section = s.id )
+      )
 
       FROM section s WHERE s.id_article = art.id
       ) AS sections
 
       FROM articulos AS art
-      WHERE TRUE
-
-    ";
+      WHERE TRUE ";
     }
 }
-
 // ---------------------------------------------------------------------------------------------------------------------
 $_ENV["sql_host"] = 'localhost';
-$_ENV["sql_user"] = 'root';
-$_ENV["sql_pass"] = '';
+$_ENV["sql_user"] = 'vas';
+$_ENV["sql_pass"] = 'dotravel';
 $_ENV["sql_db"] = 'dotravel';
 $_ENV["vsql_cache_dir"] = __DIR__;
 
-$db = new VSQL('con','pretty');
-$db->start_transaction();
-$db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')",[]);
-$db->run();
-$db->query("INSERT INTO `setting` (`id``st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')",[]);
-$db->run();
-$db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','ccc')",[]);
-$db->run();
-$db->end_transaction();
-// $db = new VSQL();
+$db = new VSQL('','pretty');
 
-// $mysqli = $db->CONN;
-// if ($resultado = $mysqli->query("SELECT @@autocommit")) {
-//     $fila = $resultado->fetch_row();
-//     printf("El estado de la autoconsigna es %s\n", $fila[0]);
-//     $resultado->free();
-// }
-// $mysqli->close();
+$db->query("SELECT
+	r.id_product,
+	JCON_VSQL(
+	    'id' => r.id,
+      'id_costumer' => r.id_customer,
+      'id_cartitem' => r.id_cartitem,
+      'title' => r.title,
+      'text' => r.text,
+      'date' => r.date,
+      'rating_valueformoney' => r.rating_valueformoney,
+      'rating_convenience' => r.rating_convenience,
+      'rating_accessibility' => r.rating_accessibility,
+      'rating_overall' => r.rating_overall,
+      'type_travel' =>  r.type_travel,
+      'display_name' => r.display_name,
+      'dotravel_rate' => r.dotravel_rate,
+      'status' => r.status
+    ) as json
+from reviews r
+where r.id_product = <:id_product>
+group by r.id_product
+",array("id_product"=>1230),"dump_get");
 
-//
-// $db->query("START TRANSACTION;");
-// $db->query("INSERT INTO `setting` (`id`,`st_group`,`st_key`,`st_value`) VALUES (null,'dfasf','key','bbb')");
-// $db->query("INSERT INTO `setting` (`id`,`st_group``st_key`,`st_value`) VALUES (null,'dfasf','key','aaa')");
-// $db->query("ROLLBACK;");
 // ---------------------------------------------------------------------------------------------------------------------
