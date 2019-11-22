@@ -30,23 +30,6 @@ class VSQL {
         $this->id = $id;
         $this->throws_exception = $exception;
 
-        if ($id === "vasyl_test") {
-            $this->throws_exception = 'pretty';
-
-            $_ENV["sql_host"] = 'localhost';
-            $_ENV["sql_user"] = 'vas';
-            $_ENV["sql_pass"] = 'dotravel';
-            $_ENV["sql_db"] = 'dotravel8';
-            $_ENV["vsql_cache_dir"] = __DIR__;
-
-            if (!empty($_ENV["SQL_CONN{$id}"])) {
-                $this->CONN = $_ENV["SQL_CONN{$id}"];
-            } else {
-                $this->CONN = self::_conn();
-            }
-
-            $this->query($this->_example_query(), array("id"=>1), 'dump_get');
-        }
 
         foreach (array('host', 'user', 'pass', 'db') as $value) {
             if (!isset($_ENV["sql_" . $value])) {
@@ -892,10 +875,8 @@ class VSQL {
 
 //------------------------------------------- <  _save_json_cache > ----------------------------------------------------
     private function _save_json_cache(   $query_string,  $data,   $date, $filename  ) {
-
         $chekd = $this->_quote_check(
-            $this->_find_objects($query_string)
-            , true);
+        $this->_find_objects($query_string) , true);
 
         $data[$this->id] = array(
             'last_cache_update' => $date,
@@ -912,8 +893,8 @@ class VSQL {
 
     private function _example_query(){
       return "SELECT
-
       art.*,
+
       TO_STD_VSQL( SELECT JAGG_VSQL(
          'id'     => s.id,
          'orders' => s.orders,
@@ -935,36 +916,37 @@ class VSQL {
       WHERE TRUE ";
     }
 }
+
 // ---------------------------------------------------------------------------------------------------------------------
-$_ENV["sql_host"] = 'localhost';
-$_ENV["sql_user"] = 'vas';
-$_ENV["sql_pass"] = 'dotravel';
-$_ENV["sql_db"] = 'dotravel';
-$_ENV["vsql_cache_dir"] = __DIR__;
-
-$db = new VSQL('','pretty');
-
-$db->query("SELECT
-	r.id_product,
-	JCON_VSQL(
-	    'id' => r.id,
-      'id_costumer' => r.id_customer,
-      'id_cartitem' => r.id_cartitem,
-      'title' => r.title,
-      'text' => r.text,
-      'date' => r.date,
-      'rating_valueformoney' => r.rating_valueformoney,
-      'rating_convenience' => r.rating_convenience,
-      'rating_accessibility' => r.rating_accessibility,
-      'rating_overall' => r.rating_overall,
-      'type_travel' =>  r.type_travel,
-      'display_name' => r.display_name,
-      'dotravel_rate' => r.dotravel_rate,
-      'status' => r.status
-    ) as json
-from reviews r
-where r.id_product = <:id_product>
-group by r.id_product
-",array("id_product"=>1230),"dump_get");
+// $_ENV["sql_host"] = 'localhost';
+// $_ENV["sql_user"] = 'vas';
+// $_ENV["sql_pass"] = 'dotravel';
+// $_ENV["sql_db"] = 'dotravel';
+// $_ENV["vsql_cache_dir"] = __DIR__;
+//
+// $db = new VSQL('','pretty');
+//
+// $db->query("SELECT
+// 	r.id_product,
+// 	JCON_VSQL(
+// 	    'id' => r.id,
+//       'id_costumer' => r.id_customer,
+//       'id_cartitem' => r.id_cartitem,
+//       'title' => r.title,
+//       'text' => r.text,
+//       'date' => r.date,
+//       'rating_valueformoney' => r.rating_valueformoney,
+//       'rating_convenience' => r.rating_convenience,
+//       'rating_accessibility' => r.rating_accessibility,
+//       'rating_overall' => r.rating_overall,
+//       'type_travel' =>  r.type_travel,
+//       'display_name' => r.display_name,
+//       'dotravel_rate' => r.dotravel_rate,
+//       'status' => r.status
+//     ) as json
+// from reviews r
+// where r.id_product = <:id_product>
+// group by r.id_product
+// ",array("id_product"=>1230),"dump_get");
 
 // ---------------------------------------------------------------------------------------------------------------------
