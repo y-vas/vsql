@@ -2,7 +2,6 @@
 <html lang="en">
 
 
-
 <head>
   <title>VSQL INFO</title>
   <meta charset="utf-8">
@@ -16,149 +15,318 @@
   <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
 </head>
 
-
-
 <body>
 
-<div class="jumbotron text-center"> <h1>VSQL INFO</h1> </div>
+<div class="d-flex">
 
+  <div class="bg-light border-right col-sm-2">
+    <div class="sidebar-heading">&nbsp;</div>
+    <div class="list-group list-group-flush">
+      <a href="#" onclick="toggleboard('querys')" class="list-group-item">Query</a>
+      <a href="#" onclick="toggleboard('debug')" class="list-group-item">Debug</a>
+      <a href="#" onclick="toggleboard('START')" class="list-group-item">START</a>
+      <a href="#" onclick="toggleboard('simplesntx')" class="list-group-item">Simple Syntax</a>
+      <a href="#" onclick="toggleboard('complxsntx')" class="list-group-item">Complex Syntax</a>
+    </div>
+  </div>
+
+  <div class="col-sm-10">
+    <div>&nbsp;</div>
+
+
+    <div class="container-fluid board querys">
+
+      <div class="col-sm-6">
+        <div class="h2"> ORIGINAL </div>
+        <hr>
+        <pre><code class='sql' style="height:600px;"><div class='m2'> <original_query> </div></code></pre>
+        <hr>
+        <button class='btn btn-block' data-clipboard-target=".m2" >Copy Original</button>
+      </div>
+
+      <div class="col-sm-6">
+        <div class="h2"> TRANSFORMED </div>
+        <hr>
+        <pre><code class='sql' style="height:600px;"><div class='m1' > <transformed_query> </div></code></pre>
+        <hr>
+        <button class='btn btn-block' data-clipboard-target=".m1" >Copy Transformed</button>
+      </div>
+
+    </div>
+
+    <div class="container-fluid board simplesntx hidden">
+      <pre><code class='sql'>
+
+      /*===================== Safe SQL syntax ================================*\
+        Input:    $var - the variable
+        $type - the type to convert to:
+        %i, %I - cast to integer
+        %f, %F - cast to float
+        %c, %C - comma separate, cast each element to integer
+        %l, %L - comma separate, no quotes, no casting
+        %q, %Q - quote/comma separate
+        %n, %N - wrap value in single quotes unless NULL
+      \*======================================================================*/
+
+
+        SELECT * FROM items
+        WHERE TRUE
+
+          /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
+          /*  <b>'!'</b> forces value to be used basically */
+          AND  `id` = <&#33;:id>
+
+         /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
+         {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
+
+         /* if the section delimited by <b>{{ }}</b> has a some tag will only appear if the tag is set */
+         /* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
+         {{tag:id: AND `status` = 1 }}
+
+          /* <b>@e or @E</b> //simbols will fetch a value from the $_ENV Superglobal Variable */
+          AND `model` = <@E:vsql_username>
+          /* <b>@c or @C</b> //simbols will fetch a value from the $_COOKIE Superglobal Variable */
+          AND `time` = <@C:cookie_time>
+          /* <b>@s or @S</b> //simbols will fetch a value from the $_SESSION Superglobal Variable */
+          AND  `supplier_id` = <@S!:supplier_id>
+          /* <b>i or I</b> //simbols will cast the value to integer */
+          AND  `customer` = <@i!:customer>
+          /* <b>f or F</b> //simbols will cast the value to float */
+          AND  `height` = <F!:height>
+          /* <b>t or T</b> ///will trim the value */
+          AND  location LIKE "%< t!:location>%"
+          /* <b>s or S</b> ///add slashes to value */
+          AND  program LIKE "%< s:program>%"
+          /* <b>implode</b> //will implode the array */
+          AND  FIND_IN_SET(name, "< implode!:name>")
+          /* <b>json_get</b> ///will transorm the value to
+          "IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)"
+          */
+          AND  content_type = < json_get:img,content> ;
+
+          /* MULTIPLE QUERYES ARE ALLOWED */
+
+          /*   VSQL OBJECTS     */
+          SELECT
+          cat.*
+
+          , STD_VSQL(
+                 'path' => path,
+                 'name' => name,
+                 'alt'  => alt
+          ) AS media
+
+          /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
+
+          , JSON_OBJECT(
+                 'path' , path,
+                 'name' , name,
+                 'alt'  , alt
+          ) AS media_original
+
+          /*----------------------------------------------*/
+
+          , ARRAY_VSQL(
+                 'path' => path,
+                 'name' => name,
+                 'alt'  => alt
+          ) AS media_array
+
+          /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
+
+          , JSON_OBJECT(
+                 'path' , path,
+                 'name' , name,
+                 'alt'  , alt
+          ) AS media_array_original
+
+          FROM images
+
+      </code></pre>
+    </div>
+
+    <div class="container-fluid board complxsntx hidden">
+      complxsntx
+    </div>
+
+    <div class="container-fluid board debug hidden">
+      <pre style="height:600px;">  <error_messages>  </pre>
+    </div>
+
+    <div class="container-fluid board START hidden">
+      <div class="row" style="line-height:70%;">
+        <div class="col-sm-12">
+          <h2>INITIALIZATION</h2>
+          <hr>
+          <p>To connect VSQL to your DATABASE set on the SUPERGLOBAL
+            <strong>$_ENV</strong> your db values: (example) </p>
+          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_host"</b>] = <b class="text-success">"127.0.0.1";</b></p>
+          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_user"</b>] = <b class="text-success">"root";</b></p>
+          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_pass"</b>] = <b class="text-success">"password";</b></p>
+          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_db"  </b>] = <b class="text-success">"dotravel4";</b></p>
+          <br>
+          <p> Use it if you want better performance </p>
+          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_cache_dir"</b>] = <b class="text-success">"/var/www/html/....";</b></p>
+
+          <br>
+          <h2>USE</h2>
+          <hr>
+
+          <div class="col-sm-12">
+            <div class="col-sm-6">
+
+              <p class="text-muted" >// use the library in your file by inserting</p>
+              <p> <b class="text-muted">use</b> VSQL\VSQL\<b class="text-warning">VSQL</b>;</p>
+              <br>
+
+              <p> <b class="text-danger">$vas</b> = new <b class="text-warning">VSQL</b>(<br><br>
+                <i class="text-muted">&emsp;&emsp;  /* saves the proces in the cache and also will store the
+                  connection to use it multiple times */<br><br>  </i>
+                  <i class="text-success">&emsp;&emsp; 'name' </i>,
+                  <i class="text-muted"><br><br>&emsp;&emsp;   /* changes exception to be trown (default, pretty, normal, null) .<br><br>  </i>
+                  <i class="text-muted">&emsp;&emsp;  by default throws an ExVSQL Exception */<br><br>  </i>
+                  <i class="text-success">&emsp;&emsp;  'default' </i><br><br>
+                  ); </p>
+              <br>
+
+            </div>
+
+            <div class="col-sm-6">
+              <h3>Exceptions</h3>
+              <p> # default: trows an ExVSQL Exception</p>
+              <p> # pretty: ends the proces to present the current page with the debuged query </p>
+              <p> # normal: trows an Exception </p>
+              <p> # null: doesn't trow anithing </p>
+            </div>
+
+          </div>
+
+
+          <div class="col-sm-12">
+            <hr>
+            <div class="col-sm-6">
+
+              <p class="text-muted" >// start writing your query </p>
+
+              <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(</p>
+                <p>&emsp; &emsp;<i class="text-success">"SELECT * FROM items where id = %i "</i> ,</p>
+              <p>&emsp; &emsp; <i class="text-info">array</i>(<i class="text-success">"val"</i>)</p>
+              <p>);</p>
+              <br>
+              <p class="text-muted" >// associative array will triger a more complex query maker </p>
+
+              <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(</p>
+                <p>&emsp; &emsp;<i class="text-success">"SELECT * FROM items WHERE id = <:id>"</i> ,</p>
+              <p>&emsp; &emsp; <i class="text-info">array</i>(<i class="text-success">"val"</i> => <i class="text-success">"val"</i>)</p>
+              <p>);</p>
+
+
+            </div>
+
+            <div class="col-sm-6">
+              <button class="btn btn-block btn-info" onclick="toggleboard('simplesntx')" type="button" name="button">SIMPLE QUERY SYNTAX</button>
+              <br>
+              <button class="btn btn-block btn-info" onclick="toggleboard('complxsntx')" type="button" name="button">COMPLEX QUERY SYNTAX</button>
+            </div>
+          </div>
+
+          <div class="col-sm-12">
+            <hr>
+            <div class="col-sm-6">
+
+              <p class="text-muted" >// inspecting the query </p>
+
+              <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(</p>
+                <p>&emsp; &emsp;<i class="text-success">"SELECT * FROM items where id = %i "</i> ,</p>
+                <p>&emsp; &emsp; <i class="text-info">array</i>(<i class="text-success">"val"</i>)</p>
+                <i class="text-muted">&emsp;&emsp;   /* inspects the query : valid arguments (show, debug, dump_get, dump_get, mk_funk) */<br><br>  </i>
+                <p>&emsp; &emsp; <i class="text-success">"debug"</i> </p>
+              <p>);</p>
+              <br>
+
+            </div>
+
+            <div class="col-sm-6">
+              <h3>Inspection Type</h3>
+              <p> # debug/show: presents the given query and the transformed one </p>
+              <br>
+              <p> # dump_get :  presents the given query and the transformed one </p>
+              <p> and also shows the result of the query if this ones is a SELECT </p>
+              <br>
+              <p> # dump_get:all :  same as debug get but for all rows </p>
+              <br>
+              <p> # mk_func : will create a predefined query from the given table </p>
+              <p> example -> mk_func:items:select  will present a select query for the table  </p>
+              <p> items with all the posible where clauses</p>
+            </div>
+            <hr>
+          </div>
+
+          <div class="col-sm-12">
+            <hr>
+            <div class="col-sm-6">
+
+              <p class="text-muted" >// geting the results </p>
+
+              <p><b class="text-danger">$result</b> =  <b class="text-danger">$vas</b>-><i class="text-info">get</i>(</p>
+              <i class="text-muted">&emsp;&emsp;   /* will return 1 row or all */<br><br>  </i>
+                <p>&emsp; &emsp;<b class="text-danger">$list</b> = <b class="text-warning">true</b> ,</p>
+                <i class="text-muted">&emsp;&emsp;   /* will return object or array: valid options (array, object) */<br><br>  </i>
+                <p>&emsp; &emsp;<b class="text-danger">$type</b> = <b class="text-success">'array'</b> ,</p>
+              <p>);</p>
+              <br>
+
+            </div>
+
+            <div class="col-sm-6">
+
+              <p class="text-muted" >// runing the query </p>
+
+              <p><b class="text-danger">$result</b> =  <b class="text-danger">$vas</b>-><i class="text-info">run</i>();</p>
+              <br>
+              <p> # the run function will return the mysql instance </p>
+              <br>
+
+            </div>
+
+            <hr>
+          </div>
+
+          <div class="col-sm-12">
+            <hr>
+            <div class="col-sm-6">
+              <h3>&emsp; &emsp;</h3>
+            </div>
+            <div class="col-sm-6">
+              <h3>&emsp; &emsp;</h3>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
+</div>
+
+<!-- <div class="jumbotron text-center"> <h1>VSQL INFO</h1> </div>
 <div class="container" style="line-height:70%;">
 
   <h2>ERROR INFO</h2>
-  <pre>  <error_messages>  </pre>
+
   <div class="row">
 
-    <div class="col-sm-6">
-      <button class='btn float-right' data-clipboard-target=".m2" >Copy</button>
-      <pre><code class='sql' style="height:600px;">ORIGINAL<hr><div class='m2'> <original_query> </div></code></pre>
-    </div>
-    <div class="col-sm-6">
-      <button class='btn float-right' data-clipboard-target=".m1" >Copy</button>
-      <pre><code class='sql' style="height:600px;">TRANSFORMED<hr><div class='m1' > <transformed_query> </div></code></pre>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-sm-12">
-      <h2>INITIALIZE</h2>
-      <p>Set on the SUPERGLOBAL <strong>$_ENV</strong> your db values: (example) </p>
-      <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_servername"</b>] = <b class="text-success">"127.0.0.1";</b></p>
-      <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_username"</b>] = <b class="text-success">"root";</b></p>
-      <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_password"</b>] = <b class="text-success">"password";</b></p>
-      <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_database"</b>] = <b class="text-success">"dotravel4";</b></p>
-      <br>
-      <p> Use it if you want better performance </p>
 
-      <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_cache_dir"</b>] = <b class="text-success">"/var/www/html/....";</b></p>
-    </div>
   </div>
+
   <div class="row">
     <div class="col-sm-12" >
       <h2>Query Maker Examples!</h2>
 
-      <div class="text-muted">
-        <p> //initializes the sql proces </p>
-      </div>
-
-      <p> <b class="text-danger">$vas</b> = new <b class="text-warning">VSQL</b>(<br><br>
-        <i class="text-muted"> /* save the query in the cache and also will store the connection to use it for multiple  */<br><br>  </i>
-        <i class="text-success">'name' </i>
-        <i class="text-muted"> <br><br> /* will debug the proces */<br><br>  </i>
-        <i class="text-success"> 'debug' </i><br><br>
-      ); </p>
-      <br>
-
-      <p class="text-muted">/* $query = $
-      vas->query(" //can be used to return the safe Query (Optional)*/</p>
-      <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(<i class="text-success">"</i></p>
-
-      <pre><code class='sql'>
-
-    /*===================== Safe SQL syntax ================================*\
-    	Input:    $var - the variable
-    			  $type - the type to convert to:
-  			  	%i, %I - cast to integer
-    				%f, %F - cast to float
-    				%c, %C - comma separate, cast each element to integer
-    				%l, %L - comma separate, no quotes, no casting
-    				%q, %Q - quote/comma separate
-    				%n, %N - wrap value in single quotes unless NULL
-    \*======================================================================*/
 
 
-      SELECT * FROM items
-      WHERE TRUE
-
-        /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
-        /*  <b>'!'</b> forces value to be used basically */
-        AND  `id` = <&#33;:id>
-
-       /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
-       {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
-
-       /* if the section delimited by <b>{{ }}</b> has a some tag will only appear if the tag is set */
-       /* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
-       {{tag:id: AND `status` = 1 }}
-
-        /* <b>@e or @E</b> //simbols will fetch a value from the $_ENV Superglobal Variable */
-        AND `model` = <@E:vsql_username>
-        /* <b>@c or @C</b> //simbols will fetch a value from the $_COOKIE Superglobal Variable */
-        AND `time` = <@C:cookie_time>
-        /* <b>@s or @S</b> //simbols will fetch a value from the $_SESSION Superglobal Variable */
-        AND  `supplier_id` = <@S!:supplier_id>
-        /* <b>i or I</b> //simbols will cast the value to integer */
-        AND  `customer` = <@i!:customer>
-        /* <b>f or F</b> //simbols will cast the value to float */
-        AND  `height` = <F!:height>
-        /* <b>t or T</b> ///will trim the value */
-        AND  location LIKE "%< t!:location>%"
-        /* <b>s or S</b> ///add slashes to value */
-        AND  program LIKE "%< s:program>%"
-        /* <b>implode</b> //will implode the array */
-        AND  FIND_IN_SET(name, "< implode!:name>")
-        /* <b>json_get</b> ///will transorm the value to
-        "IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)"
-        */
-        AND  content_type = < json_get:img,content> ;
-
-        /* MULTIPLE QUERYES ARE ALLOWED */
-
-        /*   VSQL OBJECTS     */
-        SELECT
-        cat.*
-
-        , STD_VSQL(
-               'path' => path,
-               'name' => name,
-               'alt'  => alt
-        ) AS media
-
-        /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
-
-        , JSON_OBJECT(
-               'path' , path,
-               'name' , name,
-               'alt'  , alt
-        ) AS media_original
-
-        /*----------------------------------------------*/
-
-        , ARRAY_VSQL(
-               'path' => path,
-               'name' => name,
-               'alt'  => alt
-        ) AS media_array
-
-        /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
-
-        , JSON_OBJECT(
-               'path' , path,
-               'name' , name,
-               'alt'  , alt
-        ) AS media_array_original
-
-        FROM images
-
-      </code></pre>
 
      <i class="tab text-success">"</i> , <i class="text-info">array</i>(
 
@@ -177,34 +345,28 @@
         <p class=""> )); </p>
       <br>
 
-      <div class=" text-muted">
         <p> /* this will fetch the values in 1 row and return ans stdClass */ </p>
       </div>
       <p> <i class="text-danger">$vas</i>-><i class="text-info">get</i>();</p>
       <br>
 
-      <div class=" text-muted">
-        <p> /* this will return a list of all rows*/ </p>
-      </div>
-      <p> <i class="text-danger">$vas</i>-><i class="text-info">get</i>(<i class="text-warning">true</i>);</p>
-
-      <br>
-
-      <div class=" text-muted">
-        <p> /* this will execute the query and return the $msqly object */ </p>
-      </div>
-      <p> <i class="text-danger">$vas</i>-><i class="text-info">run</i>();</p>
 
     </div>
   </div>
 
   <br>
 </div>
-
+ -->
 
 </body>
 
 <script type="text/javascript">
+
+function toggleboard(field){
+  $( ".board" ).addClass( 'hidden' );
+  $( "."+field ).removeClass( 'hidden' );
+}
+
   hljs.initHighlightingOnLoad();
   var clipboard = new ClipboardJS('.btn');
 </script>

@@ -101,19 +101,39 @@ class VSQL {
             die;
         }
 
-        if ($this->throws_exception == 'default') {
+        if ($this->throws_exception == 'normal') {
             throw new Exception("Error : " . $error_msg);
         }
 
-        throw new ExVSQL("Error : " . $error_msg);
+        if ($this->throws_exception == 'default') {
+            throw new ExVSQL("Error : " . $error_msg);
+        }
+
     }
 
+//------------------------------------------------ <  query > ----------------------------------------------------------
+    private function _alberts_nulls(){
+      foreach ($this->query_vars as $key => $value) {
+        if( strpos( $key, '!' ) !== false) {
+          $nk = str_replace("!", "", $key);
+
+          if ($value == null){
+            $this->_error_msg("$nk has null value!");
+          }
+
+          $this->query_vars[$nk] = $value;
+        }
+      }
+
+    }
 //------------------------------------------------ <  query > ----------------------------------------------------------
     public function query(string $query_string, array $query_vars, $debug = ""): string {
 
         $this->query_original = $query_string;
         $this->query_vars = $query_vars;
         $this->query_string = $query_string;
+
+        $this->_alberts_nulls();
 
         if(!$this->_assoc($query_vars)){
           // SAFE SQL SYNTAX
@@ -133,8 +153,8 @@ class VSQL {
           } else {
             $query_string = $this->_var_transform($cache);
           }
-
         }
+
         $this->query_string = $query_string;
 
         $this->_inspect($debug);
@@ -523,8 +543,7 @@ class VSQL {
 
             case 'array':
                 $x = $this->_qvar($var);
-                $res = $this->_sql_escape(implode(',', $x));
-                $result = $res != null ? $res : '';
+                $result = $x != null ? $this->_sql_escape(implode(',', $x)) : '';
                 break;
 
             // trims the value
@@ -637,42 +656,32 @@ class VSQL {
         if (mysqli_multi_query($mysqli, $this->query_string)) {
             if ($list) {
                 do {
-                    if ($result = mysqli_store_result($mysqli)) {
 
+                    if($result = mysqli_store_result($mysqli)) {
                         while ($proceso = mysqli_fetch_assoc($result)) {
                             $rt = $this->_fetch_row($result, $proceso);
-
-                            if ($type == "array") {
-                                $obj[$nr] = $rt;
-                            } else {
-                                $obj->$nr = $rt;
-                            }
-
+                            if ($type == "array") { $obj[$nr] = $rt; }
+                            else { $obj->$nr = $rt; }
                             $nr++;
                         }
-
                         mysqli_free_result($result);
                     }
 
-                    if (!mysqli_more_results($mysqli)) {
-                        break;
-                    }
-
+                    if (!mysqli_more_results($mysqli)) { break; }
                 } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
             } else {
                 $result = mysqli_store_result($mysqli);
                 $proceso = mysqli_fetch_assoc($result);
-                if($proceso == null){
-                  $obj = null;
-                }else {
-                  $obj = $this->_fetch_row($result, $proceso);
-                }
+
+                if($proceso == null){ $obj = null; }
+                else { $obj = $this->_fetch_row($result, $proceso); }
             };
 
         } else {
             $this->_error_msg("Fail on query get :" . mysqli_error($mysqli));
         }
+
         return $obj;
     }
 
@@ -775,25 +784,19 @@ class VSQL {
 
           case 'array-std':
               $non = json_decode($val,true);
-
               if ($non==null){
                 $non = json_decode(utf8_decode($val), true);
               }
-
               foreach ($non as $key => $value) {
                 $non[$key] = (object) $value;
               }
-
               return $non;
         }
         return $val;
     }
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private function _mkfunction(
-        $table,
-        $fun
-    ) {
+    private function _mkfunction( $table, $fun ) {
 
         $this->query("SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database> ", array('tb' => $table));
 
@@ -827,8 +830,7 @@ class VSQL {
           {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
         \");
           return \$vsql->get(\$list);
-        }
-        ") . " </code>");
+        }") . " </code>");
     }
 
 //------------------------------------------------ <  isAssoc > ---------------------------------------------------------
@@ -932,37 +934,36 @@ class VSQL {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// $_ENV["sql_host"] = 'localhost';
-// $_ENV["sql_user"] = 'vas';
-// $_ENV["sql_pass"] = 'dotravel';
-// $_ENV["sql_db"] = 'dotravel';
-// $_ENV["vsql_cache_dir"] = __DIR__;
-//
-// $db = new VSQL('','pretty');
-//
-// $db->query("SELECT
-//   r.id_product,
-//   COLLECTION_VSQL(
-//       'id' => r.id,
-//       'id_costumer' => r.id_customer,
-//       'id_cartitem' => r.id_cartitem,
-//       'title' => r.title,
-//       'text' => r.text,
-//       'date' => r.date,
-//       'rating_valueformoney' => r.rating_valueformoney,
-//       'rating_convenience' => r.rating_convenience,
-//       'rating_accessibility' => r.rating_accessibility,
-//       'rating_overall' => r.rating_overall,
-//       'type_travel' =>  r.type_travel,
-//       'display_name' => r.display_name,
-//       'dotravel_rate' => r.dotravel_rate,
-//       'status' => r.status
-//     ) as col
-// from reviews r
-// where TRUE
-// {{ AND r.id_product = <:id_product> }}
-// {{ AND r.id_product in (<array:products>) }}
-// group by r.id_product
-// ",array("products"=>array(1230,1231)),"dump_get:all");
+$_ENV["sql_host"] = 'localhost';
+$_ENV["sql_user"] = 'vas';
+$_ENV["sql_pass"] = 'dotravel';
+$_ENV["sql_db"] = 'dotravel';
+$_ENV["vsql_cache_dir"] = __DIR__;
 
+$db = new VSQL('');
+
+$db->query("SELECT
+  r.id_product,
+  COLLECTION_VSQL(
+      'id' => r.id,
+      'id_costumer' => r.id_customer,
+      'id_cartitem' => r.id_cartitem,
+      'title' => r.title,
+      'text' => r.text,
+      'date' => r.date,
+      'rating_valueformoney' => r.rating_valueformoney,
+      'rating_convenience' => r.rating_convenience,
+      'rating_accessibility' => r.rating_accessibility,
+      'rating_overall' => r.rating_overall,
+      'type_travel' =>  r.type_travel,
+      'display_name' => r.display_name,
+      'dotravel_rate' => r.dotravel_rate,
+      'status' => r.status
+    ) as col
+from reviews r
+where TRUE
+{{ AND r.id_product = <:id_product> }}
+{{ AND r.id_product in (<array:products>) }}
+group by r.id_product
+",array("products"=>null,'id_product'=>null),"debug");
 // ---------------------------------------------------------------------------------------------------------------------
