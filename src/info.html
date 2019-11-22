@@ -55,19 +55,11 @@
     </div>
 
     <div class="container-fluid board simplesntx hidden">
+      <SafeSQL_MySQL>
+    </div>
+
+    <div class="container-fluid board complxsntx hidden">
       <pre><code class='sql'>
-
-      /*===================== Safe SQL syntax ================================*\
-        Input:    $var - the variable
-        $type - the type to convert to:
-        %i, %I - cast to integer
-        %f, %F - cast to float
-        %c, %C - comma separate, cast each element to integer
-        %l, %L - comma separate, no quotes, no casting
-        %q, %Q - quote/comma separate
-        %n, %N - wrap value in single quotes unless NULL
-      \*======================================================================*/
-
 
         SELECT * FROM items
         WHERE TRUE
@@ -143,10 +135,6 @@
           FROM images
 
       </code></pre>
-    </div>
-
-    <div class="container-fluid board complxsntx hidden">
-      complxsntx
     </div>
 
     <div class="container-fluid board debug hidden">
@@ -310,53 +298,6 @@
   </div>
 
 </div>
-
-<!-- <div class="jumbotron text-center"> <h1>VSQL INFO</h1> </div>
-<div class="container" style="line-height:70%;">
-
-  <h2>ERROR INFO</h2>
-
-  <div class="row">
-
-
-  </div>
-
-  <div class="row">
-    <div class="col-sm-12" >
-      <h2>Query Maker Examples!</h2>
-
-
-
-
-     <i class="tab text-success">"</i> , <i class="text-info">array</i>(
-
-     <p> </p>
-
-
-      <div class=" t2 text-muted">
-        <p> /* here you set the values for the query */ </p>
-      </div>
-
-        <p class="t2"> <i class="text-success">"program"</i> => <i class="text-success">"default"</i>, </p>
-        <p class="t2"> <i class="text-success">"location"</i> => <i class="text-success">"us"</i>, </p>
-        <p class="t2"> <i class="text-success">"img"</i> => <i class="text-success">"/user/default.jpg"</i>, </p>
-        <p class="t2"> <i class="text-success">"name"</i> => <i class="text-success">"Wondeful icon"</i>, </p>
-        <p class="t2"> <i class="text-success">"height"</i> => <i class="text-success">"1.454"</i>, </p>
-        <p class=""> )); </p>
-      <br>
-
-        <p> /* this will fetch the values in 1 row and return ans stdClass */ </p>
-      </div>
-      <p> <i class="text-danger">$vas</i>-><i class="text-info">get</i>();</p>
-      <br>
-
-
-    </div>
-  </div>
-
-  <br>
-</div>
- -->
 
 </body>
 
