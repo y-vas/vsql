@@ -366,7 +366,7 @@ class VSQL {
                 return '(' . $vals . ')' . $lname;
                 break;
 
-            case 'JCON':
+            case 'COLLECTION':
                 $this->_transformed[$name] = ['json'];
                 return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
                 break;
@@ -928,7 +928,7 @@ class VSQL {
 //
 // $db->query("SELECT
 // 	r.id_product,
-// 	JCON_VSQL(
+// 	COLLECTION_VSQL(
 // 	    'id' => r.id,
 //       'id_costumer' => r.id_customer,
 //       'id_cartitem' => r.id_cartitem,
