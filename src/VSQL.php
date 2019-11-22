@@ -64,23 +64,23 @@ class VSQL {
     }
 
 //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
-    public function start_transaction() {
-      $this->is_transaction = true;
-      $this->CONN->autocommit(FALSE);
-
-      $this->CONN->begin_transaction(
-          MYSQLI_TRANS_START_READ_WRITE
-      );
-    }
-
-  //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
-    public function end_transaction() {
-      $this->CONN->commit();
-    }
-
-    public function rollback_transaction() {
-      $this->CONN->rollback();
-    }
+//   public function start_transaction() {
+//     $this->is_transaction = true;
+//     $this->CONN->autocommit(FALSE);
+//
+//     $this->CONN->begin_transaction(
+//         MYSQLI_TRANS_START_READ_WRITE
+//     );
+//   }
+//
+// //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
+//   public function end_transaction() {
+//     $this->CONN->commit();
+//   }
+//
+//   public function rollback_transaction() {
+//     $this->CONN->rollback();
+//   }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
     public function _error_msg( $error_msg ) {
 
@@ -641,11 +641,13 @@ class VSQL {
 
                         while ($proceso = mysqli_fetch_assoc($result)) {
                             $rt = $this->_fetch_row($result, $proceso);
+
                             if ($type == "array") {
                                 $obj[$nr] = $rt;
                             } else {
                                 $obj->$nr = $rt;
                             }
+
                             $nr++;
                         }
 
@@ -762,11 +764,18 @@ class VSQL {
     private function _transform( $transform, $val ) {
         switch ($transform) {
           case 'json':
+              $non = json_decode($val,true);
+              if ($non!=null){
+                return (object) $non;
+              }
               return (object)json_decode(utf8_decode($val), true);
           case 'array':
+              $non = json_decode($val,true);
+              if ($non!=null){
+                return $non;
+              }
               return json_decode(utf8_decode($val), true);
         }
-
         return $val;
     }
 
@@ -893,31 +902,30 @@ class VSQL {
 
     private function _example_query(){
       return "SELECT
-      art.*,
 
-      TO_STD_VSQL( SELECT JAGG_VSQL(
-         'id'     => s.id,
-         'orders' => s.orders,
-         'status' => s.status ,
-         'items'  => ( SELECT JAGG_VSQL(
-                'id'      => id ,
-                'orders'  => orders,
-                'type'    => type,
-                'status'  => status,
-                'site'    => site,
-                'content' => content
-          ) FROM items where id_section = s.id )
-      )
+        art.*,
+        TO_STD_VSQL( SELECT JAGG_VSQL(
+           'id'     => s.id,
+           'orders' => s.orders,
+           'status' => s.status ,
+           'items'  => ( SELECT JAGG_VSQL(
+                  'id'      => id ,
+                  'orders'  => orders,
+                  'type'    => type,
+                  'status'  => status,
+                  'site'    => site,
+                  'content' => content
+        ) FROM items where id_section = s.id ))
 
-      FROM section s WHERE s.id_article = art.id
-      ) AS sections
+        FROM section s WHERE s.id_article = art.id
+        ) AS sections
 
       FROM articulos AS art
       WHERE TRUE ";
     }
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+// // ---------------------------------------------------------------------------------------------------------------------
 // $_ENV["sql_host"] = 'localhost';
 // $_ENV["sql_user"] = 'vas';
 // $_ENV["sql_pass"] = 'dotravel';
@@ -927,9 +935,9 @@ class VSQL {
 // $db = new VSQL('','pretty');
 //
 // $db->query("SELECT
-// 	r.id_product,
-// 	COLLECTION_VSQL(
-// 	    'id' => r.id,
+//   r.id_product,
+//   COLLECTION_VSQL(
+//       'id' => r.id,
 //       'id_costumer' => r.id_customer,
 //       'id_cartitem' => r.id_cartitem,
 //       'title' => r.title,
@@ -948,5 +956,5 @@ class VSQL {
 // where r.id_product = <:id_product>
 // group by r.id_product
 // ",array("id_product"=>1230),"dump_get");
-
-// ---------------------------------------------------------------------------------------------------------------------
+//
+// // ---------------------------------------------------------------------------------------------------------------------
