@@ -1,75 +1,79 @@
 <pre><code class='sql'>
-  SELECT * FROM items
-  WHERE TRUE
+// all posible combiantions to use in VSQL
 
-    /* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
-    /*  <b>'!'</b> forces value to be used basically */
-    AND  `id` = <&#33;:id>
+SELECT
+  *
+FROM items
+WHERE TRUE
 
-   /* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
-   {{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
+/* if  <b>'!'</b> into the tags and <b>:id</b> is null it will trow an exception if the field is empty */
+/*  <b>'!'</b> forces value to be used basically */
+AND  `id` = <&#33;:id>
 
-   /* if the section delimited by <b>{{ }}</b> has a some tag will only appear if the tag is set */
-   /* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
-   {{tag:id: AND `status` = 1 }}
+/* the section delimited by <b>{{ }}</b> will only appear if the <b>:status</b> is not empty*/
+{{ AND `status` = <:status> /* if <b>'!'</b> in tag will trow an exception if null */ }}
 
-    /* <b>@e or @E</b> //simbols will fetch a value from the $_ENV Superglobal Variable */
-    AND `model` = <@E:vsql_username>
-    /* <b>@c or @C</b> //simbols will fetch a value from the $_COOKIE Superglobal Variable */
-    AND `time` = <@C:cookie_time>
-    /* <b>@s or @S</b> //simbols will fetch a value from the $_SESSION Superglobal Variable */
-    AND  `supplier_id` = <@S!:supplier_id>
-    /* <b>i or I</b> //simbols will cast the value to integer */
-    AND  `customer` = <@i!:customer>
-    /* <b>f or F</b> //simbols will cast the value to float */
-    AND  `height` = <F!:height>
-    /* <b>t or T</b> ///will trim the value */
-    AND  location LIKE "%< t!:location>%"
-    /* <b>s or S</b> ///add slashes to value */
-    AND  program LIKE "%< s:program>%"
-    /* <b>implode</b> //will implode the array */
-    AND  FIND_IN_SET(name, "< implode!:name>")
-    /* <b>json_get</b> ///will transorm the value to
-    "IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)"
-    */
-    AND  content_type = < json_get:img,content> ;
+/* if the section delimited by <b>{{ }}</b> has a some tag will only appear if the tag is set */
+/* tags should be delimited by ':' and appear at the start of the section and end with ':' like in the example */
+{{tag:id: AND `status` = 1 }}
 
-    /* MULTIPLE QUERYES ARE ALLOWED */
+/* <b>@e or @E</b> //simbols will fetch a value from the $_ENV Superglobal Variable */
+AND `model` = <@E:vsql_username>
+/* <b>@c or @C</b> //simbols will fetch a value from the $_COOKIE Superglobal Variable */
+AND `time` = <@C:cookie_time>
+/* <b>@s or @S</b> //simbols will fetch a value from the $_SESSION Superglobal Variable */
+AND  `supplier_id` = <@S!:supplier_id>
+/* <b>i or I</b> //simbols will cast the value to integer */
+AND  `customer` = <@i!:customer>
+/* <b>f or F</b> //simbols will cast the value to float */
+AND  `height` = <F!:height>
+/* <b>t or T</b> ///will trim the value */
+AND  location LIKE "%< t!:location>%"
+/* <b>s or S</b> ///add slashes to value */
+AND  program LIKE "%< s:program>%"
+/* <b>implode</b> //will implode the array */
+AND  FIND_IN_SET(name, "< implode!:name>")
+/* <b>json_get</b> ///will transorm the value to
+"IF (JSON_VALID(content), JSON_UNQUOTE( JSON_EXTRACT(content, $.img)),NULL)"
+*/
+AND  content_type = < json_get:img,content> ;
 
-    /*   VSQL OBJECTS     */
-    SELECT
-    cat.*
+/* MULTIPLE QUERYES ARE ALLOWED */
 
-    , STD_VSQL(
-           'path' => path,
-           'name' => name,
-           'alt'  => alt
-    ) AS media
+/*   VSQL OBJECTS     */
+SELECT
+cat.*
 
-    /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
+, STD_VSQL(
+       'path' => path,
+       'name' => name,
+       'alt'  => alt
+) AS media
 
-    , JSON_OBJECT(
-           'path' , path,
-           'name' , name,
-           'alt'  , alt
-    ) AS media_original
+/*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
 
-    /*----------------------------------------------*/
+, JSON_OBJECT(
+       'path' , path,
+       'name' , name,
+       'alt'  , alt
+) AS media_original
 
-    , ARRAY_VSQL(
-           'path' => path,
-           'name' => name,
-           'alt'  => alt
-    ) AS media_array
+/*----------------------------------------------*/
 
-    /*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
+, ARRAY_VSQL(
+       'path' => path,
+       'name' => name,
+       'alt'  => alt
+) AS media_array
 
-    , JSON_OBJECT(
-           'path' , path,
-           'name' , name,
-           'alt'  , alt
-    ) AS media_array_original
+/*========== WILL BE TRANSFORMED INTO (name will not be changed and is requiered) =========*/
 
-    FROM images
+, JSON_OBJECT(
+       'path' , path,
+       'name' , name,
+       'alt'  , alt
+) AS media_array_original
+
+FROM images
 
 </code></pre>
