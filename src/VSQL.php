@@ -30,7 +30,6 @@ class VSQL {
         $this->id = $id;
         $this->throws_exception = $exception;
 
-
         foreach (array('host', 'user', 'pass', 'db') as $value) {
             if (!isset($_ENV["sql_" . $value])) {
                 $this->_error_msg("Enviroment value < \$_ENV['sql_" . $value . "'] > is not set!");
@@ -112,7 +111,6 @@ class VSQL {
         if ($this->throws_exception == 'default') {
             throw new ExVSQL("Error : " . $error_msg);
         }
-
     }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
@@ -139,19 +137,21 @@ class VSQL {
 
         $this->_alberts_nulls();
 
+        $cache = "";
+        if (!empty($this->id)) {
+          $cache = $this->_cache();
+        }
+
+        if (empty($cache)) {
+          $query_string = $this->_find_objects($query_string);
+        }
+
         if(!$this->_assoc($query_vars)){
           // SAFE SQL SYNTAX
           $query_string = $this->_safe_sql_query($query_string,$query_vars);
-
         }else {
-          // new SYNTAX
-          $cache = "";
-          if (!empty($this->id)) {
-            $cache = $this->_cache();
-          }
-
+          // VSQL SYNTAX
           if (empty($cache)) {
-            $query_string = $this->_find_objects($query_string);
             $query_string = $this->_quote_check($query_string);
             $query_string = $this->_var_transform($query_string);
           } else {
