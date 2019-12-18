@@ -30,9 +30,9 @@ class VSQL {
         $this->id = $id;
         $this->throws_exception = $exception;
 
-        foreach (array('host', 'user', 'pass', 'db') as $value) {
-            if (!isset($_ENV["sql_" . $value])) {
-                $this->_error_msg("Enviroment value < \$_ENV['sql_" . $value . "'] > is not set!");
+        foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
+            if (!isset($_ENV[$value])) {
+                $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
             }
         }
 
@@ -55,10 +55,10 @@ class VSQL {
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
     private function _conn() {
         return mysqli_connect(
-            $_ENV['sql_host'],
-            $_ENV['sql_user'],
-            $_ENV['sql_pass'],
-            $_ENV['sql_db']
+            $_ENV['DB_HOST'],
+            $_ENV['DB_USERNAME'],
+            $_ENV['DB_PASSWORD'],
+            $_ENV['DB_DATABASE']
         );
     }
 
