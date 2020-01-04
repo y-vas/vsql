@@ -1,5 +1,5 @@
 {
-    "name": "vasyl/vsql",
+    "name": "y-vas/adaptative-query",
     "description": "SQL Helper",
     "type": "package",
     "authors": [
@@ -18,7 +18,7 @@
     "require": { },
     "autoload": {
         "psr-4": {
-            "VSQL\\VSQL\\": "src/"
+            "ASQL\\": "src/"
         }
     }
 }
