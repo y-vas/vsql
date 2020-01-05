@@ -1,11 +1,11 @@
 <?php
-namespace VSQL\VSQL;
+namespace AddSQL;
 
 use Exception;
 
-class ExVSQL extends Exception {}
+class ExAddSQL extends Exception {}
 
-class VSQL {
+class AddSQL {
     public $CONN = null;
     private $query_vars = array();
     private $query_string = "";
@@ -24,7 +24,6 @@ class VSQL {
       if ($exception == 'null') {
         return;
       }
-
 
       foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
         if (!isset($_ENV[$value])) {
@@ -256,7 +255,7 @@ class VSQL {
 
 //-------------------------------------------- <  _find_objects > ------------------------------------------------------
     private function _find_objects( $query_string ) {
-        preg_match_all('!(\w*?)_VSQL\((\X*)!', $query_string, $match);
+        preg_match_all('!(\w*?)@\((\X*)!', $query_string, $match);
 
         $counter = 0;
         while (count($match[0]) != 0) {
@@ -283,14 +282,14 @@ class VSQL {
                 $str = $str . $lt;
             }
 
-            preg_match_all('!(\w*?)_VSQL\(\Q' . $str . '\E\)(?:\s*?\s*(?:as|AS)\s*(\w*)\s*)?!', $query_string,
+            preg_match_all('!(\w*?)@\(\Q' . $str . '\E\)(?:\s*?\s*(?:as|AS)\s*(\w*)\s*)?!', $query_string,
                 $match);
             foreach ($match[2] as $key => $value) {
                 $replace = $this->_vsql_function($match[1][$key], $str, $match[2][$key]);
                 $query_string = str_replace($match[0][$key], $replace, $query_string);
             }
 
-            preg_match_all("!(\w*?)_VSQL\((\X*)!", $query_string, $match);
+            preg_match_all("!(\w*?)@\((\X*)!", $query_string, $match);
         }
 
         return $query_string;
@@ -317,7 +316,7 @@ class VSQL {
                 $vales = explode(",", $vals);
 
                 if (count($vales) != 2) {
-                    $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
+                    $this->_error_msg('JGET@(' . $vals . ') : Requieres only 2 values !');
                 }
 
                 $v1 = trim($vales[0]);
@@ -356,7 +355,7 @@ class VSQL {
                     if ($key % 2 == 0) {
 
                         if (!isset($fields[$key + 1])) {
-                            $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
+                            $this->_error_msg("Error: unmatched values for JAGG@($vals)");
                         }
 
                         $k = trim(str_replace("'", "", str_replace("\"", "", $value)));
@@ -798,7 +797,6 @@ class VSQL {
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
     private function _mkfunction( $table, $fun ) {
-
         $this->query("SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database> ", array('tb' => $table));
 
         $vals = $this->get(true);
@@ -913,11 +911,11 @@ class VSQL {
       return "SELECT
 
         art.*,
-        TO_STD_VSQL( SELECT JAGG_VSQL(
+        TO_STD@( SELECT JAGG@(
            'id'     => s.id,
            'orders' => s.orders,
            'status' => s.status ,
-           'items'  => ( SELECT JAGG_VSQL(
+           'items'  => ( SELECT JAGG@(
                   'id'      => id ,
                   'orders'  => orders,
                   'type'    => type,
@@ -945,7 +943,7 @@ class VSQL {
 //
 // $db->query("SELECT
 //   r.id_product,
-//   COLLECTION_VSQL(
+//   COLLECTION@(
 //       'id' => r.id,
 //       'id_costumer' => r.id_customer,
 //       'id_cartitem' => r.id_cartitem,

@@ -8,6 +8,7 @@
             "email": "yovdiyvasyl@gmail.com"
         }
     ],
+
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
@@ -18,7 +19,7 @@
     "require": { },
     "autoload": {
         "psr-4": {
-            "ASQL\\": "src/"
+            "ASQL\\": "/"
         }
     }
 }
