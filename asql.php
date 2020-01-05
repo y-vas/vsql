@@ -931,38 +931,3 @@ class AddSQL {
       WHERE TRUE ";
     }
 }
-
-// ---------------------------------------------------------------------------------------------------------------------
-// $_ENV["sql_host"] = 'localhost';
-// $_ENV["sql_user"] = 'vas';
-// $_ENV["sql_pass"] = 'dotravel';
-// $_ENV["sql_db"] = 'dotravel';
-// $_ENV["vsql_cache_dir"] = __DIR__;
-//
-// $db = new VSQL('');
-//
-// $db->query("SELECT
-//   r.id_product,
-//   COLLECTION@(
-//       'id' => r.id,
-//       'id_costumer' => r.id_customer,
-//       'id_cartitem' => r.id_cartitem,
-//       'title' => r.title,
-//       'text' => r.text,
-//       'date' => r.date,
-//       'rating_valueformoney' => r.rating_valueformoney,
-//       'rating_convenience' => r.rating_convenience,
-//       'rating_accessibility' => r.rating_accessibility,
-//       'rating_overall' => r.rating_overall,
-//       'type_travel' =>  r.type_travel,
-//       'display_name' => r.display_name,
-//       'dotravel_rate' => r.dotravel_rate,
-//       'status' => r.status
-//     ) as col
-// from reviews r
-// where TRUE
-// {{ AND r.id_product = <:id_product> }}
-// {{ AND r.id_product in (<array:products>) }}
-// group by r.id_product
-// ",array("products"=>null,'id_product'=>null),"debug");
-// ---------------------------------------------------------------------------------------------------------------------
