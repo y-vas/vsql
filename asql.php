@@ -80,9 +80,10 @@ class AddSQL {
     public function _error_msg( $error_msg ) {
 
         if ($this->throws_exception == 'pretty') {
-            $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
-            $safe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'safesql.html');
-            $nsafe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'vsql.html');
+            $d = 'debug_info' . DIRECTORY_SEPARATOR;
+            $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . $d . 'info.html');
+            $safe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . $d . 'safesql.html');
+            $nsafe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . $d . 'vsql.html');
 
             $values = array(
                 "error_messages"    => "<div>" . $error_msg . "</div>",
@@ -105,7 +106,7 @@ class AddSQL {
         }
 
         if ($this->throws_exception == 'default') {
-            throw new ExVSQL("Error : " . $error_msg);
+            throw new ExAddSQL("Error : " . $error_msg);
         }
     }
 
