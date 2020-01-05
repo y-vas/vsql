@@ -19,7 +19,7 @@
     "require": { },
     "autoload": {
         "psr-4": {
-            "ASQL\\": "/"
+            "AddSQL\\": ""
         }
     }
 }
