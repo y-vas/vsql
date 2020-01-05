@@ -1,15 +1,6 @@
 <?php
 namespace VSQL\VSQL;
 
-//
-//                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
-//                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
-//                                           ██║   ██║ ███████╗ ██║   ██║ ██║
-//                                          ╚██╗  ██║ ╚════██║ ██║▄▄ ██║ ██║
-//                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
-//                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
-//
-
 use Exception;
 
 class ExVSQL extends Exception {}
@@ -26,31 +17,37 @@ class VSQL {
     public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0, string $exception = "default") {
-        $this->id = $id;
-        $this->throws_exception = $exception;
+  function __construct($id = 0, string $exception = "default") {
+      $this->id = $id;
+      $this->throws_exception = $exception;
 
-        foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
-            if (!isset($_ENV[$value])) {
-                $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
-            }
+      if ($exception == 'null') {
+        return;
+      }
+
+
+      foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
+        if (!isset($_ENV[$value])) {
+          $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
         }
+      }
 
-        if (!empty($_ENV["SQL_CONN{$id}"])) {
-            $this->CONN = $_ENV["SQL_CONN{$id}"];
-        } else {
-            $this->CONN = self::_conn();
-        }
+      if (!empty($_ENV["SQL_CONN{$id}"])) {
+        $this->CONN = $_ENV["SQL_CONN{$id}"];
+      } else {
+        $this->CONN = self::_conn();
+      }
 
-        if ($this->CONN->connect_errno) {
-            $this->_error_msg("Connection Fail: (" .
-                $this->CONN->connect_errno
-                . ") " . $this->CONN->connect_error
-            );
-        }
-
-        $_ENV["SQL_CONN{$id}"] = $this->CONN;
+      if ($this->CONN->connect_errno) {
+        $this->_error_msg("Connection Fail: (" .
+        $this->CONN->connect_errno
+        . ") " . $this->CONN->connect_error
+      );
     }
+
+    $_ENV["SQL_CONN{$id}"] = $this->CONN;
+
+  }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
     private function _conn() {
