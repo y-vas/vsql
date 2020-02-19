@@ -26,7 +26,7 @@ class VSQL {
     public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0, string $exception = "default") {
+    function __construct($id = 0, $exception = "default") {
         $this->id = $id;
         $this->throws_exception = $exception;
 
@@ -96,28 +96,10 @@ class VSQL {
     }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-    private function _alberts_nulls(){
-      foreach ($this->query_vars as $key => $value) {
-        if( strpos( $key, '!' ) !== false) {
-          $nk = str_replace("!", "", $key);
-
-          if ($value == null){
-            $this->_error_msg("$nk has null value!");
-          }
-
-          $this->query_vars[$nk] = $value;
-        }
-      }
-
-    }
-//------------------------------------------------ <  query > ----------------------------------------------------------
-    public function query(string $query_string, array $query_vars, $debug = ""): string {
-
+    public function query($query_string, $query_vars, $debug = "") {
         $this->query_original = $query_string;
         $this->query_vars = $query_vars;
         $this->query_string = $query_string;
-
-        $this->_alberts_nulls();
 
         $cache = "";
         if (!empty($this->id)) {
@@ -128,87 +110,18 @@ class VSQL {
           $query_string = $this->_find_objects($query_string);
         }
 
-        if(!$this->_assoc($query_vars)){
-          // SAFE SQL SYNTAX
-          $query_string = $this->_safe_sql_query($query_string,$query_vars);
-        }else {
-          // VSQL SYNTAX
-          if (empty($cache)) {
-            $query_string = $this->_quote_check($query_string);
-            $query_string = $this->_var_transform($query_string);
-          } else {
-            $query_string = $this->_var_transform($cache);
-          }
+        if (empty($cache)) {
+          $query_string = $this->_quote_check($query_string);
+          $query_string = $this->_var_transform($query_string);
+        } else {
+          $query_string = $this->_var_transform($cache);
         }
 
         $this->query_string = $query_string;
-
         $this->_inspect($debug);
         return $query_string;
     }
 
-//--------------------------------------- <  safe_sql_query > ----------------------------------------------------------
-    private function _safe_sql_query($query_string, $query_vars) {
-      $_var_count = count($query_vars);
-
-      if($_var_count != preg_match_all('!%[sSiIfFcClLqQnN]!', $query_string, $_match)) {
-        $this->_error_msg('Unmatched number of vars and % placeholders: ');
-      }
-
-      $_var_pos = array();
-      $_curr_pos = 0;
-
-      for( $_x = 0; $_x < $_var_count; $_x++ ) {
-        $_var_pos[$_x] = strpos($query_string, $_match[0][$_x], $_curr_pos);
-        $_curr_pos = $_var_pos[$_x] + 1;
-      }
-
-      $_last_removed_pos = null;
-      $_last_var_pos = null;
-
-      for( $_x = $_var_count-1; $_x >= 0; $_x-- ) {
-
-        if( isset($_last_removed_pos) && $_last_removed_pos < $_var_pos[$_x] ) {
-            continue;
-        }
-
-        $query_vars[$_x] = $this->_sql_escape($query_vars[$_x]);
-
-        if(in_array($_match[0][$_x], array('%S','%I','%F','%C','%L','%Q','%N'))) {
-
-          $_right_pos = strpos($query_string, ']', isset($_last_var_pos) ? $_last_var_pos : $_var_pos[$_x]);
-
-          $_str_slice = substr($query_string, 0, $_var_pos[$_x]);
-          $_left_pos = strrpos($_str_slice, '[');
-
-          if($_right_pos === false || $_left_pos === false) {
-            $this->_error_msg('Missing or unmatched brackets: ');
-          }
-          if(in_array($query_vars[$_x], $this->_drop_values, true)) {
-            $_last_removed_pos = $_left_pos;
-            // remove entire part of string
-            $query_string = substr_replace($query_string, '', $_left_pos, $_right_pos - $_left_pos + 1);
-            $_last_var_pos = null;
-            } else if ($_x > 0 && $_var_pos[$_x-1] > $_left_pos) {
-                // still variables left in brackets, leave them and just replace var
-                $_convert_var = $this->_convert_var($_match[0][$_x],$query_vars[$_x]);
-                $query_string = substr_replace($query_string, $_convert_var, $_var_pos[$_x], 2);
-                $_last_var_pos = $_var_pos[$_x] + strlen($_convert_var);
-            } else {
-              // remove the brackets only, and replace %S
-              $query_string = substr_replace($query_string, '', $_right_pos, 1);
-              $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x]), $_var_pos[$_x], 2);
-              $query_string = substr_replace($query_string, '', $_left_pos, 1);
-              $_last_var_pos = null;
-            }
-        } else {
-          $query_string = substr_replace($query_string, $this->_convert_var( $_match[0][$_x],$query_vars[$_x] ), $_var_pos[$_x], 2);
-        }
-      }
-
-
-      return $query_string;
-    }
 //------------------------------------------------ <  _inspect > -------------------------------------------------------
     private function _inspect( $debug ) {
         $this->throws_exception = "pretty";
@@ -382,10 +295,10 @@ class VSQL {
 
 //------------------------------------------- <  _var_transform > ------------------------------------------------------
     private function _var_transform(
-        string $query_string,
+        $query_string,
         $return_empty_if_has_null_values = false
-    ): string {
-        preg_match_all('!<(.*?)?(\!)?:(.*?)>!', $query_string, $match);
+    ) {
+        preg_match_all('!{(.*?)?(\!)?:(.*?)}!', $query_string, $match);
 
         foreach ($match[1] as $key => $simbol) {
             $var_key = $match[3][$key];
@@ -405,6 +318,10 @@ class VSQL {
 
             }
 
+            if (strpos($simbol, 'i') !== false && empty($var)){
+              $var = 0;
+            }
+
             $query_string = str_replace($match[0][$key], $var, $query_string);
         }
 
@@ -412,7 +329,7 @@ class VSQL {
     }
 
 //--------------------------------------------- <  _quote_check > ------------------------------------------------------
-    private function _quote_check(string $query_string, $cache = false ): string {
+    private function _quote_check($query_string, $cache = false ) {
         preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
 
         while (count($match_brakets[0]) != 0) {
@@ -461,17 +378,17 @@ class VSQL {
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private function _qvar( string $var ) {
+    private function _qvar( $var ) {
         return empty($this->query_vars[$var]) ? null : $this->query_vars[$var];
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private function _tvar( string $var ) {
+    private function _tvar( $var ) {
         return empty($this->tags[$var]) ? null : $this->tags[$var];
     }
 
 //------------------------------------------------ <  _convert_var > ---------------------------------------------------
-    private function _convert_var( string $type, string $var ) {
+    private function _convert_var( $type, $var ) {
 
         $result = null;
         //---------------------- cases -----------------
@@ -623,7 +540,7 @@ class VSQL {
     }
 
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
-    private function _escape_qvar( string $var ) {
+    private function _escape_qvar( $var ) {
         return $this->_sql_escape($this->_qvar($var));
     }
 
@@ -677,19 +594,11 @@ class VSQL {
 
         $mysqli->query($this->query_string);
 
-        // if (!empty($mysqli->error)){
-        //   $msg = $mysqli->error;
-        //   if ($this->is_transaction){
-        //     $mysqli->rollback();
-        //   }
-        //   $this->_error_msg($msg);
-        // }
-
         return $mysqli;
     }
 
 // ------------------------------------------------ <  _fetch_row > ----------------------------------------------------
-    private function _fetch_row( $result, $proceso ): \stdClass {
+    private function _fetch_row( $result, $proceso ) {
         $row = new \stdClass();
 
         $count = 0;
@@ -710,7 +619,7 @@ class VSQL {
     }
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
-    public function _transform_get( $val, string $datatype, string $key ) {
+    public function _transform_get( $val, $datatype, $key ) {
         $mysql_data_type_hash = array(
             1 => array('tinyint', 'int'),
             2 => array('smallint', 'int'),
@@ -867,7 +776,6 @@ class VSQL {
                     $this->_transformed = isset($data[$this->id]['transformed']) ? $data[$this->id]['transformed'] : [];
                     return $data[$this->id]['sql'];
                 }
-
                 /* we update the query */
                 return $this->_save_json_cache($query_string, $data, $check_data, $filename);
             }
@@ -893,63 +801,4 @@ class VSQL {
 
         return $data[$this->id]['sql'];
     }
-
-    private function _example_query(){
-      return "SELECT
-
-        art.*,
-        TO_STD_VSQL( SELECT JAGG_VSQL(
-           'id'     => s.id,
-           'orders' => s.orders,
-           'status' => s.status ,
-           'items'  => ( SELECT JAGG_VSQL(
-                  'id'      => id ,
-                  'orders'  => orders,
-                  'type'    => type,
-                  'status'  => status,
-                  'site'    => site,
-                  'content' => content
-        ) FROM items where id_section = s.id ))
-
-        FROM section s WHERE s.id_article = art.id
-        ) AS sections
-
-      FROM articulos AS art
-      WHERE TRUE ";
-    }
 }
-
-// ---------------------------------------------------------------------------------------------------------------------
-// $_ENV["sql_host"] = 'localhost';
-// $_ENV["sql_user"] = 'vas';
-// $_ENV["sql_pass"] = 'dotravel';
-// $_ENV["sql_db"] = 'dotravel';
-// $_ENV["vsql_cache_dir"] = __DIR__;
-//
-// $db = new VSQL('');
-//
-// $db->query("SELECT
-//   r.id_product,
-//   COLLECTION_VSQL(
-//       'id' => r.id,
-//       'id_costumer' => r.id_customer,
-//       'id_cartitem' => r.id_cartitem,
-//       'title' => r.title,
-//       'text' => r.text,
-//       'date' => r.date,
-//       'rating_valueformoney' => r.rating_valueformoney,
-//       'rating_convenience' => r.rating_convenience,
-//       'rating_accessibility' => r.rating_accessibility,
-//       'rating_overall' => r.rating_overall,
-//       'type_travel' =>  r.type_travel,
-//       'display_name' => r.display_name,
-//       'dotravel_rate' => r.dotravel_rate,
-//       'status' => r.status
-//     ) as col
-// from reviews r
-// where TRUE
-// {{ AND r.id_product = <:id_product> }}
-// {{ AND r.id_product in (<array:products>) }}
-// group by r.id_product
-// ",array("products"=>null,'id_product'=>null),"debug");
-// ---------------------------------------------------------------------------------------------------------------------
