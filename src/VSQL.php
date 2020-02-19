@@ -62,24 +62,6 @@ class VSQL {
         );
     }
 
-//------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
-//   public function start_transaction() {
-//     $this->is_transaction = true;
-//     $this->CONN->autocommit(FALSE);
-//
-//     $this->CONN->begin_transaction(
-//         MYSQLI_TRANS_START_READ_WRITE
-//     );
-//   }
-//
-// //------------------------------------------------ <  TRANSACTION > ----------------------------------------------------
-//   public function end_transaction() {
-//     $this->CONN->commit();
-//   }
-//
-//   public function rollback_transaction() {
-//     $this->CONN->rollback();
-//   }
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
     public function _error_msg( $error_msg ) {
 
