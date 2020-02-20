@@ -1,14 +1,12 @@
 <?php
 namespace VSQL\VSQL;
 
-//
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
 //                                           ██║   ██║ ███████╗ ██║   ██║ ██║
 //                                          ╚██╗  ██║ ╚════██║ ██║▄▄ ██║ ██║
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
-//
 
 use Exception;
 
@@ -67,8 +65,6 @@ class VSQL {
 
         if ($this->throws_exception == 'pretty') {
             $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
-            $safe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'safesql.html');
-            $nsafe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'vsql.html');
 
             $values = array(
                 "error_messages"    => "<div>" . $error_msg . "</div>",
@@ -118,7 +114,11 @@ class VSQL {
         }
 
         $this->query_string = $query_string;
+
         $this->_inspect($debug);
+
+        $_ENV['QUERYES'][] = $query_string;
+
         return $query_string;
     }
 
@@ -135,6 +135,9 @@ class VSQL {
 
         switch ($debug) {
             case 'show':
+                $this->_error_msg(implode(array()));
+                break;
+
             case 'debug':
                 $this->_error_msg(" DEBUG ");
                 break;
@@ -300,13 +303,20 @@ class VSQL {
     ) {
         preg_match_all('!{(.*?)?(\!)?:(.*?)}!', $query_string, $match);
 
+
         foreach ($match[1] as $key => $simbol) {
             $var_key = $match[3][$key];
+            $exp = explode(';',$var_key);
+            $var_key = $exp[0];
             $not_null = $match[2][$key];
 
             $var = $this->_convert_var($simbol, $var_key);
 
             if ($var == null) {
+
+                if (count($exp) > 1){
+                  $var = $exp[1];
+                }
 
                 if ($not_null == "!") {
                     $this->_error_msg("$var_key key resulted in null!");
@@ -330,7 +340,7 @@ class VSQL {
 
 //--------------------------------------------- <  _quote_check > ------------------------------------------------------
     private function _quote_check($query_string, $cache = false ) {
-        preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
+        preg_match_all("!{{([\w*?:\!]*)(\X*?)}}!", $query_string, $match_brakets);
 
         while (count($match_brakets[0]) != 0) {
 
@@ -370,7 +380,7 @@ class VSQL {
 
             }
 
-            preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
+            preg_match_all("!{{([\w*?:\!]*)(\X*?)}}!", $query_string, $match_brakets);
         }
 
 
@@ -785,7 +795,7 @@ class VSQL {
     }
 
 //------------------------------------------- <  _save_json_cache > ----------------------------------------------------
-    private function _save_json_cache(   $query_string,  $data,   $date, $filename  ) {
+    private function _save_json_cache( $query_string,  $data,   $date, $filename  ) {
         $chekd = $this->_quote_check(
         $this->_find_objects($query_string) , true);
 

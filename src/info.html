@@ -19,205 +19,29 @@
 
 <div class="d-flex">
 
-  <div class="bg-light border-right col-sm-2">
-    <div class="sidebar-heading">&nbsp;</div>
-    <div class="list-group list-group-flush">
-      <a href="#" onclick="toggleboard('querys')" class="list-group-item">Query</a>
-      <a href="#" onclick="toggleboard('debug')" class="list-group-item">Debug</a>
-      <a href="#" onclick="toggleboard('START')" class="list-group-item">START</a>
-      <a href="#" onclick="toggleboard('simplesntx')" class="list-group-item">Simple Syntax</a>
-      <a href="#" onclick="toggleboard('complxsntx')" class="list-group-item">Complex Syntax</a>
-    </div>
-  </div>
-
-  <div class="col-sm-10">
+  <div class="col-sm-12">
     <div>&nbsp;</div>
 
-    <div class="container-fluid board querys hidden">
+    <div class="container-fluid board debug">
+      <div class="col-lg-12">
+        <pre style="height:100;">  <error_messages>  </pre>
+      </div>
       <div class="col-sm-6">
-        <div class="h2"> ORIGINAL </div>
+        <button class='btn btn-block btn-success' data-clipboard-target=".m2" >COPY ORIGINAL</button>
         <hr>
         <pre><code class='sql' style="height:600px;"><div class='m2'> <original_query> </div></code></pre>
         <hr>
-        <button class='btn btn-block' data-clipboard-target=".m2" >Copy Original</button>
       </div>
 
       <div class="col-sm-6">
-        <div class="h2"> TRANSFORMED </div>
+        <button class='btn btn-block' data-clipboard-target=".m1" >COPY TRANSFORMED</button>
         <hr>
         <pre><code class='sql' style="height:600px;"><div class='m1' > <transformed_query> </div></code></pre>
         <hr>
-        <button class='btn btn-block' data-clipboard-target=".m1" >Copy Transformed</button>
-      </div>
-    </div>
-
-    <div class="container-fluid board simplesntx hidden">
-      <SafeSQL_MySQL>
-    </div>
-
-    <div class="container-fluid board complxsntx ">
-      <newSafeSql>
-    </div>
-
-    <div class="container-fluid board debug hidden">
-      <pre style="height:600px;">  <error_messages>  </pre>
-    </div>
-
-    <div class="container-fluid board START hidden">
-      <div class="row" style="line-height:70%;">
-        <div class="col-sm-12">
-          <h2>INITIALIZATION</h2>
-          <hr>
-          <p>To connect VSQL to your DATABASE set on the SUPERGLOBAL
-            <strong>$_ENV</strong> your db values: (example) </p>
-          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_host"</b>] = <b class="text-success">"127.0.0.1";</b></p>
-          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_user"</b>] = <b class="text-success">"root";</b></p>
-          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_pass"</b>] = <b class="text-success">"password";</b></p>
-          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"sql_db"  </b>] = <b class="text-success">"dotravel4";</b></p>
-          <br>
-          <p> Use it if you want better performance </p>
-          <p><b class="text-danger">$_ENV</b>[<b class="text-success">"vsql_cache_dir"</b>] = <b class="text-success">"/var/www/html/....";</b></p>
-
-          <br>
-          <h2>USE</h2>
-          <hr>
-
-          <div class="col-sm-12">
-            <div class="col-sm-6">
-
-              <p class="text-muted" >// use the library in your file by inserting</p>
-              <p> <b class="text-muted">use</b> VSQL\VSQL\<b class="text-warning">VSQL</b>;</p>
-              <br>
-
-              <p> <b class="text-danger">$vas</b> = new <b class="text-warning">VSQL</b>(<br><br>
-                <i class="text-muted">&emsp;&emsp;  /* saves the proces in the cache and also will store the
-                  connection to use it multiple times */<br><br>  </i>
-                  <i class="text-success">&emsp;&emsp; 'name' </i>,
-                  <i class="text-muted"><br><br>&emsp;&emsp;   /* changes exception to be trown (default, pretty, normal, null) .<br><br>  </i>
-                  <i class="text-muted">&emsp;&emsp;  by default throws an ExVSQL Exception */<br><br>  </i>
-                  <i class="text-success">&emsp;&emsp;  'default' </i><br><br>
-                  ); </p>
-              <br>
-
-            </div>
-
-            <div class="col-sm-6">
-              <h3>Exceptions</h3>
-              <p> # default: trows an ExVSQL Exception</p>
-              <p> # pretty: ends the proces to present the current page with the debuged query </p>
-              <p> # normal: trows an Exception </p>
-              <p> # null: doesn't trow anithing </p>
-            </div>
-
-          </div>
-
-
-          <div class="col-sm-12">
-            <hr>
-            <div class="col-sm-6">
-
-              <p class="text-muted" >// start writing your query </p>
-
-              <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(</p>
-                <p>&emsp; &emsp;<i class="text-success">"SELECT * FROM items where id = %i "</i> ,</p>
-              <p>&emsp; &emsp; <i class="text-info">array</i>(<i class="text-success">"val"</i>)</p>
-              <p>);</p>
-              <br>
-              <p class="text-muted" >// associative array will triger a more complex query maker </p>
-
-              <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(</p>
-                <p>&emsp; &emsp;<i class="text-success">"SELECT * FROM items WHERE id = <:id>"</i> ,</p>
-              <p>&emsp; &emsp; <i class="text-info">array</i>(<i class="text-success">"val"</i> => <i class="text-success">"val"</i>)</p>
-              <p>);</p>
-
-
-            </div>
-
-            <div class="col-sm-6">
-              <button class="btn btn-block btn-info" onclick="toggleboard('simplesntx')" type="button" name="button">SIMPLE QUERY SYNTAX</button>
-              <br>
-              <button class="btn btn-block btn-info" onclick="toggleboard('complxsntx')" type="button" name="button">COMPLEX QUERY SYNTAX</button>
-            </div>
-          </div>
-
-          <div class="col-sm-12">
-            <hr>
-            <div class="col-sm-6">
-
-              <p class="text-muted" >// inspecting the query </p>
-
-              <p><b class="text-danger">$vas</b>-><i class="text-info">query</i>(</p>
-                <p>&emsp; &emsp;<i class="text-success">"SELECT * FROM items where id = %i "</i> ,</p>
-                <p>&emsp; &emsp; <i class="text-info">array</i>(<i class="text-success">"val"</i>)</p>
-                <i class="text-muted">&emsp;&emsp;   /* inspects the query : valid arguments (show, debug, dump_get, dump_get, mk_funk) */<br><br>  </i>
-                <p>&emsp; &emsp; <i class="text-success">"debug"</i> </p>
-              <p>);</p>
-              <br>
-
-            </div>
-
-            <div class="col-sm-6">
-              <h3>Inspection Type</h3>
-              <p> # debug/show: presents the given query and the transformed one </p>
-              <br>
-              <p> # dump_get :  presents the given query and the transformed one </p>
-              <p> and also shows the result of the query if this ones is a SELECT </p>
-              <br>
-              <p> # dump_get:all :  same as debug get but for all rows </p>
-              <br>
-              <p> # mk_func : will create a predefined query from the given table </p>
-              <p> example -> mk_func:items:select  will present a select query for the table  </p>
-              <p> items with all the posible where clauses</p>
-            </div>
-            <hr>
-          </div>
-
-          <div class="col-sm-12">
-            <hr>
-            <div class="col-sm-6">
-
-              <p class="text-muted" >// geting the results </p>
-
-              <p><b class="text-danger">$result</b> =  <b class="text-danger">$vas</b>-><i class="text-info">get</i>(</p>
-              <i class="text-muted">&emsp;&emsp;   /* will return 1 row or all */<br><br>  </i>
-                <p>&emsp; &emsp;<b class="text-danger">$list</b> = <b class="text-warning">true</b> ,</p>
-                <i class="text-muted">&emsp;&emsp;   /* will return object or array: valid options (array, object) */<br><br>  </i>
-                <p>&emsp; &emsp;<b class="text-danger">$type</b> = <b class="text-success">'array'</b> ,</p>
-              <p>);</p>
-              <br>
-
-            </div>
-
-            <div class="col-sm-6">
-
-              <p class="text-muted" >// runing the query </p>
-
-              <p><b class="text-danger">$result</b> =  <b class="text-danger">$vas</b>-><i class="text-info">run</i>();</p>
-              <br>
-              <p> # the run function will return the mysql instance </p>
-              <br>
-
-            </div>
-
-            <hr>
-          </div>
-
-          <div class="col-sm-12">
-            <hr>
-            <div class="col-sm-6">
-              <h3>&emsp; &emsp;</h3>
-            </div>
-            <div class="col-sm-6">
-              <h3>&emsp; &emsp;</h3>
-          </div>
-
-
-        </div>
       </div>
     </div>
 
 
-  </div>
 
 </div>
 
