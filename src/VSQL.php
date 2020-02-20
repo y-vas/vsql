@@ -1,55 +1,41 @@
 <?php
 namespace VSQL\VSQL;
 
-//
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
 //                                           ██║   ██║ ███████╗ ██║   ██║ ██║
 //                                          ╚██╗  ██║ ╚════██║ ██║▄▄ ██║ ██║
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
-//
 
 use Exception;
-
-class ExVSQL extends Exception {}
 
 class VSQL {
     public $CONN = null;
     private $query_vars = array();
     private $query_string = "";
     private $query_original = "";
-    private $throws_exception = "default";
-    private $concat_name = false;
-    private $is_transaction = false;
     private $_transformed = array();
-    public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0, $exception = "default") {
+    function __construct($id = 0) {
         $this->id = $id;
-        $this->throws_exception = $exception;
 
-        foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
-            if (!isset($_ENV[$value])) {
-                $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
-            }
-        }
+        // foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
+        //     if (!isset($_ENV[$value])) {
+        //         $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
+        //     }
+        // }
+        //
+        // $this->CONN = self::_conn();
+        //
+        // if ($this->CONN->connect_errno) {
+        //     $this->_error_msg("Connection Fail: (" .
+        //         $this->CONN->connect_errno
+        //         . ") " . $this->CONN->connect_error
+        //     );
+        // }
 
-        if (!empty($_ENV["SQL_CONN{$id}"])) {
-            $this->CONN = $_ENV["SQL_CONN{$id}"];
-        } else {
-            $this->CONN = self::_conn();
-        }
-
-        if ($this->CONN->connect_errno) {
-            $this->_error_msg("Connection Fail: (" .
-                $this->CONN->connect_errno
-                . ") " . $this->CONN->connect_error
-            );
-        }
-
-        $_ENV["SQL_CONN{$id}"] = $this->CONN;
     }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
@@ -65,34 +51,24 @@ class VSQL {
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
     public function _error_msg( $error_msg ) {
 
-        if ($this->throws_exception == 'pretty') {
-            $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
-            $safe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'safesql.html');
-            $nsafe = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'vsql.html');
+      if (isset($_ENV['DEBUG'])){ if ($_ENV['DEBUG']){
+        $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
 
-            $values = array(
-                "error_messages"    => "<div>" . $error_msg . "</div>",
-                "original_query"    => htmlentities($this->query_original),
-                "transformed_query" => htmlentities($this->query_string),
-                "SafeSQL_MySQL" => $safe,
-                "newSafeSql" => $nsafe,
-            );
+        $values = array(
+          "error_messages"    => "<div>" . $error_msg . "</div>",
+          "original_query"    => htmlentities($this->query_original),
+          "transformed_query" => htmlentities($this->query_string),
+        );
 
-            foreach ($values as $key => $value) {
-                $content = str_replace("<$key>", $value, $content);
-            }
-
-            echo $content;
-            die;
+        foreach ($values as $key => $value) {
+          $content = str_replace("<$key>", $value, $content);
         }
 
-        if ($this->throws_exception == 'normal') {
-            throw new Exception("Error : " . $error_msg);
-        }
+        echo $content;
+        die;
+      }}
 
-        if ($this->throws_exception == 'default') {
-            throw new ExVSQL("Error : " . $error_msg);
-        }
+      throw new Exception("Error : " . $error_msg);
     }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
@@ -118,7 +94,11 @@ class VSQL {
         }
 
         $this->query_string = $query_string;
+
         $this->_inspect($debug);
+
+        $_ENV['QUERYES'][] = $query_string;
+
         return $query_string;
     }
 
@@ -135,6 +115,9 @@ class VSQL {
 
         switch ($debug) {
             case 'show':
+                $this->_error_msg(implode(array()));
+                break;
+
             case 'debug':
                 $this->_error_msg(" DEBUG ");
                 break;
@@ -300,13 +283,20 @@ class VSQL {
     ) {
         preg_match_all('!{(.*?)?(\!)?:(.*?)}!', $query_string, $match);
 
+
         foreach ($match[1] as $key => $simbol) {
             $var_key = $match[3][$key];
+            $exp = explode(';',$var_key);
+            $var_key = $exp[0];
             $not_null = $match[2][$key];
 
             $var = $this->_convert_var($simbol, $var_key);
 
             if ($var == null) {
+
+                if (count($exp) > 1){
+                  $var = $exp[1];
+                }
 
                 if ($not_null == "!") {
                     $this->_error_msg("$var_key key resulted in null!");
@@ -330,7 +320,7 @@ class VSQL {
 
 //--------------------------------------------- <  _quote_check > ------------------------------------------------------
     private function _quote_check($query_string, $cache = false ) {
-        preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
+        preg_match_all("!{{([\w*?:\!]*)(\X*?)}}!", $query_string, $match_brakets);
 
         while (count($match_brakets[0]) != 0) {
 
@@ -370,7 +360,7 @@ class VSQL {
 
             }
 
-            preg_match_all("!{{([\w*?:\!]*)([^{{]*?)}}!", $query_string, $match_brakets);
+            preg_match_all("!{{([\w*?:\!]*)(\X*?)}}!", $query_string, $match_brakets);
         }
 
 
@@ -785,7 +775,7 @@ class VSQL {
     }
 
 //------------------------------------------- <  _save_json_cache > ----------------------------------------------------
-    private function _save_json_cache(   $query_string,  $data,   $date, $filename  ) {
+    private function _save_json_cache( $query_string,  $data,   $date, $filename  ) {
         $chekd = $this->_quote_check(
         $this->_find_objects($query_string) , true);
 
