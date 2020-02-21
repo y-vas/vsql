@@ -1,8 +1,8 @@
 <?php
 
 namespace VSQL\VSQL;
-require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
@@ -10,7 +10,6 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 //                                          ╚██╗  ██║ ╚════██║ ██║▄▄ ██║ ██║
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
-
 
 class VSQL extends DB {
 
@@ -602,97 +601,4 @@ class VSQL extends DB {
     }
 
 
-<<<<<<< HEAD
-//------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private function _sel( $vals, $table ) {
-        $sW = [];
-        $sl = [];
-
-        foreach ($vals as $key => $value) {
-            $rp = str_repeat(" ", 20 - strlen($value->Field));
-            $sl[] = "\n\t`$value->Field`";
-            $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field> $rp }}";
-        }
-
-        $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" . htmlentities("
-        public static function get( array \$arr, \$list = false, \$stored = '')  {
-          \$vsql = new VSQL(\$stored);
-
-          \$vsql->query(\"SELECT " . implode($sl, ',') . "
-          FROM $table WHERE TRUE" . implode($sW, '') . "
-          {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
-        \");
-          return \$vsql->get(\$list);
-        }") . " </code>");
-    }
-
-//------------------------------------------------ <  _cache > ---------------------------------------------------------
-    private function _cache() {
-        $query_string = $this->query_string;
-
-        if (!file_exists($_ENV['vsql_cache_dir'])) {
-            mkdir($_ENV['vsql_cache_dir'], 0755, true);
-        }
-
-        if (empty($_ENV['vsql_cache_dir'])) {
-            $this->_error_msg("The cache directory is not set : use \$_ENV['vsql_cache_dir'] = '/var/www/html/vsql_cache'; to declare it!");
-        }
-
-        $filename = 'def';
-        $check_data = 0;
-
-        $e = new \Exception();
-        foreach ($e->getTrace() as $key => $value) {
-            if ($value['function'] == 'query') {
-                $bodytag = str_replace(DIRECTORY_SEPARATOR, "", $value['file']);
-                $check_data = filemtime($value['file']);
-                $filename = $_ENV['vsql_cache_dir'] . DIRECTORY_SEPARATOR . $bodytag . '.json';
-                break;
-            }
-        }
-
-        if (!file_exists($filename)) {
-            /* if file cache don't exists we make a new one */
-            return $this->_save_json_cache($query_string, array(), $check_data, $filename);
-        } else {
-            /* if file exists we get the content */
-            $data = json_decode(utf8_decode(file_get_contents($filename)), true);
-
-            if (!isset($data[$this->id])) {
-                /* if the id is not set in the file we add it */
-                return $this->_save_json_cache($query_string, $data, $check_data, $filename);
-            } else {
-
-                /* if the id is set and the file has not been updated we return the query */
-                if ($data[$this->id]['last_cache_update'] == $check_data) {
-                    $this->_transformed = isset($data[$this->id]['transformed']) ? $data[$this->id]['transformed'] : [];
-                    return $data[$this->id]['sql'];
-                }
-                /* we update the query */
-                return $this->_save_json_cache($query_string, $data, $check_data, $filename);
-            }
-        }
-
-        return "";
-    }
-
-//------------------------------------------- <  _save_json_cache > ----------------------------------------------------
-    private function _save_json_cache( $query_string,  $data,   $date, $filename  ) {
-        $chekd = $this->_quote_check(
-        $this->_find_objects($query_string) , true);
-
-        $data[$this->id] = array(
-            'last_cache_update' => $date,
-            'transformed' => $this->_transformed,
-            'sql' => $chekd
-        );
-
-        $myfile = fopen($filename, "w");
-        fwrite($myfile, json_encode($data));
-        fclose($myfile);
-
-        return $data[$this->id]['sql'];
-    }
-=======
->>>>>>> 6d3578fb674f94ba6f35dce1497c7357d98f296e
 }

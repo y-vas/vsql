@@ -1,6 +1,6 @@
 <?php
 
-namespace VSQL\DB;
+namespace VSQL\VSQL;
 
 class DB {
     private $server; # string: DB Server
@@ -177,13 +177,6 @@ class DB {
         $this->_error_msg( $q.$i.$u );
     }
 
-    public function compiler($str,$vrs){
-      preg_match_all('!([^\s]*)((?::|{))(\w+)(;*)([^\s]*)!', $str, $match);
-
-      var_dump($match);
-
-    }
-
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
     private function chquery() {
         if (!isset($_ENV['VSQL_CACHE'])) { return; }
@@ -216,7 +209,7 @@ class DB {
         /* if the file has not been updated we return the query */
         if ($fcon[ $this->id ]['update'] ==  $data['date']) {
           $this->vars = $fcon[$this->id]['vtvars'];
-          return $fcon[$this->id]['cquery']
+          return $fcon[$this->id]['cquery'];
         }
 
         $f = fopen( $data['json'], "w");
@@ -234,8 +227,15 @@ class DB {
 
     private function gt($s){
       for ($l = 0; $l < strlen($s); $l++) {
-        // code...
+      // code...
       }
+    }
+
+    public function compiler($str,$vrs){
+      preg_match_all('!([^\s]*)((?::|{))(\w+)(;*)([^\s]*)!', $str, $match);
+
+      var_dump($match);
+
     }
 
     private function replace($str){
