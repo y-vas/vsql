@@ -1,5 +1,7 @@
 <?php
 namespace VSQL\VSQL;
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
+
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
@@ -8,68 +10,7 @@ namespace VSQL\VSQL;
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
-use Exception;
-
-class VSQL {
-    public $CONN = null;
-    private $query_vars = array();
-    private $query_string = "";
-    private $query_original = "";
-    private $_transformed = array();
-
-//------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0) {
-        $this->id = $id;
-
-        foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
-            if (!isset($_ENV[$value])) {
-                $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
-            }
-        }
-
-        $this->CONN = self::_conn();
-
-        if ($this->CONN->connect_errno) {
-            $this->_error_msg("Connection Fail: (" .
-                $this->CONN->connect_errno
-                . ") " . $this->CONN->connect_error
-            );
-        }
-
-    }
-
-//------------------------------------------------ <  _conn > ----------------------------------------------------------
-    private function _conn() {
-        return mysqli_connect(
-            $_ENV['DB_HOST'],
-            $_ENV['DB_USERNAME'],
-            $_ENV['DB_PASSWORD'],
-            $_ENV['DB_DATABASE']
-        );
-    }
-
-//------------------------------------------------ <  _error_msg > -----------------------------------------------------
-    public function _error_msg( $error_msg ) {
-
-      if (isset($_ENV['DEBUG'])){ if ($_ENV['DEBUG']){
-        $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
-
-        $values = array(
-          "error_messages"    => "<div>" . $error_msg . "</div>",
-          "original_query"    => htmlentities($this->query_original),
-          "transformed_query" => htmlentities($this->query_string),
-        );
-
-        foreach ($values as $key => $value) {
-          $content = str_replace("<$key>", $value, $content);
-        }
-
-        echo $content;
-        die;
-      }}
-
-      throw new Exception("Error : " . $error_msg);
-    }
+class VSQL extends DB {
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
     public function query($query_string, $query_vars, $debug = "") {
@@ -96,8 +37,6 @@ class VSQL {
         $this->query_string = $query_string;
 
         $this->_inspect($debug);
-
-        $_ENV['QUERYES'][] = $query_string;
 
         return $query_string;
     }
@@ -129,9 +68,6 @@ class VSQL {
                 $this->_error_msg("<strong>VAR DUMP</strong> : <br> <code class='scss'> $result </code>");
                 break;
 
-            case 'mk_funk':
-                $this->_mkfunction($extra[1], $extra[2]);
-                break;
         }
     }
 
@@ -392,21 +328,21 @@ class VSQL {
             case '@e':
             case '@E':
                 $result = empty($_ENV[$var]) ? null : $_ENV[$var];
-                $result = $this->_sql_escape($result);
+                $result = $this->secure($result);
                 break;
 
             // @E = fetch value from $_COOKIE
             case '@c':
             case '@C':
                 $result = empty($_COOKIE[$var]) ? null : $_COOKIE[$var];
-                $result = $this->_sql_escape($result);
+                $result = $this->secure($result);
                 break;
 
             // @E = fetch value from $_SESSION
             case '@s':
             case '@S':
                 $result = empty($_SESSION[$var]) ? null : $_SESSION[$var];
-                $result = $this->_sql_escape($result);
+                $result = $this->secure($result);
                 break;
 
             // cast to integer
@@ -415,7 +351,7 @@ class VSQL {
                 $x = $this->_qvar($var);
                 if ($x != null) {
                     settype($x, 'integer');
-                    $result = $this->_sql_escape($x);
+                    $result = $this->secure($x);
                 }
                 break;
 
@@ -424,31 +360,31 @@ class VSQL {
             case 'F':
                 $x = $this->_qvar($var);
                 settype($x, 'float');
-                $result = $this->_sql_escape($x);
+                $result = $this->secure($x);
                 break;
 
             // implode the array
             case 'implode':
                 $x = $this->_qvar($var);
-                $res = $this->_sql_escape(implode(',', $x));
+                $res = $this->secure(implode(',', $x));
                 $result = $res != null ? "'" . $res . "'" : $res;
                 break;
 
             case 'array':
                 $x = $this->_qvar($var);
-                $result = $x != null ? $this->_sql_escape(implode(',', $x)) : '';
+                $result = $x != null ? $this->secure(implode(',', $x)) : '';
                 break;
 
             // trims the value
             case 't':
             case 'T':
-                $result = $this->_sql_escape(trim($this->_qvar($var)));
+                $result = $this->secure(trim($this->_qvar($var)));
                 break;
 
             // transforms the value to string
             case 's':
             case 'S':
-                $res = $this->_sql_escape(trim($this->_qvar($var)));
+                $res = $this->secure(trim($this->_qvar($var)));
                 $result = $res != null ? "'" . $res . "'" : $res;
                 break;
 
@@ -507,31 +443,9 @@ class VSQL {
         return $result;
     }
 
-//------------------------------------------------ <  _sql_escape > ----------------------------------------------------
-    private function _sql_escape( $var ) {
-        if (is_array($var)) {
-            foreach ($var as $_element) {
-                $_newvar[] = $this->_sql_escape($_element);
-            }
-            return $_newvar;
-        }
-
-        // if (function_exists('mysql_real_escape_string')) {
-        //     if (!isset($this->CONN)) {
-        //         return mysql_real_escape_string($var);
-        //     } else {
-        //         return mysql_real_escape_string($var, $this->CONN);
-        //     }
-        // } elseif (function_exists('mysql_escape_string')) {
-        //     return mysql_escape_string($var);
-        // } else {
-            return addslashes($var);
-        // }
-    }
-
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
     private function _escape_qvar( $var ) {
-        return $this->_sql_escape($this->_qvar($var));
+        return $this->secure($this->_qvar($var));
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
@@ -695,100 +609,4 @@ class VSQL {
 
     }
 
-//------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private function _sel( $vals, $table ) {
-        $sW = [];
-        $sl = [];
-
-        foreach ($vals as $key => $value) {
-            $rp = str_repeat(" ", 20 - strlen($value->Field));
-            $sl[] = "\n\t`$value->Field`";
-            $sW[] = "\n\t{{ AND `$value->Field` $rp = <:$value->Field> $rp }}";
-        }
-
-        $this->_error_msg("<strong>SELECT</strong><br><code class='php'>" . htmlentities("
-        public static function get( array \$arr, \$list = false, \$stored = '')  {
-          \$vsql = new VSQL(\$stored);
-
-          \$vsql->query(\"SELECT " . implode($sl, ',') . "
-          FROM $table WHERE TRUE" . implode($sW, '') . "
-          {{ ORDER BY <:order_by> }} {{ LIMIT <i:limit> {{, <i:limit_end> }} }} {{ OFFSET <i:offset> }}
-        \");
-          return \$vsql->get(\$list);
-        }") . " </code>");
-    }
-
-//------------------------------------------------ <  isAssoc > ---------------------------------------------------------
-    private function _assoc(array $arr){
-      if (array() === $arr) return false;
-      return array_keys($arr) !== range(0, count($arr) - 1);
-    }
-
-//------------------------------------------------ <  _cache > ---------------------------------------------------------
-    private function _cache() {
-        $query_string = $this->query_string;
-
-        if (!file_exists($_ENV['vsql_cache_dir'])) {
-            mkdir($_ENV['vsql_cache_dir'], 0755, true);
-        }
-
-        if (empty($_ENV['vsql_cache_dir'])) {
-            $this->_error_msg("The cache directory is not set : use \$_ENV['vsql_cache_dir'] = '/var/www/html/vsql_cache'; to declare it!");
-        }
-
-        $filename = 'def';
-        $check_data = 0;
-
-        $e = new Exception();
-        foreach ($e->getTrace() as $key => $value) {
-            if ($value['function'] == 'query') {
-                $bodytag = str_replace(DIRECTORY_SEPARATOR, "", $value['file']);
-                $check_data = filemtime($value['file']);
-                $filename = $_ENV['vsql_cache_dir'] . DIRECTORY_SEPARATOR . $bodytag . '.json';
-                break;
-            }
-        }
-
-        if (!file_exists($filename)) {
-            /* if file cache don't exists we make a new one */
-            return $this->_save_json_cache($query_string, array(), $check_data, $filename);
-        } else {
-            /* if file exists we get the content */
-            $data = json_decode(utf8_decode(file_get_contents($filename)), true);
-
-            if (!isset($data[$this->id])) {
-                /* if the id is not set in the file we add it */
-                return $this->_save_json_cache($query_string, $data, $check_data, $filename);
-            } else {
-
-                /* if the id is set and the file has not been updated we return the query */
-                if ($data[$this->id]['last_cache_update'] == $check_data) {
-                    $this->_transformed = isset($data[$this->id]['transformed']) ? $data[$this->id]['transformed'] : [];
-                    return $data[$this->id]['sql'];
-                }
-                /* we update the query */
-                return $this->_save_json_cache($query_string, $data, $check_data, $filename);
-            }
-        }
-
-        return "";
-    }
-
-//------------------------------------------- <  _save_json_cache > ----------------------------------------------------
-    private function _save_json_cache( $query_string,  $data,   $date, $filename  ) {
-        $chekd = $this->_quote_check(
-        $this->_find_objects($query_string) , true);
-
-        $data[$this->id] = array(
-            'last_cache_update' => $date,
-            'transformed' => $this->_transformed,
-            'sql' => $chekd
-        );
-
-        $myfile = fopen($filename, "w");
-        fwrite($myfile, json_encode($data));
-        fclose($myfile);
-
-        return $data[$this->id]['sql'];
-    }
 }
