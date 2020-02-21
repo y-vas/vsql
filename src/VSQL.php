@@ -516,17 +516,17 @@ class VSQL {
             return $_newvar;
         }
 
-        if (function_exists('mysqli_real_escape_string')) {
-            if (!isset($this->CONN)) {
-                return mysqli_real_escape_string($var);
-            } else {
-                return mysqli_real_escape_string($var, $this->CONN);
-            }
-        } elseif (function_exists('mysqli_escape_string')) {
-            return mysqli_escape_string($var);
-        } else {
+        // if (function_exists('mysql_real_escape_string')) {
+        //     if (!isset($this->CONN)) {
+        //         return mysql_real_escape_string($var);
+        //     } else {
+        //         return mysql_real_escape_string($var, $this->CONN);
+        //     }
+        // } elseif (function_exists('mysql_escape_string')) {
+        //     return mysql_escape_string($var);
+        // } else {
             return addslashes($var);
-        }
+        // }
     }
 
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
