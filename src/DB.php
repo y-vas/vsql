@@ -178,5 +178,23 @@ class DB {
         return $this->cquery;
     }
 
+    private function gt($s){
+      for ($l = 0; $l < strlen($s); $l++) {
+        // code...
+      }
+    }
+
+    private function replace($str){
+      preg_match_all('!(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s]*);)!', $str, $match , PREG_OFFSET_CAPTURE );
+
+      foreach ($match[1] as $key => $simbol) {
+
+
+      }
+
+
+
+    }
+
 
 }
