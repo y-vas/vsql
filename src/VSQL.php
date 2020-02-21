@@ -1,4 +1,5 @@
 <?php
+
 namespace VSQL\VSQL;
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
@@ -8,71 +9,21 @@ namespace VSQL\VSQL;
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
-use Exception;
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
-class VSQL {
-    public $CONN = null;
-    private $query_vars = array();
-    private $query_string = "";
-    private $query_original = "";
-    private $_transformed = array();
-
-//------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0) {
-        $this->id = $id;
-
-        // foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
-        //     if (!isset($_ENV[$value])) {
-        //         $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
-        //     }
-        // }
-        //
-        // $this->CONN = self::_conn();
-        //
-        // if ($this->CONN->connect_errno) {
-        //     $this->_error_msg("Connection Fail: (" .
-        //         $this->CONN->connect_errno
-        //         . ") " . $this->CONN->connect_error
-        //     );
-        // }
-
-    }
-
-//------------------------------------------------ <  _conn > ----------------------------------------------------------
-    private function _conn() {
-        return mysqli_connect(
-            $_ENV['DB_HOST'],
-            $_ENV['DB_USERNAME'],
-            $_ENV['DB_PASSWORD'],
-            $_ENV['DB_DATABASE']
-        );
-    }
-
-//------------------------------------------------ <  _error_msg > -----------------------------------------------------
-    public function _error_msg( $error_msg ) {
-
-      if (isset($_ENV['DEBUG'])){ if ($_ENV['DEBUG']){
-        $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
-
-        $values = array(
-          "error_messages"    => "<div>" . $error_msg . "</div>",
-          "original_query"    => htmlentities($this->query_original),
-          "transformed_query" => htmlentities($this->query_string),
-        );
-
-        foreach ($values as $key => $value) {
-          $content = str_replace("<$key>", $value, $content);
-        }
-
-        echo $content;
-        die;
-      }}
-
-      throw new Exception("Error : " . $error_msg);
-    }
+class VSQL extends DB {
+    public $query_vars = array();
+    public $query_string = "";
+    public $query_original = "";
+    public $_transformed = array();
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
     public function query($query_string, $query_vars, $debug = "") {
+      echo "<textarea style='height:100%;width:100%'>";
+
+        $this->compiler($query_string,$query_vars);
+        die;
+
         $this->query_original = $query_string;
         $this->query_vars = $query_vars;
         $this->query_string = $query_string;
@@ -680,20 +631,6 @@ class VSQL {
         return $val;
     }
 
-//------------------------------------------------ <  makemodel > ------------------------------------------------------
-    private function _mkfunction( $table, $fun ) {
-
-        $this->query("SHOW COLUMNS FROM <!:tb> FROM <@E!:vsql_database> ", array('tb' => $table));
-
-        $vals = $this->get(true);
-
-        switch ($fun) {
-            case 'select':
-                $this->_sel($vals, $table);
-                break;
-        }
-
-    }
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
     private function _sel( $vals, $table ) {
@@ -718,12 +655,6 @@ class VSQL {
         }") . " </code>");
     }
 
-//------------------------------------------------ <  isAssoc > ---------------------------------------------------------
-    private function _assoc(array $arr){
-      if (array() === $arr) return false;
-      return array_keys($arr) !== range(0, count($arr) - 1);
-    }
-
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
     private function _cache() {
         $query_string = $this->query_string;
@@ -739,7 +670,7 @@ class VSQL {
         $filename = 'def';
         $check_data = 0;
 
-        $e = new Exception();
+        $e = new \Exception();
         foreach ($e->getTrace() as $key => $value) {
             if ($value['function'] == 'query') {
                 $bodytag = str_replace(DIRECTORY_SEPARATOR, "", $value['file']);
