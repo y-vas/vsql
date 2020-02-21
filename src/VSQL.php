@@ -1,6 +1,8 @@
 <?php
 
 namespace VSQL\VSQL;
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
+
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
@@ -9,13 +11,8 @@ namespace VSQL\VSQL;
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
-require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
 class VSQL extends DB {
-    public $query_vars = array();
-    public $query_string = "";
-    public $query_original = "";
-    public $_transformed = array();
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
     public function query($query_string, $query_vars, $debug = "") {
@@ -48,8 +45,6 @@ class VSQL extends DB {
 
         $this->_inspect($debug);
 
-        $_ENV['QUERYES'][] = $query_string;
-
         return $query_string;
     }
 
@@ -80,9 +75,6 @@ class VSQL extends DB {
                 $this->_error_msg("<strong>VAR DUMP</strong> : <br> <code class='scss'> $result </code>");
                 break;
 
-            case 'mk_funk':
-                $this->_mkfunction($extra[1], $extra[2]);
-                break;
         }
     }
 
@@ -343,21 +335,21 @@ class VSQL extends DB {
             case '@e':
             case '@E':
                 $result = empty($_ENV[$var]) ? null : $_ENV[$var];
-                $result = $this->_sql_escape($result);
+                $result = $this->secure($result);
                 break;
 
             // @E = fetch value from $_COOKIE
             case '@c':
             case '@C':
                 $result = empty($_COOKIE[$var]) ? null : $_COOKIE[$var];
-                $result = $this->_sql_escape($result);
+                $result = $this->secure($result);
                 break;
 
             // @E = fetch value from $_SESSION
             case '@s':
             case '@S':
                 $result = empty($_SESSION[$var]) ? null : $_SESSION[$var];
-                $result = $this->_sql_escape($result);
+                $result = $this->secure($result);
                 break;
 
             // cast to integer
@@ -366,7 +358,7 @@ class VSQL extends DB {
                 $x = $this->_qvar($var);
                 if ($x != null) {
                     settype($x, 'integer');
-                    $result = $this->_sql_escape($x);
+                    $result = $this->secure($x);
                 }
                 break;
 
@@ -375,31 +367,31 @@ class VSQL extends DB {
             case 'F':
                 $x = $this->_qvar($var);
                 settype($x, 'float');
-                $result = $this->_sql_escape($x);
+                $result = $this->secure($x);
                 break;
 
             // implode the array
             case 'implode':
                 $x = $this->_qvar($var);
-                $res = $this->_sql_escape(implode(',', $x));
+                $res = $this->secure(implode(',', $x));
                 $result = $res != null ? "'" . $res . "'" : $res;
                 break;
 
             case 'array':
                 $x = $this->_qvar($var);
-                $result = $x != null ? $this->_sql_escape(implode(',', $x)) : '';
+                $result = $x != null ? $this->secure(implode(',', $x)) : '';
                 break;
 
             // trims the value
             case 't':
             case 'T':
-                $result = $this->_sql_escape(trim($this->_qvar($var)));
+                $result = $this->secure(trim($this->_qvar($var)));
                 break;
 
             // transforms the value to string
             case 's':
             case 'S':
-                $res = $this->_sql_escape(trim($this->_qvar($var)));
+                $res = $this->secure(trim($this->_qvar($var)));
                 $result = $res != null ? "'" . $res . "'" : $res;
                 break;
 
@@ -458,31 +450,9 @@ class VSQL extends DB {
         return $result;
     }
 
-//------------------------------------------------ <  _sql_escape > ----------------------------------------------------
-    private function _sql_escape( $var ) {
-        if (is_array($var)) {
-            foreach ($var as $_element) {
-                $_newvar[] = $this->_sql_escape($_element);
-            }
-            return $_newvar;
-        }
-
-        if (function_exists('mysql_real_escape_string')) {
-            if (!isset($this->CONN)) {
-                return mysql_real_escape_string($var);
-            } else {
-                return mysql_real_escape_string($var, $this->CONN);
-            }
-        } elseif (function_exists('mysql_escape_string')) {
-            return mysql_escape_string($var);
-        } else {
-            return addslashes($var);
-        }
-    }
-
 //------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
     private function _escape_qvar( $var ) {
-        return $this->_sql_escape($this->_qvar($var));
+        return $this->secure($this->_qvar($var));
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
@@ -632,6 +602,7 @@ class VSQL extends DB {
     }
 
 
+<<<<<<< HEAD
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
     private function _sel( $vals, $table ) {
         $sW = [];
@@ -722,4 +693,6 @@ class VSQL extends DB {
 
         return $data[$this->id]['sql'];
     }
+=======
+>>>>>>> 6d3578fb674f94ba6f35dce1497c7357d98f296e
 }
