@@ -225,28 +225,13 @@ class DB {
         return $this->cquery;
     }
 
-    private function gt($s){
-      for ($l = 0; $l < strlen($s); $l++) {
-      // code...
-      }
-    }
-
-    public function compiler($str,$vrs){
-      preg_match_all('!([^\s]*)((?::|{))(\w+)(;*)([^\s]*)!', $str, $match);
-
-      var_dump($match);
-
-    }
-
-    private function replace($str){
-      preg_match_all('!(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s]*);)!', $str, $match , PREG_OFFSET_CAPTURE );
+    protected function compiler($str,$vrs){
+      preg_match_all('/(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*);|({)|(}))/', $str, $match , PREG_OFFSET_CAPTURE );
 
       foreach ($match[1] as $key => $simbol) {
 
-
+        echo "$key";
       }
-
-
 
     }
 
