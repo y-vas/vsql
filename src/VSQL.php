@@ -21,20 +21,20 @@ class VSQL {
     function __construct($id = 0) {
         $this->id = $id;
 
-        // foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
-        //     if (!isset($_ENV[$value])) {
-        //         $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
-        //     }
-        // }
-        //
-        // $this->CONN = self::_conn();
-        //
-        // if ($this->CONN->connect_errno) {
-        //     $this->_error_msg("Connection Fail: (" .
-        //         $this->CONN->connect_errno
-        //         . ") " . $this->CONN->connect_error
-        //     );
-        // }
+        foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
+            if (!isset($_ENV[$value])) {
+                $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
+            }
+        }
+
+        $this->CONN = self::_conn();
+
+        if ($this->CONN->connect_errno) {
+            $this->_error_msg("Connection Fail: (" .
+                $this->CONN->connect_errno
+                . ") " . $this->CONN->connect_error
+            );
+        }
 
     }
 
