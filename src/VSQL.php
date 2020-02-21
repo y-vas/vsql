@@ -10,44 +10,32 @@ namespace VSQL\VSQL;
 
 use Exception;
 
-class ExVSQL extends Exception {}
-
 class VSQL {
     public $CONN = null;
     private $query_vars = array();
     private $query_string = "";
     private $query_original = "";
-    private $throws_exception = "default";
-    private $concat_name = false;
-    private $is_transaction = false;
     private $_transformed = array();
-    public $id = '';
 
 //------------------------------------------------ <  _construct > -----------------------------------------------------
-    function __construct($id = 0, $exception = "default") {
+    function __construct($id = 0) {
         $this->id = $id;
-        $this->throws_exception = $exception;
 
-        foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
-            if (!isset($_ENV[$value])) {
-                $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
-            }
-        }
+        // foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
+        //     if (!isset($_ENV[$value])) {
+        //         $this->_error_msg("Enviroment value < \$_ENV[" . $value . "] > is not set!");
+        //     }
+        // }
+        //
+        // $this->CONN = self::_conn();
+        //
+        // if ($this->CONN->connect_errno) {
+        //     $this->_error_msg("Connection Fail: (" .
+        //         $this->CONN->connect_errno
+        //         . ") " . $this->CONN->connect_error
+        //     );
+        // }
 
-        if (!empty($_ENV["SQL_CONN{$id}"])) {
-            $this->CONN = $_ENV["SQL_CONN{$id}"];
-        } else {
-            $this->CONN = self::_conn();
-        }
-
-        if ($this->CONN->connect_errno) {
-            $this->_error_msg("Connection Fail: (" .
-                $this->CONN->connect_errno
-                . ") " . $this->CONN->connect_error
-            );
-        }
-
-        $_ENV["SQL_CONN{$id}"] = $this->CONN;
     }
 
 //------------------------------------------------ <  _conn > ----------------------------------------------------------
@@ -63,32 +51,24 @@ class VSQL {
 //------------------------------------------------ <  _error_msg > -----------------------------------------------------
     public function _error_msg( $error_msg ) {
 
-        if ($this->throws_exception == 'pretty') {
-            $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
+      if (isset($_ENV['DEBUG'])){ if ($_ENV['DEBUG']){
+        $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
 
-            $values = array(
-                "error_messages"    => "<div>" . $error_msg . "</div>",
-                "original_query"    => htmlentities($this->query_original),
-                "transformed_query" => htmlentities($this->query_string),
-                "SafeSQL_MySQL" => $safe,
-                "newSafeSql" => $nsafe,
-            );
+        $values = array(
+          "error_messages"    => "<div>" . $error_msg . "</div>",
+          "original_query"    => htmlentities($this->query_original),
+          "transformed_query" => htmlentities($this->query_string),
+        );
 
-            foreach ($values as $key => $value) {
-                $content = str_replace("<$key>", $value, $content);
-            }
-
-            echo $content;
-            die;
+        foreach ($values as $key => $value) {
+          $content = str_replace("<$key>", $value, $content);
         }
 
-        if ($this->throws_exception == 'normal') {
-            throw new Exception("Error : " . $error_msg);
-        }
+        echo $content;
+        die;
+      }}
 
-        if ($this->throws_exception == 'default') {
-            throw new ExVSQL("Error : " . $error_msg);
-        }
+      throw new Exception("Error : " . $error_msg);
     }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
