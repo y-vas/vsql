@@ -12,141 +12,142 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
 class VSQL extends DB {
-  function __construct($id=null) {
-    $this->connect();
 
+  function __construct( $id = null ) {
+    $this->connect();
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-    public function query($str, $vrs, $debug = false) {
-        $this->query = $str;
-        $this->vars = $vrs;
+  public function query($str, $vrs, $debug = false) {
+      $this->query = $str;
+      $this->vars = $vrs;
 
-        // $str = $this->cache();
-        // $str = $this->function( $str, $vrs );
-        $this->vquery = $this->compiler($str, $vrs);
+      // $str = $this->cache();
+      // $this->vquery = $this->function( $str, $vrs );
+      $this->vquery = $this->compiler( $str, $vrs );
 
-        if ($debug){ $this->error('Inspect', 0 , true ); }
+      if ($debug){ $this->error('Inspect', 0 , true ); }
 
-        return $this->vquery;
-    }
+      return $this->vquery;
+  }
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
-    protected function compiler($str,$vrs,$cache = false){
-      preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+  protected function compiler($str,$vrs,$cache = false){
+    preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
-      $ofst = 0;
-      $co = '';
-      foreach ($m[0] as $k => $full) {
-        $full = $full[0];
-        $n1 = trim($m[3][$k][0]);
-        $n2 = trim($m[6][$k][0]);
-        $var= strlen( $n1 ) == 0 ? $n2 : $n1;
+    $ofst = 0;
+    $co = '';
+    foreach ($m[0] as $k => $full) {
+      $full = $full[0];
+      $n1 = trim($m[3][$k][0]);
+      $n2 = trim($m[6][$k][0]);
+      $var= strlen( $n1 ) == 0 ? $n2 : $n1;
 
-        $s = $m[8][$k][0];
-        $f = $m[9][$k][0];
-        $a = $m[5][$k][0];
-        $p = $m[0][$k][1];
+      $s = $m[8][$k][0];
+      $f = $m[9][$k][0];
+      $a = $m[5][$k][0];
+      $p = $m[0][$k][1];
 
-        $r = trim($m[7][$k][0]);
-        $qs = trim($m[4][$k][0]);
-        $parser = $m[1][$k][0];
+      $r = trim($m[7][$k][0]);
+      $qs = trim($m[4][$k][0]);
+      $parser = $m[1][$k][0];
 
-        if($s == '{' ){ $co .= $s;  }
+      if($s == '{' ){ $co .= $s;  }
 
-        if($s == '\{'){
-          $str = substr_replace(  $str, '{ ' , $p+$ofst , 2 );
-          $co .= '(';
-        }
-        if($f == '\}'){
-          $str = substr_replace(  $str, '} ' , $p+$ofst , 2 );
-          $co .= ')';
-        }
-
-        if( strlen( $var ) > 0 ){
-          $ad = ':';
-          $exist = array_key_exists($var,$vrs);
-
-          if ($exist && $r != ';' ){
-            // here we make the substitution
-            $nv = $this->parser( $parser, $vrs[ $var ] );
-
-            if (empty($nv) && ($a == '!')) {
-              $this->error("null value for $var", VSQL_NULL_FIELD );
-            }
-
-          } else if ($exist && $r == ';' ){
-            $nv = '';
-          } else if ( strlen( $qs ) > 0 ){
-            $nv = $qs;
-          } else if ( $cache ){
-            $nv = $var;
-          } else {
-            $nv = '';
-            $ad .= "!";
-          }
-
-          $co .= $ad;
-          $sub = " {$nv} ";
-          $str = substr_replace($str, $sub , $ofst + $p , strlen($full) );
-          $ofst += strlen($sub) - strlen($full);
-        }
-
-        if($f == '}'){
-          $co .= $f;
-          $cp = strrpos($co,'{');
-          $pr = substr( $co, $cp,strlen($co));
-
-          $pb = strrpos(substr($str,0,$p+$ofst),'{');
-          $e = $p+$ofst-$pb+1;
-          if (strpos($pr, ':') === false) {
-            // remove the brakets
-            $str = substr_replace($str, '' , $pb , $e );
-            $ofst += -$e;
-          }else {
-            // code...
-            $str = substr_replace(  $str, '' , $p+$ofst , 1 );
-            $ofst += -1;
-            $str = substr_replace(  $str, '' , $pb , 1 );
-            $ofst += -1;
-          }
-
-          $co = substr_replace($co, '(' , $cp , 1 );
-          $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
-        }
-
+      if($s == '\{'){
+        $str = substr_replace(  $str, '{ ' , $p+$ofst , 2 );
+        $co .= '(';
+      }
+      if($f == '\}'){
+        $str = substr_replace(  $str, '} ' , $p+$ofst , 2 );
+        $co .= ')';
       }
 
-      return $str;
-    }
+      if( strlen( $var ) > 0 ){
+        $ad = ':';
+        $exist = array_key_exists($var,$vrs);
 
-    private function parser( $parser , $var ) {
-      $res =  $this->secure( $var );
-      //---------------------- cases ----------------------
-      switch ($parser) {
-          case 'i':
-              settype($var, 'int');
-              $res = $var;
-              break;
-          case 'f':
-              settype($var, 'float');
-              $res = $var;
-              break;
-          case 'implode':
-          case 'array':
-              $var =  $this->secure( $var );
-              $res = "'" . implode(',', $var ) . "'";
-              break;
-          case 't':
-              $res = "'" . trim(strval($res)) . "'";
-              break;
-          case 's':
-              $res = "'". strval($res) . "'";
-              break;
+        if ($exist && $r != ';' ){
+          // here we make the substitution
+          $nv = $this->parser( $parser, $vrs[ $var ] );
+
+          if (empty($nv) && ($a == '!')) {
+            $this->error("null value for $var", VSQL_NULL_FIELD );
+          }
+
+        } else if ($exist && $r == ';' ){
+          $nv = '';
+        } else if ( strlen( $qs ) > 0 ){
+          $nv = $qs;
+        } else if ( $cache ){
+          $nv = $var;
+        } else {
+          $nv = '';
+          $ad .= "!";
+        }
+
+        $co .= $ad;
+        $sub = " {$nv} ";
+        $str = substr_replace($str, $sub , $ofst + $p , strlen($full) );
+        $ofst += strlen($sub) - strlen($full);
       }
 
-      return $res;
+      if($f == '}'){
+        $co .= $f;
+        $cp = strrpos($co,'{');
+        $pr = substr( $co, $cp,strlen($co));
+
+        $pb = strrpos(substr($str,0,$p+$ofst),'{');
+        $e = $p+$ofst-$pb+1;
+        if (strpos($pr, ':') === false) {
+          // remove the brakets
+          $str = substr_replace($str, '' , $pb , $e );
+          $ofst += -$e;
+        }else {
+          // code...
+          $str = substr_replace(  $str, '' , $p+$ofst , 1 );
+          $ofst += -1;
+          $str = substr_replace(  $str, '' , $pb , 1 );
+          $ofst += -1;
+        }
+
+        $co = substr_replace($co, '(' , $cp , 1 );
+        $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
+      }
+
     }
+
+    return $str;
+  }
+
+//------------------------------------------------ <  parser > ----------------------------------------------------------
+  private function parser( $parser , $var ) {
+    $res =  $this->secure( $var );
+    //---------------------- cases ----------------------
+    switch ($parser) {
+        case 'i':
+            settype($var, 'int');
+            $res = $var;
+            break;
+        case 'f':
+            settype($var, 'float');
+            $res = $var;
+            break;
+        case 'implode':
+        case 'array':
+            $var =  $this->secure( $var );
+            $res = "'" . implode(',', $var ) . "'";
+            break;
+        case 't':
+            $res = "'" . trim(strval($res)) . "'";
+            break;
+        case 's':
+            $res = "'". strval($res) . "'";
+            break;
+    }
+
+    return $res;
+  }
 
 
 
@@ -293,40 +294,34 @@ class VSQL extends DB {
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-    public function get( $list = false, $type = "array" ) {
+    public function get( $list = false) {
         $mysqli = $this->connect;
-        $obj = null;
-
-        if ($type == "array") {
-            $obj = array();
-        } else {
-            $obj = new \stdClass();
-        }
+        $obj = new \stdClass();
 
         $nr = 0;
         if (mysqli_multi_query($mysqli, $this->vquery)) {
             if ($list) {
                 do {
 
-                    if($result = mysqli_store_result($mysqli)) {
-                        while ($proceso = mysqli_fetch_assoc($result)) {
-                            $rt = $this->_fetch_row($result, $proceso);
-                            if ($type == "array") { $obj[$nr] = $rt; }
-                            else { $obj->$nr = $rt; }
-                            $nr++;
-                        }
-                        mysqli_free_result($result);
+                  if($result = mysqli_store_result($mysqli)) {
+
+                    while ($proceso = mysqli_fetch_assoc($result)) {
+                        $rt = $this->fetch($result, $proceso);
+                        $obj->$nr = $rt;
+                        $nr++;
                     }
 
-                    if (!mysqli_more_results($mysqli)) { break; }
+                    mysqli_free_result($result);
+                  }
+
+                  if (!mysqli_more_results($mysqli)) { break; }
                 } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
             } else {
                 $result = mysqli_store_result($mysqli);
                 $proceso = mysqli_fetch_assoc($result);
-
                 if($proceso == null){ $obj = null; }
-                else { $obj = $this->_fetch_row($result, $proceso); }
+                else { $obj = $this->fetch($result, $proceso); }
             };
 
         } else {
@@ -345,22 +340,16 @@ class VSQL extends DB {
         return $mysqli;
     }
 
-// ------------------------------------------------ <  _fetch_row > ----------------------------------------------------
-    private function _fetch_row( $result, $proceso ) {
+// ------------------------------------------------ <  fetch > ----------------------------------------------------
+    private function fetch( $result, $proceso ) {
         $row = new \stdClass();
 
         $count = 0;
         foreach ($proceso as $key => $value) {
-            $direct = $result->fetch_field_direct($count);
+            $direct = $result->fetch_field_direct($count++);
             $ret = $this->_transform_get($value, $direct->type, $key);
             $key = $ret[1];
-
-            if ($this->concat_name == true) {
-                $key = $direct->orgtable . "__" . $key;
-            }
-
             $row->$key = $ret[0];
-            $count++;
         }
 
         return $row;
