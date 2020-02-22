@@ -14,43 +14,22 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 class VSQL extends DB {
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-    public function query($str, $vrs, $debug = "") {
-      echo "<textarea style='height:100%;width:100%'>";
+    public function query($str, $vrs, $debug = false) {
+        $this->query = $str;
+        $this->vars = $vrs;
 
-        $this->compiler($str, $vrs);
-        die;
+        // $str = $this->cache();
+        // $str = $this->function($str,$vrs);
+        $this->vquery = $this->compiler($str, $vrs);
 
-        $this->query_original = $query_string;
-        $this->query_vars = $query_vars;
-        $this->query_string = $query_string;
+        if ($debug){ $this->error('Inspect', 0 , true ); }
 
-        $cache = "";
-        if (!empty($this->id)) {
-          $cache = $this->_cache();
-        }
-
-        if (empty($cache)) {
-          $query_string = $this->_find_objects($query_string);
-        }
-
-        if (empty($cache)) {
-          $query_string = $this->_quote_check($query_string);
-          $query_string = $this->_var_transform($query_string);
-        } else {
-          $query_string = $this->_var_transform($cache);
-        }
-
-        $this->query_string = $query_string;
-
-        $this->_inspect($debug);
-
-        return $query_string;
+        return $this->vquery;
     }
 
-
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
-    protected function compiler($str,$vrs){
-      preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*);|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+    protected function compiler($str,$vrs,$cache = false){
+      preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
       $ofst = 0;
       var_dump($m[4][0]);
@@ -61,32 +40,43 @@ class VSQL extends DB {
         $n2 = trim($m[6][$k][0]);
         $var= strlen( $n1 ) == 0 ? $n2 : $n1;
 
-        $s = $m[7][$k][0];
-        $f = $m[8][$k][0];
+        $s = $m[8][$k][0];
+        $f = $m[9][$k][0];
         $a = $m[5][$k][0];
         $p = $m[0][$k][1];
+
+        $r = trim($m[7][$k][0]);
         $qs = trim($m[4][$k][0]);
+        $parser = $m[1][$k][0];
 
         if($s == '{' ){ $co .= $s;  }
         if($s == '\{'){ $co .= '('; }
         if($f == '\}'){ $co .= ')'; }
 
         if( strlen( $var ) > 0 ){
-          if (array_key_exists($var,$vrs)){
+          $ad = ':';
+          $exist = array_key_exists($var,$vrs);
+
+          if ($exist && $r != ';' ){
             // here we make the substitution
-            // $var = $this->_convert_var($simbol, $var_key);
-            $nv = '____';
-            $co .= ":";
-          }else if( strlen( $qs ) > 0 ){
-            $nv = $qs;
-            $co .= ":";
-          }else if( $a == '!' ){
-            $this->error($var,1);
-          }else{
+            $nv = $this->parser( $parser, $vrs[ $var ] );
+
+            if (empty($nv) && ($a == '!')) {
+              $this->error("null value for $var", VSQL_NULL_FIELD );
+            }
+
+          } else if ($exist && $r == ';' ){
             $nv = '';
-            $co .= "!";
+          } else if ( strlen( $qs ) > 0 ){
+            $nv = $qs;
+          } else if ( $cache ){
+            $nv = $var;
+          } else {
+            $nv = '';
+            $ad .= "!";
           }
 
+          $co .= $ad;
           $sub = " {$nv} ";
           $str = substr_replace($str, $sub , $ofst + $p , strlen($full) );
           $ofst += strlen($sub) - strlen($full);
@@ -95,7 +85,7 @@ class VSQL extends DB {
         if($f == '}'){
           $co .= $f;
           $cp = strrpos($co,'{');
-          $pr = substr($co,$cp,strlen($co));
+          $pr = substr( $co, $cp,strlen($co));
 
           if (strpos($pr, ':') === false) {
             $pb = strrpos(substr($str,0,$p+$ofst),'{');
@@ -115,35 +105,35 @@ class VSQL extends DB {
     }
 
 
-//------------------------------------------------ <  _inspect > -------------------------------------------------------
-    private function _inspect( $debug ) {
-        $this->throws_exception = "pretty";
+    private function parser( $parser , $var ) {
 
-        $extra = '';
-        if (strpos($debug, ':') !== false) {
-            $p = explode(":", $debug);
-            $debug = $p[0];
-            $extra = $p;
-        }
+      $result = null;
+      //---------------------- cases ----------------------
+      switch ($parser) {
+          case 'i':
+              settype($var, 'integer');
+              break;
+          case 'f':
+              settype($var, 'float');
+              break;
+          case 'implode':
+          case 'array':
+              $result = implode(',', $var );
+              break;
+          case 't':
+              $result = trim($var);
+              break;
+          case 's':
+              $result =  "'".strval($res)."'";
+              break;
 
-        switch ($debug) {
-            case 'show':
-                $this->_error_msg(implode(array()));
-                break;
+      }
 
-            case 'debug':
-                $this->_error_msg(" DEBUG ");
-                break;
-
-            case 'dump_get':
-                ob_start();
-                var_dump($this->get(isset($extra[1])));
-                $result = ob_get_clean();
-                $this->_error_msg("<strong>VAR DUMP</strong> : <br> <code class='scss'> $result </code>");
-                break;
-
-        }
+      return $this->secure( $result );
     }
+
+
+
 
 //-------------------------------------------- <  _find_objects > ------------------------------------------------------
     private function _find_objects( $query_string ) {
@@ -187,249 +177,104 @@ class VSQL extends DB {
         return $query_string;
     }
 
-//-------------------------------------------- <  _vsql_function > -----------------------------------------------------
-    private function _vsql_function( $func, $vals, $name ) {
-        $lname = "";
+    //-------------------------------------------- <  _vsql_function > -----------------------------------------------------
+        private function _vsql_function( $func, $vals, $name ) {
+            $lname = "";
 
-        if (!empty($name)) {
-            $lname = " AS $name \n\n";
-        }
+            if (!empty($name)) {
+                $lname = " AS $name \n\n";
+            }
 
-        $vals = preg_replace('![^<](=>)!', ',', $vals);
+            $vals = preg_replace('![^<](=>)!', ',', $vals);
 
-        switch ($func) {
-            case 'STD':
-                $this->_transformed[$name] = ['json'];
-                return 'JSON_OBJECT(' . $vals . ')' . $lname;
-                break;
+            switch ($func) {
+                case 'STD':
+                    $this->_transformed[$name] = ['json'];
+                    return 'JSON_OBJECT(' . $vals . ')' . $lname;
+                    break;
 
-            case 'JGET':
-                $this->_transformed[$name] = ['json'];
-                $vales = explode(",", $vals);
+                case 'JGET':
+                    $this->_transformed[$name] = ['json'];
+                    $vales = explode(",", $vals);
 
-                if (count($vales) != 2) {
-                    $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
-                }
-
-                $v1 = trim($vales[0]);
-                $v2 = trim($vales[1]);
-
-                return "(SELECT IF( JSON_VALID($v1), JSON_UNQUOTE( JSON_EXTRACT($v1,'$.$v2') ), NULL) )" . $lname;
-                break;
-
-            case 'ARRAY':
-                $this->_transformed[$name] = ['array'];
-                return 'JSON_OBJECT('.$vals.')'.$lname;
-                break;
-
-            case 'JAGG':
-                $this->_transformed[$name] = ['json'];
-                $tr = trim($vals);
-
-                $part = "";
-                $fields = [];
-                $ad = 0;
-                for ($l = 0; $l < strlen($tr); $l++) {
-                    $lt = $tr[$l];
-                    $part .= $lt;
-                    if ($lt == ")") { $ad--; }
-                    if ($lt == "(") { $ad++; }
-                    if ($lt == ',' && $ad == 0) {
-                        $fields[] = trim(substr_replace($part, "", -1));
-                        $part = '';
+                    if (count($vales) != 2) {
+                        $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
                     }
-                }
 
-                $fields[] = $part;
-                $tr = "";
+                    $v1 = trim($vales[0]);
+                    $v2 = trim($vales[1]);
 
-                foreach ($fields as $key => $value) {
-                    if ($key % 2 == 0) {
+                    return "(SELECT IF( JSON_VALID($v1), JSON_UNQUOTE( JSON_EXTRACT($v1,'$.$v2') ), NULL) )" . $lname;
+                    break;
 
-                        if (!isset($fields[$key + 1])) {
-                            $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
+                case 'ARRAY':
+                    $this->_transformed[$name] = ['array'];
+                    return 'JSON_OBJECT('.$vals.')'.$lname;
+                    break;
+
+                case 'JAGG':
+                    $this->_transformed[$name] = ['json'];
+                    $tr = trim($vals);
+
+                    $part = "";
+                    $fields = [];
+                    $ad = 0;
+                    for ($l = 0; $l < strlen($tr); $l++) {
+                        $lt = $tr[$l];
+                        $part .= $lt;
+                        if ($lt == ")") { $ad--; }
+                        if ($lt == "(") { $ad++; }
+                        if ($lt == ',' && $ad == 0) {
+                            $fields[] = trim(substr_replace($part, "", -1));
+                            $part = '';
                         }
-
-                        $k = trim(str_replace("'", "", str_replace("\"", "", $value)));
-                        $f = $fields[$key + 1];
-
-                        $tr .= "\nCONCAT('{\"$k\":',
-                          IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
-              ,'}')\n,";
-
                     }
-                }
 
-                return '
-                CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
-                  ' . $tr . '
-                \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\')
-                ' . $lname . " \n\n";
-                break;
+                    $fields[] = $part;
+                    $tr = "";
 
-            case 'TO_STD':
-                $this->_transformed[$name] = ['json'];
-                return '(' . $vals . ')' . $lname;
-                break;
+                    foreach ($fields as $key => $value) {
+                        if ($key % 2 == 0) {
 
-            case 'COLLECTION':
-                $this->_transformed[$name] = ['array-std'];
-                return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
-                break;
+                            if (!isset($fields[$key + 1])) {
+                                $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
+                            }
 
-            case 'TO_ARRAY':
-                $this->_transformed[$name] = ['array'];
-                return '(' . $vals . ')' . $lname;
-                break;
+                            $k = trim(str_replace("'", "", str_replace("\"", "", $value)));
+                            $f = $fields[$key + 1];
+
+                            $tr .= "\nCONCAT('{\"$k\":',
+                              IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
+                  ,'}')\n,";
+
+                        }
+                    }
+
+                    return '
+                    CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
+                      ' . $tr . '
+                    \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\')
+                    ' . $lname . " \n\n";
+                    break;
+
+                case 'TO_STD':
+                    $this->_transformed[$name] = ['json'];
+                    return '(' . $vals . ')' . $lname;
+                    break;
+
+                case 'COLLECTION':
+                    $this->_transformed[$name] = ['array-std'];
+                    return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
+                    break;
+
+                case 'TO_ARRAY':
+                    $this->_transformed[$name] = ['array'];
+                    return '(' . $vals . ')' . $lname;
+                    break;
+            }
+
+            return "";
         }
-
-        return "";
-    }
-
-//------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private function _qvar( $var ) {
-        return empty($this->query_vars[$var]) ? null : $this->query_vars[$var];
-    }
-
-//------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
-    private function _tvar( $var ) {
-        return empty($this->tags[$var]) ? null : $this->tags[$var];
-    }
-
-//------------------------------------------------ <  _convert_var > ---------------------------------------------------
-    private function _convert_var( $type, $var ) {
-
-        $result = null;
-        //---------------------- cases -----------------
-        switch ($type) {
-            // if is empty does nothing only paste the value
-            case '':
-                $result = $this->_escape_qvar($var);
-                break;
-
-            // @E = fetch value from $ENV
-            case '@e':
-            case '@E':
-                $result = empty($_ENV[$var]) ? null : $_ENV[$var];
-                $result = $this->secure($result);
-                break;
-
-            // @E = fetch value from $_COOKIE
-            case '@c':
-            case '@C':
-                $result = empty($_COOKIE[$var]) ? null : $_COOKIE[$var];
-                $result = $this->secure($result);
-                break;
-
-            // @E = fetch value from $_SESSION
-            case '@s':
-            case '@S':
-                $result = empty($_SESSION[$var]) ? null : $_SESSION[$var];
-                $result = $this->secure($result);
-                break;
-
-            // cast to integer
-            case 'i':
-            case 'I':
-                $x = $this->_qvar($var);
-                if ($x != null) {
-                    settype($x, 'integer');
-                    $result = $this->secure($x);
-                }
-                break;
-
-            // cast to float
-            case 'f':
-            case 'F':
-                $x = $this->_qvar($var);
-                settype($x, 'float');
-                $result = $this->secure($x);
-                break;
-
-            // implode the array
-            case 'implode':
-                $x = $this->_qvar($var);
-                $res = $this->secure(implode(',', $x));
-                $result = $res != null ? "'" . $res . "'" : $res;
-                break;
-
-            case 'array':
-                $x = $this->_qvar($var);
-                $result = $x != null ? $this->secure(implode(',', $x)) : '';
-                break;
-
-            // trims the value
-            case 't':
-            case 'T':
-                $result = $this->secure(trim($this->_qvar($var)));
-                break;
-
-            // transforms the value to string
-            case 's':
-            case 'S':
-                $res = $this->secure(trim($this->_qvar($var)));
-                $result = $res != null ? "'" . $res . "'" : $res;
-                break;
-
-            // ------------------------------------------- safe sql varypes
-
-            case '%i':
-      			case '%I':
-      				// cast to integer
-      				settype($var, 'integer');
-              $result = $var;
-      				break;
-      			case '%f':
-      			case '%F':
-      				// cast to float
-      				settype($var, 'float');
-              $result = $var;
-
-      				break;
-      			case '%c':
-      			case '%C':
-      				// comma separate
-      				settype($var, 'array');
-      				for($_x = 0 , $_y = count($var); $_x < $_y; $_x++) {
-      					// cast to integers
-      					settype($var[$_x], 'integer');
-      				}
-      				$var = implode(',', $var);
-      				if($var == '') {
-      					// force 0, keep syntax from breaking
-      					$var = '0';
-      				}
-
-              $result = $var;
-      				break;
-      			case '%l':
-      			case '%L':
-      				// comma separate
-      				settype($var, 'array');
-              $result = implode(',', $var);
-
-      				break;
-      			case '%q':
-      			case '%Q':
-      				settype($var, 'array');
-      				// quote comma separate
-      				$result = "'" . implode("','", $var) . "'";
-      				break;
-                  case '%n':
-                  case '%N':
-                      if($var != 'NULL')
-                          $result = "'" . $var . "'";
-                      break;
-
-        }
-
-        return $result;
-    }
-
-//------------------------------------------------ <  _ecape_qvar > ----------------------------------------------------
-    private function _escape_qvar( $var ) {
-        return $this->secure($this->_qvar($var));
-    }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
     public function get( $list = false, $type = "array" ) {

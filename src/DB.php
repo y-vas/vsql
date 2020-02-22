@@ -20,7 +20,8 @@ class DB {
     public $error; # string: Error message
     public $errno; # integer: error no
 
-    function __construct() {
+    function __construct($id=null) {
+        $this->id = $id;
 
         foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
             if (!isset($_ENV[$value])) {
@@ -94,13 +95,14 @@ class DB {
         }
     }
 
-    protected function error( $error_msg ,$code = 0) {
+    protected function error( $msg , $code = 0 , $debug = false ) {
+      if ($debug) { $_ENV['VSQL_INSPECT'] = true; }
 
       if (isset($_ENV['VSQL_INSPECT'])){ if ($_ENV['VSQL_INSPECT']){
         $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
 
         $values = array(
-          "ERROR_MESAGES" => $error_msg,
+          "ERROR_MESAGES" => $msg,
           "ORIGINALQUERY" => htmlentities($this->vquery),
           "TRANSFRMQUERY" => htmlentities($this->query),
         );
@@ -109,11 +111,10 @@ class DB {
           $content = str_replace("<$key>", $value, $content);
         }
 
-        echo $content;
-        die;
+        die( $content );
       }}
 
-      throw new \Exception("Error : " . $error_msg, $code );
+      throw new \Exception("Error : " . $msg, $code );
     }
 
     private function trace_func($func){
