@@ -11,6 +11,7 @@ class DB {
     public $vars;
     public $id;
     public $func;
+    public $fetched = [];
     public $query;
     public $connect = false; # resource: DB connection
     public $error; # string: Error message

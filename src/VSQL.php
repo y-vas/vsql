@@ -23,7 +23,7 @@ class VSQL extends DB {
         $this->vars = $vrs;
 
         // $str = $this->cache();
-        // $str = $this->function($str,$vrs);
+        // $str = $this->function( $str, $vrs );
         $this->vquery = $this->compiler($str, $vrs);
 
         if ($debug){ $this->error('Inspect', 0 , true ); }
@@ -36,7 +36,6 @@ class VSQL extends DB {
       preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
       $ofst = 0;
-      var_dump($m[4][0]);
       $co = '';
       foreach ($m[0] as $k => $full) {
         $full = $full[0];
@@ -54,8 +53,15 @@ class VSQL extends DB {
         $parser = $m[1][$k][0];
 
         if($s == '{' ){ $co .= $s;  }
-        if($s == '\{'){ $co .= '('; }
-        if($f == '\}'){ $co .= ')'; }
+
+        if($s == '\{'){
+          $str = substr_replace(  $str, '{ ' , $p+$ofst , 2 );
+          $co .= '(';
+        }
+        if($f == '\}'){
+          $str = substr_replace(  $str, '} ' , $p+$ofst , 2 );
+          $co .= ')';
+        }
 
         if( strlen( $var ) > 0 ){
           $ad = ':';
@@ -91,14 +97,20 @@ class VSQL extends DB {
           $cp = strrpos($co,'{');
           $pr = substr( $co, $cp,strlen($co));
 
+          $pb = strrpos(substr($str,0,$p+$ofst),'{');
+          $e = $p+$ofst-$pb+1;
           if (strpos($pr, ':') === false) {
-            $pb = strrpos(substr($str,0,$p+$ofst),'{');
             // remove the brakets
-
-            $e = $p+$ofst-$pb+1;
             $str = substr_replace($str, '' , $pb , $e );
             $ofst += -$e;
+          }else {
+            // code...
+            $str = substr_replace(  $str, '' , $p+$ofst , 1 );
+            $ofst += -1;
+            $str = substr_replace(  $str, '' , $pb , 1 );
+            $ofst += -1;
           }
+
           $co = substr_replace($co, '(' , $cp , 1 );
           $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
         }
@@ -108,32 +120,32 @@ class VSQL extends DB {
       return $str;
     }
 
-
     private function parser( $parser , $var ) {
-
-      $result = null;
+      $res =  $this->secure( $var );
       //---------------------- cases ----------------------
       switch ($parser) {
           case 'i':
-              settype($var, 'integer');
+              settype($var, 'int');
+              $res = $var;
               break;
           case 'f':
               settype($var, 'float');
+              $res = $var;
               break;
           case 'implode':
           case 'array':
-              $result = implode(',', $var );
+              $var =  $this->secure( $var );
+              $res = "'" . implode(',', $var ) . "'";
               break;
           case 't':
-              $result = trim($var);
+              $res = "'" . trim(strval($res)) . "'";
               break;
           case 's':
-              $result =  "'".strval($res)."'";
+              $res = "'". strval($res) . "'";
               break;
-
       }
 
-      return $this->secure( $result );
+      return $res;
     }
 
 
@@ -181,108 +193,108 @@ class VSQL extends DB {
         return $query_string;
     }
 
-    //-------------------------------------------- <  _vsql_function > -----------------------------------------------------
-        private function _vsql_function( $func, $vals, $name ) {
-            $lname = "";
+//-------------------------------------------- <  _vsql_function > -----------------------------------------------------
+    private function _vsql_function( $func, $vals, $name ) {
+        $lname = "";
 
-            if (!empty($name)) {
-                $lname = " AS $name \n\n";
-            }
-
-            $vals = preg_replace('![^<](=>)!', ',', $vals);
-
-            switch ($func) {
-                case 'STD':
-                    $this->_transformed[$name] = ['json'];
-                    return 'JSON_OBJECT(' . $vals . ')' . $lname;
-                    break;
-
-                case 'JGET':
-                    $this->_transformed[$name] = ['json'];
-                    $vales = explode(",", $vals);
-
-                    if (count($vales) != 2) {
-                        $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
-                    }
-
-                    $v1 = trim($vales[0]);
-                    $v2 = trim($vales[1]);
-
-                    return "(SELECT IF( JSON_VALID($v1), JSON_UNQUOTE( JSON_EXTRACT($v1,'$.$v2') ), NULL) )" . $lname;
-                    break;
-
-                case 'ARRAY':
-                    $this->_transformed[$name] = ['array'];
-                    return 'JSON_OBJECT('.$vals.')'.$lname;
-                    break;
-
-                case 'JAGG':
-                    $this->_transformed[$name] = ['json'];
-                    $tr = trim($vals);
-
-                    $part = "";
-                    $fields = [];
-                    $ad = 0;
-                    for ($l = 0; $l < strlen($tr); $l++) {
-                        $lt = $tr[$l];
-                        $part .= $lt;
-                        if ($lt == ")") { $ad--; }
-                        if ($lt == "(") { $ad++; }
-                        if ($lt == ',' && $ad == 0) {
-                            $fields[] = trim(substr_replace($part, "", -1));
-                            $part = '';
-                        }
-                    }
-
-                    $fields[] = $part;
-                    $tr = "";
-
-                    foreach ($fields as $key => $value) {
-                        if ($key % 2 == 0) {
-
-                            if (!isset($fields[$key + 1])) {
-                                $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
-                            }
-
-                            $k = trim(str_replace("'", "", str_replace("\"", "", $value)));
-                            $f = $fields[$key + 1];
-
-                            $tr .= "\nCONCAT('{\"$k\":',
-                              IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
-                  ,'}')\n,";
-
-                        }
-                    }
-
-                    return '
-                    CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
-                      ' . $tr . '
-                    \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\')
-                    ' . $lname . " \n\n";
-                    break;
-
-                case 'TO_STD':
-                    $this->_transformed[$name] = ['json'];
-                    return '(' . $vals . ')' . $lname;
-                    break;
-
-                case 'COLLECTION':
-                    $this->_transformed[$name] = ['array-std'];
-                    return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
-                    break;
-
-                case 'TO_ARRAY':
-                    $this->_transformed[$name] = ['array'];
-                    return '(' . $vals . ')' . $lname;
-                    break;
-            }
-
-            return "";
+        if (!empty($name)) {
+            $lname = " AS $name \n\n";
         }
+
+        $vals = preg_replace('![^<](=>)!', ',', $vals);
+
+        switch ($func) {
+            case 'STD':
+                $this->fetched[$name] = ['json'];
+                return 'JSON_OBJECT(' . $vals . ')' . $lname;
+                break;
+
+            case 'JGET':
+                $this->fetched[$name] = ['json'];
+                $vales = explode(",", $vals);
+
+                if (count($vales) != 2) {
+                    $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
+                }
+
+                $v1 = trim($vales[0]);
+                $v2 = trim($vales[1]);
+
+                return "(SELECT IF( JSON_VALID($v1), JSON_UNQUOTE( JSON_EXTRACT($v1,'$.$v2') ), NULL) )" . $lname;
+                break;
+
+            case 'ARRAY':
+                $this->fetched[$name] = ['array'];
+                return 'JSON_OBJECT('.$vals.')'.$lname;
+                break;
+
+            case 'JAGG':
+                $this->fetched[$name] = ['json'];
+                $tr = trim($vals);
+
+                $part = "";
+                $fields = [];
+                $ad = 0;
+                for ($l = 0; $l < strlen($tr); $l++) {
+                    $lt = $tr[$l];
+                    $part .= $lt;
+                    if ($lt == ")") { $ad--; }
+                    if ($lt == "(") { $ad++; }
+                    if ($lt == ',' && $ad == 0) {
+                        $fields[] = trim(substr_replace($part, "", -1));
+                        $part = '';
+                    }
+                }
+
+                $fields[] = $part;
+                $tr = "";
+
+                foreach ($fields as $key => $value) {
+                    if ($key % 2 == 0) {
+
+                        if (!isset($fields[$key + 1])) {
+                            $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
+                        }
+
+                        $k = trim(str_replace("'", "", str_replace("\"", "", $value)));
+                        $f = $fields[$key + 1];
+
+                        $tr .= "\nCONCAT('{\"$k\":',
+                          IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
+              ,'}')\n,";
+
+                    }
+                }
+
+                return '
+                CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
+                  ' . $tr . '
+                \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\')
+                ' . $lname . " \n\n";
+                break;
+
+            case 'TO_STD':
+                $this->fetched[$name] = ['json'];
+                return '(' . $vals . ')' . $lname;
+                break;
+
+            case 'COLLECTION':
+                $this->fetched[$name] = ['array-std'];
+                return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
+                break;
+
+            case 'TO_ARRAY':
+                $this->fetched[$name] = ['array'];
+                return '(' . $vals . ')' . $lname;
+                break;
+        }
+
+        return "";
+    }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
     public function get( $list = false, $type = "array" ) {
-        $mysqli = $this->CONN;
+        $mysqli = $this->connect;
         $obj = null;
 
         if ($type == "array") {
@@ -292,7 +304,7 @@ class VSQL extends DB {
         }
 
         $nr = 0;
-        if (mysqli_multi_query($mysqli, $this->query_string)) {
+        if (mysqli_multi_query($mysqli, $this->vquery)) {
             if ($list) {
                 do {
 
@@ -318,7 +330,7 @@ class VSQL extends DB {
             };
 
         } else {
-            $this->_error_msg("Fail on query get :" . mysqli_error($mysqli));
+            $this->error("Fail on query get :" . mysqli_error($mysqli));
         }
 
         return $obj;
@@ -326,9 +338,9 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  run > ------------------------------------------------------------
     public function run() {
-        $mysqli = $this->CONN;
+        $mysqli = $this->connect;
 
-        $mysqli->query($this->query_string);
+        $mysqli->query( $this->vquery );
 
         return $mysqli;
     }
@@ -387,7 +399,7 @@ class VSQL extends DB {
         }
         settype($val, $dt_str);
 
-        foreach ($this->_transformed as $k => $value) {
+        foreach ($this->fetched as $k => $value) {
             if (trim($key) == trim($k)) {
                 foreach ($value as $t => $tr) {
                   $val = $this->_transform($tr, $val);
