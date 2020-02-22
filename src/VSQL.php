@@ -12,6 +12,10 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
 class VSQL extends DB {
+  function __construct($id=null) {
+    $this->connect();
+
+  }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
     public function query($str, $vrs, $debug = false) {

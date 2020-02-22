@@ -52,9 +52,11 @@ class DB {
     }
 
     public function connect() {
+
         if (!$this->_connect()) {
           $this->error('Unable to connect to the database!');
         }
+        
         if (!$this->selectdb()) {
           $this->error('Unable to select database!');
         }
@@ -68,6 +70,7 @@ class DB {
                 )) {
             return true;
         }
+
         return false;
     }
 

@@ -5,12 +5,12 @@ services:
     build:
       context: './docker/php/'
       args:
-       PHP_VERSION: 7.0
+       PHP_VERSION: 5.6
     networks:
       - backend
     volumes:
       - ./src/:/var/www/html/
-    container_name: php_vsql
+    container_name: php
 
   apache:
     build:
@@ -29,8 +29,41 @@ services:
       - ./src/:/var/www/html/
       - ./docker/vhosts/default.conf:/usr/local/apache2/conf/demo.apache.conf
 
-    container_name: apache_vsql
+    container_name: apache
+
+  myadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=mysql
+    restart: always
+    depends_on:
+      - mysql
+    networks:
+      - backend
+
+  mysql:
+    image: mysql:5.7
+    restart: always
+    ports:
+      - "9906:3306"
+    volumes:
+      - data:/var/lib/mysql
+    networks:
+      - backend
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "vsql"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: "root"
+
+    container_name: mysql
 
 networks:
   frontend:
   backend:
+volumes:
+    data:
