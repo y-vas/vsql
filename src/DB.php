@@ -5,18 +5,14 @@ namespace VSQL\VSQL;
 define('VSQL_NULL_FIELD',1);
 
 class DB {
-    private $server; # string: DB Server
-    private $user; # string: DB User
-    private $pwd; # string: DB Password
-    private $database; # string: DB database
-    private $inspect;
-    private $vquery;
-    private $cquery;
-    private $vars;
-    private $id;
-    private $func;
-    private $query;
-    private $connect = false; # resource: DB connection
+    public $inspect;
+    public $vquery='';
+    public $cquery;
+    public $vars;
+    public $id;
+    public $func;
+    public $query;
+    public $connect = false; # resource: DB connection
     public $error; # string: Error message
     public $errno; # integer: error no
 
@@ -32,10 +28,6 @@ class DB {
         $this->error = false;
         $this->errno = false;
         $this->inspect = isset($_ENV['VSQL_INSPECT']) ? $_ENV['VSQL_INSPECT'] : null;
-        $this->server = $_ENV['DB_HOST'];
-        $this->user = $_ENV['DB_USERNAME'];
-        $this->pwd = $_ENV['DB_PASSWORD'];
-        $this->database = $_ENV['DB_DATABASE'];
         $this->vquery = '';
         $this->query = '';
 
@@ -51,35 +43,22 @@ class DB {
 
     }
 
+
     public function connect() {
+      $this->connect = mysqli_connect(
+        $_ENV['DB_HOST'],
+        $_ENV['DB_USERNAME'],
+        $_ENV['DB_PASSWORD'],
+        $_ENV['DB_DATABASE']
+      );
 
-        if (!$this->_connect()) {
-          $this->error('Unable to connect to the database!');
-        }
-        
-        if (!$this->selectdb()) {
-          $this->error('Unable to select database!');
-        }
+      if (!$this->connect) {
+        $this->error('Unable to connect to the database!');
+      }
 
-        return $this->connect;
+      return $this->connect;
     }
 
-    private function _connect() {
-        if ($this->connect = @mysqli_connect(
-            $this->server, $this->user, $this->pwd
-                )) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function selectdb() {
-        if (@mysqli_select_db($this->connect, $this->database)) {
-            return true;
-        }
-        return false;
-    }
 
     public function secure($var) {
         if (is_array($var)) {
@@ -106,8 +85,8 @@ class DB {
 
         $values = array(
           "ERROR_MESAGES" => $msg,
-          "ORIGINALQUERY" => htmlentities($this->vquery),
-          "TRANSFRMQUERY" => htmlentities($this->query),
+          "ORIGINALQUERY" => htmlentities($this->query),
+          "TRANSFRMQUERY" => htmlentities($this->vquery),
         );
 
         foreach ($values as $key => $value) {

@@ -5,12 +5,12 @@ services:
     build:
       context: './docker/php/'
       args:
-       PHP_VERSION: 5.6
+       PHP_VERSION: 7.0
     networks:
       - backend
     volumes:
       - ./src/:/var/www/html/
-    container_name: php
+    container_name: phpvsql
 
   apache:
     build:
@@ -26,7 +26,24 @@ services:
     volumes:
       - ./src/:/var/www/html/
       - ./docker/vhosts/default.conf:/usr/local/apache2/conf/demo.apache.conf
-    container_name: apache
+    container_name: apachevsql
+
+  mysql:
+    image: mysql/mysql-server:5.5
+    restart: always
+    ports:
+      - "9906:3306"
+    volumes:
+      - "/docker/mysql:/var/lib/mysql"
+    networks:
+      - backend
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dbtest
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_HOST: 172.21.0.2
+    container_name: mysqlvsql
 
 networks:
   backend:

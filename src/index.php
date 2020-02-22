@@ -50,4 +50,4 @@ FROM connections WHERE TRUE
   'xxx' => '111',
   'vas' => '111',
   'pass' => '2222'
-),'debug');
+),true);
