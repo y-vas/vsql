@@ -11,8 +11,9 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 //                                           ╚████╔╝  ███████║╚ ██████║ ███████╗
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
-class VSQL extends DB {
 
+
+class VSQL extends DB {
   function __construct( $id = null ) {
     $this->connect();
   }
