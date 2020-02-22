@@ -2,6 +2,8 @@
 
 namespace VSQL\VSQL;
 
+define('VSQL_NULL_FIELD',1);
+
 class DB {
     private $server; # string: DB Server
     private $user; # string: DB User
@@ -92,9 +94,7 @@ class DB {
         }
     }
 
-
-
-    protected function error( $error_msg ) {
+    protected function error( $error_msg ,$code = 0) {
 
       if (isset($_ENV['VSQL_INSPECT'])){ if ($_ENV['VSQL_INSPECT']){
         $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
@@ -113,11 +113,11 @@ class DB {
         die;
       }}
 
-      throw new \Exception("Error : " . $error_msg);
+      throw new \Exception("Error : " . $error_msg, $code );
     }
 
     private function trace_func($func){
-      $e = new Exception();
+      $e = new \Exception();
       foreach ($e->getTrace() as $key => $value) {
           if ($value['function'] == $func ) {
               $bodytag = str_replace(DIRECTORY_SEPARATOR,"", $value['file']);
@@ -133,55 +133,64 @@ class DB {
 
 //------------------------------------------------ <  makemodel > ------------------------------------------------------
     public function model( $table ) {
-        $result = $this->CONN->query( "SHOW COLUMNS FROM {$table} FROM " . $_ENV['DB_DATABASE'] );
+        if (isset($_ENV['VSQL_INSPECT'])){if ($_ENV['VSQL_INSPECT']){
 
-        $tipe = array(
-          'tinyint' => ['i',0] ,
-          'smallint' => ['i',0] ,
-          'int' => ['i',0] ,
-          'float' => ['f',0] ,
-          'double' => ['f',0] ,
-          'timestamp' => ['i',0] ,
-          'bigint' => ['i',0] ,
-          'mediumint' => ['i',0] ,
-          'date' => ['s',"''"] ,
-          'time' => ['s',"''"] ,
-          'datetime' => ['s',"''"] ,
-          'year' => ['i',0] ,
-          'bit' => ['i',0] ,
-          'varchar' => ['s',"''"] ,
-          'char' => ['s',"''"] ,
-          'decimal' => ['f',0]
-        );
+          $this->connect();
+          $result = $this->connect->query( "SHOW COLUMNS FROM {$table} FROM " . $_ENV['DB_DATABASE'] );
 
-        while($r = $result->fetch_assoc()) {
-          $tp = $tipe[explode(  '(',$r['Type']  )[0]][0];
-          $nn = $tipe[explode(  '(',$r['Type']  )[0]][1];
+          $tipe = array(
+            'tinyint' => ['i',0] ,
+            'smallint' => ['i',0] ,
+            'int' => ['i',0] ,
+            'float' => ['f',0] ,
+            'double' => ['f',0] ,
+            'timestamp' => ['i',0] ,
+            'bigint' => ['i',0] ,
+            'mediumint' => ['i',0] ,
+            'date' => ['s',"''"] ,
+            'time' => ['s',"''"] ,
+            'datetime' => ['s',"''"] ,
+            'year' => ['i',0] ,
+            'bit' => ['i',0] ,
+            'varchar' => ['s',"''"] ,
+            'char' => ['s',"''"] ,
+            'decimal' => ['f',0]
+          );
 
-          $n = ($c++ % 3 == 0) ? "\n" : '';
+          while($r = $result->fetch_assoc()) {
+            $tp = $tipe[explode(  '(',$r['Type']  )[0]][0];
+            $nn = $tipe[explode(  '(',$r['Type']  )[0]][1];
 
-          $select .= "$n`" . $r['Field'] .'`,' ;
-          $where .= "$n{ AND `" . $r['Field'] ."` =  $tp:". $r['Field'] ." }" ;
-          $insert .= "$n $tp:". $r['Field'] .";{$nn}," ;
-          $update .= "$n{ ". $r['Field'] ." = $tp:". $r['Field'] .";{$nn} }," ;
-        }
+            $n = ($c++ % 3 == 0) ? "\n" : '';
 
-        $select = rtrim($select,',');
-        $insert = rtrim($insert,',');
-        $update = rtrim($update,',');
+            $select .= "$n`" . $r['Field'] .'`,' ;
+            $where .= "$n{ AND `" . $r['Field'] ."` =  $tp:". $r['Field'] ." }" ;
+            $insert .= "$n $tp:". $r['Field'] ." ? {$nn}; ," ;
+            $update .= "$n{ ". $r['Field'] ." = $tp:". $r['Field'] ." ,}" ;
+          }
 
-        $q = "\$v->query(\"SELECT {$select}\nFROM {$table} WHERE TRUE {$where} \n\", \$arr);\n\n";
-        $i = "\$v->query(\"INSERT INTO {$table} VALUES ({$insert}\n)\", \$arr);\n\n";
-        $u = "\$v->query(\"UPDATE {$table} SET {$update} \n\", \$arr);\n";
+          $select = rtrim($select,',');
+          $insert = rtrim($insert,',');
+          $update = rtrim($update,',}');
+          $update .= '}';
 
-        $this->_error_msg( $q.$i.$u );
+          $q = "\$v->query(\"SELECT {$select}\nFROM {$table} WHERE TRUE {$where} \n\", \$arr);\n\n";
+          $i = "\$v->query(\"INSERT INTO {$table} VALUES ({$insert}\n)\", \$arr);\n\n";
+          $u = "\$v->query(\"UPDATE {$table} SET {$update} \n\", \$arr);\n";
+
+          $_ENV['VSQL_INSPECT'] = true;
+          $this->error( $q.$i.$u );
+
+        }}
+
+        $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable model creation " );
     }
 
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
     private function chquery() {
         if (!isset($_ENV['VSQL_CACHE'])) { return; }
 
-        if (empty( $this->id )) { return;   }
+        if (empty( $this->id )) { return; }
 
         if (!file_exists($_ENV['VSQL_CACHE'])) {
             mkdir($_ENV['VSQL_CACHE'], 0755, true);
@@ -223,16 +232,6 @@ class DB {
         fclose( $f );
 
         return $this->cquery;
-    }
-
-    protected function compiler($str,$vrs){
-      preg_match_all('/(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*);|({)|(}))/', $str, $match , PREG_OFFSET_CAPTURE );
-
-      foreach ($match[1] as $key => $simbol) {
-
-        echo "$key";
-      }
-
     }
 
 

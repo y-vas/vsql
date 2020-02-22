@@ -14,10 +14,10 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 class VSQL extends DB {
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-    public function query($query_string, $query_vars, $debug = "") {
+    public function query($str, $vrs, $debug = "") {
       echo "<textarea style='height:100%;width:100%'>";
 
-        $this->compiler($query_string,$query_vars);
+        $this->compiler($str, $vrs);
         die;
 
         $this->query_original = $query_string;
@@ -46,6 +46,74 @@ class VSQL extends DB {
 
         return $query_string;
     }
+
+
+//------------------------------------------------ <  compiler > ----------------------------------------------------------
+    protected function compiler($str,$vrs){
+      preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*);|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+
+      $ofst = 0;
+      var_dump($m[4][0]);
+      $co = '';
+      foreach ($m[0] as $k => $full) {
+        $full = $full[0];
+        $n1 = trim($m[3][$k][0]);
+        $n2 = trim($m[6][$k][0]);
+        $var= strlen( $n1 ) == 0 ? $n2 : $n1;
+
+        $s = $m[7][$k][0];
+        $f = $m[8][$k][0];
+        $a = $m[5][$k][0];
+        $p = $m[0][$k][1];
+        $qs = trim($m[4][$k][0]);
+
+        if($s == '{' ){ $co .= $s;  }
+        if($s == '\{'){ $co .= '('; }
+        if($f == '\}'){ $co .= ')'; }
+
+        if( strlen( $var ) > 0 ){
+          if (array_key_exists($var,$vrs)){
+            // here we make the substitution
+            // $var = $this->_convert_var($simbol, $var_key);
+            $nv = '____';
+            $co .= ":";
+          }else if( strlen( $qs ) > 0 ){
+            $nv = $qs;
+            $co .= ":";
+          }else if( $a == '!' ){
+            $this->error($var,1);
+          }else{
+            $nv = '';
+            $co .= "!";
+          }
+
+          $sub = " {$nv} ";
+          $str = substr_replace($str, $sub , $ofst + $p , strlen($full) );
+          $ofst += strlen($sub) - strlen($full);
+        }
+
+        if($f == '}'){
+          $co .= $f;
+          $cp = strrpos($co,'{');
+          $pr = substr($co,$cp,strlen($co));
+
+          if (strpos($pr, ':') === false) {
+            $pb = strrpos(substr($str,0,$p+$ofst),'{');
+            // remove the brakets
+
+            $e = $p+$ofst-$pb+1;
+            $str = substr_replace($str, '' , $pb , $e );
+            $ofst += -$e;
+          }
+          $co = substr_replace($co, '(' , $cp , 1 );
+          $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
+        }
+
+      }
+
+      return $str;
+    }
+
 
 //------------------------------------------------ <  _inspect > -------------------------------------------------------
     private function _inspect( $debug ) {
@@ -216,97 +284,6 @@ class VSQL extends DB {
         }
 
         return "";
-    }
-
-//------------------------------------------- <  _var_transform > ------------------------------------------------------
-    private function _var_transform(
-        $query_string,
-        $return_empty_if_has_null_values = false
-    ) {
-        preg_match_all('!{(.*?)?(\!)?:(.*?)}!', $query_string, $match);
-
-
-        foreach ($match[1] as $key => $simbol) {
-            $var_key = $match[3][$key];
-            $exp = explode(';',$var_key);
-            $var_key = $exp[0];
-            $not_null = $match[2][$key];
-
-            $var = $this->_convert_var($simbol, $var_key);
-
-            if ($var == null) {
-
-                if (count($exp) > 1){
-                  $var = $exp[1];
-                }
-
-                if ($not_null == "!") {
-                    $this->_error_msg("$var_key key resulted in null!");
-                }
-
-                if ($return_empty_if_has_null_values) {
-                    return "";
-                }
-
-            }
-
-            if (strpos($simbol, 'i') !== false && empty($var)){
-              $var = 0;
-            }
-
-            $query_string = str_replace($match[0][$key], $var, $query_string);
-        }
-
-        return $query_string;
-    }
-
-//--------------------------------------------- <  _quote_check > ------------------------------------------------------
-    private function _quote_check($query_string, $cache = false ) {
-        preg_match_all("!{{([\w*?:\!]*)(\X*?)}}!", $query_string, $match_brakets);
-
-        while (count($match_brakets[0]) != 0) {
-
-            foreach ($match_brakets[2] as $key => $value) {
-
-                $tags = explode(':', $match_brakets[1][$key]);
-                if (count($tags) > 1) {
-                    $show = false;
-
-                    foreach ($tags as $h => $t) {
-                        $tl = trim(str_replace('!', '', $t));
-                        $negate = (trim($t) != $tl);
-
-                        if ($negate && !isset($this->query_vars[$tl])) {
-                            $show = true;
-                            break;
-                        }
-
-                        if (isset($this->query_vars[$tl]) && $negate == false) {
-                            $show = true;
-                            break;
-                        }
-
-                    }
-
-                    if ($show == false) {
-                        $value = "";
-                    }
-                }
-
-                $res = $this->_var_transform($value, true);
-                if ($cache && !empty($res)) {
-                    $res = $value;
-                }
-
-                $query_string = str_replace($match_brakets[0][$key], $res, $query_string);
-
-            }
-
-            preg_match_all("!{{([\w*?:\!]*)(\X*?)}}!", $query_string, $match_brakets);
-        }
-
-
-        return $query_string;
     }
 
 //------------------------------------------------ <  _get_var_from_query_vars > ---------------------------------------
