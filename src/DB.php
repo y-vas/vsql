@@ -2,9 +2,10 @@
 
 namespace VSQL\VSQL;
 
-define('VSQL_NULL_FIELD',1);
+define( 'VSQL_NULL_FIELD' , 1 );
 
 class DB {
+
     public $inspect;
     public $vquery='';
     public $cquery;
@@ -17,7 +18,8 @@ class DB {
     public $error; # string: Error message
     public $errno; # integer: error no
 
-    function __construct($id=null) {
+// ------------------------------------------------ <  init > ----------------------------------------------------
+    function __construct( $id = null ) {
         $this->id = $id;
 
         foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
@@ -41,9 +43,7 @@ class DB {
             }
             $this->error("Function mysqli_connect() does not exists. mysqli extension is not enabled?");
         }
-
     }
-
 
     public function connect() {
       $this->connect = mysqli_connect(
@@ -78,6 +78,15 @@ class DB {
         }
     }
 
+//------------------------------------------------ <  run > ------------------------------------------------------------
+    public function run() {
+        $mysqli = $this->connect;
+        $mysqli->query( $this->vquery );
+        return $mysqli;
+    }
+
+
+//------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
       if ($debug) { $_ENV['VSQL_INSPECT'] = true; }
 
@@ -219,7 +228,7 @@ class DB {
     }
 
 
-    
+
 
 
 }
