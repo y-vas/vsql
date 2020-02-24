@@ -33,7 +33,7 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
   protected function compiler($str,$vrs,$cache = false){
-    preg_match_all('~(?:([^\s,]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+    preg_match_all('~(?:([^\s,=]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0;
     $co = '';
@@ -52,7 +52,7 @@ class VSQL extends DB {
       $qs = trim($m[4][$k][0]);
       $parser = $m[1][$k][0];
 
-      if($s == '{' ){ $co .= $s;  }
+      if($s == '{' ){ $co .= $s; }
 
       if($s == '\{'){
         $str = substr_replace(  $str, '{ ' , $p+$ofst , 2 );
@@ -83,7 +83,7 @@ class VSQL extends DB {
           $nv = $var;
         } else {
           $nv = '';
-          $ad .= "!";
+          $ad = "!";
         }
 
         $co .= $ad;
@@ -116,6 +116,8 @@ class VSQL extends DB {
       }
 
     }
+
+    // var_dump($co);
 
     return $str;
   }
