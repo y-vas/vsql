@@ -33,7 +33,7 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
   protected function compiler($str,$vrs,$cache = false){
-    preg_match_all('~(?:([^\s]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+    preg_match_all('~(?:([^\s,]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?(.*);|(!*))|([^\s{]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0;
     $co = '';
