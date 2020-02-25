@@ -23,7 +23,7 @@ class VSQL extends DB {
       $this->vars = $vrs;
 
       // $str = $this->cache();
-      // $this->vquery = $this->modifier( $str, $vrs );
+      $str          = $this->modifier( $str, $vrs );
       $this->vquery = $this->compiler( $str, $vrs );
 
       if ($debug){ $this->error('Inspect', 0 , true ); }
@@ -49,7 +49,7 @@ class VSQL extends DB {
       $a = $m[5][$k][0];
       $p = $m[0][$k][1];
 
-      $r = trim($m[7][$k][0]);
+      $r =  trim($m[7][$k][0]);
       $qs = trim($m[4][$k][0]);
       $parser = $m[1][$k][0];
 
@@ -65,13 +65,12 @@ class VSQL extends DB {
 
       if( strlen( $var ) > 0 ){
         $ad = ':';
-        $exist = array_key_exists($var,$vrs);
+        $exist = array_key_exists( $var , $vrs );
 
-        if ($exist && $r != ';' ){
+        if ($exist && $r != ';' ) {
           // here we make the substitution
           $nv = $this->parser( $parser, $vrs[ $var ] );
-
-          if ( empty( $nv ) && ($a == '!') ){
+          if ( empty( $nv ) && ($a == '!') ) {
             $this->error( "null value for $var" , VSQL_NULL_FIELD );
           }
 
@@ -79,7 +78,7 @@ class VSQL extends DB {
           $nv = '';
         } else if ( strlen( $qs ) > 0 ){
           $nv = $qs;
-        } else if ( $cache ){
+        } else if ( $cache ) {
           $nv = $var;
         } else {
           $nv = '';
@@ -116,8 +115,9 @@ class VSQL extends DB {
   }
 
 //------------------------------------------------ <  parser > ----------------------------------------------------------
-  private function parser( $parser , $var ) {
+  private function parser( $parser , $var ){
     $res =  $this->secure( $var );
+
     //---------------------- cases ----------------------
     switch ($parser) {
         case 'i':
@@ -148,145 +148,19 @@ class VSQL extends DB {
     return $res;
   }
 
-//-------------------------------------------- <  _find_objects > ------------------------------------------------------
+//-------------------------------------------- <  modifier > ------------------------------------------------------
     private function modifier( $str , $vrs ) {
-        // preg_match_all('!([a-zA-Z0-9_]*)\s*\(!', $query_string, $match);
-        //
-        // $counter = 0;
-        // while (count($match[0]) != 0) {
-        //     $counter++;
-        //
-        //     if ($counter > 100) {
-        //         $this->_error_msg("Query to large! OR some function is not set propertly!");
-        //     }
-        //
-        //     $ad = 1;
-        //     $str = "";
-        //     for ($l = 0; $l < strlen($match[2][0]); $l++) {
-        //         $lt = $match[2][0][$l];
-        //         if ($ad == 0) {
-        //             $str = substr($str, 0, -1);
-        //             break;
-        //         }
-        //         if ($lt == ")") {
-        //             $ad--;
-        //         }
-        //         if ($lt == "(") {
-        //             $ad++;
-        //         }
-        //         $str = $str . $lt;
-        //     }
-        //
-        //     preg_match_all('!(\w*?)_VSQL\(\Q' . $str . '\E\)(?:\s*?\s*(?:as|AS)\s*(\w*)\s*)?!', $query_string,
-        //         $match);
-        //     foreach ($match[2] as $key => $value) {
-        //         $replace = $this->_vsql_function($match[1][$key], $str, $match[2][$key]);
-        //         $query_string = str_replace($match[0][$key], $replace, $query_string);
-        //     }
-        //
-        //     preg_match_all("!(\w*?)_VSQL\((\X*)!", $query_string, $match);
-        // }
-        //
-        // return $query_string;
-    }
+        preg_match_all('!\s{1,}(?:as|AS|As|aS)\s{1,}([^,]*)\s{1,}(?:to|TO|tO|To)\s{1,}(\w+),*!', $str, $m );
 
-//-------------------------------------------- <  _vsql_function > -----------------------------------------------------
-    private function _vsql_function( $func, $vals, $name ) {
-        // $lname = "";
-        //
-        // if (!empty($name)) {
-        //     $lname = " AS $name \n\n";
-        // }
-        //
-        // $vals = preg_replace('![^<](=>)!', ',', $vals);
-        //
-        // switch ($func) {
-        //     case 'STD':
-        //         $this->fetched[$name] = ['json'];
-        //         return 'JSON_OBJECT(' . $vals . ')' . $lname;
-        //         break;
-        //
-        //     case 'JGET':
-        //         $this->fetched[$name] = ['json'];
-        //         $vales = explode(",", $vals);
-        //
-        //         if (count($vales) != 2) {
-        //             $this->_error_msg('JGET_VSQL(' . $vals . ') : Requieres only 2 values !');
-        //         }
-        //
-        //         $v1 = trim($vales[0]);
-        //         $v2 = trim($vales[1]);
-        //
-        //         return "(SELECT IF( JSON_VALID($v1), JSON_UNQUOTE( JSON_EXTRACT($v1,'$.$v2') ), NULL) )" . $lname;
-        //         break;
-        //
-        //     case 'ARRAY':
-        //         $this->fetched[$name] = ['array'];
-        //         return 'JSON_OBJECT('.$vals.')'.$lname;
-        //         break;
-        //
-        //     case 'JAGG':
-        //         $this->fetched[$name] = ['json'];
-        //         $tr = trim($vals);
-        //
-        //         $part = "";
-        //         $fields = [];
-        //         $ad = 0;
-        //         for ($l = 0; $l < strlen($tr); $l++) {
-        //             $lt = $tr[$l];
-        //             $part .= $lt;
-        //             if ($lt == ")") { $ad--; }
-        //             if ($lt == "(") { $ad++; }
-        //             if ($lt == ',' && $ad == 0) {
-        //                 $fields[] = trim(substr_replace($part, "", -1));
-        //                 $part = '';
-        //             }
-        //         }
-        //
-        //         $fields[] = $part;
-        //         $tr = "";
-        //
-        //         foreach ($fields as $key => $value) {
-        //             if ($key % 2 == 0) {
-        //
-        //                 if (!isset($fields[$key + 1])) {
-        //                     $this->_error_msg("Error: unmatched values for JAGG_VSQL($vals)");
-        //                 }
-        //
-        //                 $k = trim(str_replace("'", "", str_replace("\"", "", $value)));
-        //                 $f = $fields[$key + 1];
-        //
-        //                 $tr .= "\nCONCAT('{\"$k\":',
-        //                   IF(CONVERT($f, SIGNED INTEGER) IS NOT NULL,$f,concat('\"', $f ,'\"'))
-        //       ,'}')\n,";
-        //
-        //             }
-        //         }
-        //
-        //         return '
-        //         CONCAT(\'[\',GROUP_CONCAT(JSON_MERGE(
-        //           ' . $tr . '
-        //         \'{}\',\'{}\') SEPARATOR \',\' ) ,\']\')
-        //         ' . $lname . " \n\n";
-        //         break;
-        //
-        //     case 'TO_STD':
-        //         $this->fetched[$name] = ['json'];
-        //         return '(' . $vals . ')' . $lname;
-        //         break;
-        //
-        //     case 'COLLECTION':
-        //         $this->fetched[$name] = ['array-std'];
-        //         return "concat('[',group_concat(json_object(" . $vals . ")),']')" . $lname;
-        //         break;
-        //
-        //     case 'TO_ARRAY':
-        //         $this->fetched[$name] = ['array'];
-        //         return '(' . $vals . ')' . $lname;
-        //         break;
-        // }
-        //
-        // return "";
+        foreach ($m[0] as $k => $full) {
+          $s = $m[1][$k][0];
+          $f = $m[2][$k][0];
+          $this->fetched[trim($s)] = [trim($f)];
+          $str = str_replace($full," AS " . $s . " , ")
+        }
+
+        return $str;
+
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
@@ -386,6 +260,7 @@ class VSQL extends DB {
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
     private function _transform( $transform, $val ) {
+
         switch ($transform) {
           case 'json':
               $non = json_decode($val,true);
@@ -411,6 +286,7 @@ class VSQL extends DB {
               }
               return $non;
         }
+
         return $val;
     }
 
