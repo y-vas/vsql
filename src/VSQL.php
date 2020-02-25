@@ -19,21 +19,20 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query($str, $vrs, $debug = false) {
-      $this->query = $str;
-      $this->vars = $vrs;
+    $this->query = $str;
+    $this->vars = $vrs;
 
-      $str = $this->compiler( $str, $vrs );
-      $str = $this->modifier( $str, $vrs );
+    $str = $this->compiler( $str, $vrs );
+    $str = $this->modifier( $str, $vrs );
 
-      $this->vquery = $str;
-      if ($debug){ $this->error('Inspect', 0 , true ); }
+    $this->vquery = $str;
+    if ($debug){ $this->error('Inspect', 0 , true ); }
 
-      return $this->vquery;
+    return $this->vquery;
   }
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
   protected function compiler($str,$vrs,$cache = false){
-
     preg_match_all('~(?:([^\s,=]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0;
@@ -44,10 +43,10 @@ class VSQL extends DB {
       $n2 = trim($m[6][$k][0]);
       $var= strlen( $n1 ) == 0 ? $n2 : $n1;
 
-      $s = $m[8][$k][0];
-      $f = $m[9][$k][0];
-      $a = $m[5][$k][0];
-      $p = $m[0][$k][1];
+      $s = $m[ 8 ][$k][0];
+      $f = $m[ 9 ][$k][0];
+      $a = $m[ 5 ][$k][0];
+      $p = $m[ 0 ][$k][1];
 
       $r =  trim($m[7][$k][0]);
       $qs = trim($m[4][$k][0]);
@@ -108,7 +107,6 @@ class VSQL extends DB {
         $co = substr_replace($co, '(' , $cp , 1 );
         $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
       }
-
     }
 
     return $str;
