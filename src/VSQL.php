@@ -33,6 +33,7 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
   protected function compiler($str,$vrs,$cache = false){
+
     preg_match_all('~(?:([^\s,=]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0;
@@ -52,15 +53,14 @@ class VSQL extends DB {
       $qs = trim($m[4][$k][0]);
       $parser = $m[1][$k][0];
 
-      if($s == '{' ){ $co .= $s; }
-
-      if($s == '\{'){
-        $str = substr_replace(  $str, '{ ' , $p+$ofst , 2 );
-        $co .= '(';
+      if($s == '{' ){
+        $co .= $s;
+        $m[0][$k][2] = $p + $ofst;
       }
-      if($f == '\}'){
-        $str = substr_replace(  $str, '} ' , $p+$ofst , 2 );
-        $co .= ')';
+
+      if($s == '\{' || $f == '\}'){
+        $str = substr_replace(  $str, ' ' , $p + $ofst , 1 );
+        $co .= '_';
       }
 
       if( strlen( $var ) > 0 ){
@@ -71,8 +71,8 @@ class VSQL extends DB {
           // here we make the substitution
           $nv = $this->parser( $parser, $vrs[ $var ] );
 
-          if (empty($nv) && ($a == '!')) {
-            $this->error("null value for $var", VSQL_NULL_FIELD );
+          if ( empty( $nv ) && ($a == '!') ){
+            $this->error( "null value for $var" , VSQL_NULL_FIELD );
           }
 
         } else if ($exist && $r == ';' ){
@@ -94,21 +94,16 @@ class VSQL extends DB {
 
       if($f == '}'){
         $co .= $f;
-        $cp = strrpos($co,'{');
-        $pr = substr( $co, $cp,strlen($co));
+        $cp = strrpos( $co, '{' );
+        $pr = substr(  $co, $cp, strlen( $co ) );
+        $pb = $m[ 0 ][ intval( $cp ) ][ 2 ];
 
-        $pb = strrpos(substr($str,0,$p+$ofst),'{');
-        $e = $p+$ofst-$pb+1;
         if (strpos($pr, ':') === false) {
-          // remove the brakets
-          $str = substr_replace($str, '' , $pb , $e );
-          $ofst += -$e;
-        }else {
-          // code...
-          $str = substr_replace(  $str, '' , $p+$ofst , 1 );
-          $ofst += -1;
-          $str = substr_replace(  $str, '' , $pb , 1 );
-          $ofst += -1;
+          $e = $p + $ofst - $pb + 1;
+          $str = substr_replace(  $str, str_repeat(' ', $e ), $pb , $e );
+        } else {
+          $str = substr_replace(  $str, ' ' , $pb ,        1 );
+          $str = substr_replace(  $str, ' ' , $p + $ofst , 1 );
         }
 
         $co = substr_replace($co, '(' , $cp , 1 );
@@ -116,8 +111,6 @@ class VSQL extends DB {
       }
 
     }
-
-    // var_dump($co);
 
     return $str;
   }
@@ -139,6 +132,10 @@ class VSQL extends DB {
         case 'array':
             $var =  $this->secure( $var );
             $res = "'" . implode(',', $var ) . "'";
+            break;
+        case 'json':
+            $var =  $this->secure( $var );
+            $res = "'" . json_encode($var) . "'";
             break;
         case 't':
             $res = "'" . trim(strval($res)) . "'";
