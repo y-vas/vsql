@@ -22,10 +22,10 @@ class VSQL extends DB {
       $this->query = $str;
       $this->vars = $vrs;
 
-      // $str = $this->cache();
-      $str          = $this->modifier( $str, $vrs );
-      $this->vquery = $this->compiler( $str, $vrs );
+      $str = $this->compiler( $str, $vrs );
+      $str = $this->modifier( $str, $vrs );
 
+      $this->vquery = $str;
       if ($debug){ $this->error('Inspect', 0 , true ); }
 
       return $this->vquery;
