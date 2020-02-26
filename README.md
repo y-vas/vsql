@@ -12,12 +12,12 @@ composer require vasyl/vsql
 ````php
 use VSQL\VSQL\VSQL;
 
-// set this to true if you are testing or debuging
-// it will show the diference betwen queryes
+// set this to true if you are testing or debugging
+// it will show the difference between queries
 
 $_ENV['VSQL_INSPECT'] = true;
 
-// declate the database variables en ENV
+// declare the database variables en ENV
 $_ENV[  'DB_HOST'  ] = 'host';
 $_ENV['DB_USERNAME'] = 'name';
 $_ENV['DB_PASSWORD'] = 'pass';
@@ -25,9 +25,9 @@ $_ENV['DB_DATABASE'] = 'dtbs';
 
 $v = new VSQL( );
 
-// example
-$v->query("SELECT
-  *
+// this is the vsql syntax
+$query = $v->query("SELECT
+    *
   FROM dbtable d
   WHERE TRUE
   { AND d.name = :name }
@@ -35,9 +35,30 @@ $v->query("SELECT
   'name'=> 'vsql'
 ));
 
+// this will compile the vsql query into a normal one
+var_dump($query);
+
+"""
+SELECT
+    *
+  FROM dbtable d
+  WHERE TRUE
+  AND d.name = 'vsql'
+"""
+
 $res = $v->get( true );
 
 ````
+#### Query Syntax
+````sql
+SELECT
+  {name; d.name }
+
+FROM dbtable d
+
+````
+
+
 
 
 ### Parsed Values
