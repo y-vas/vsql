@@ -201,7 +201,7 @@ class DB {
                 'cquery' => $this->cquery,
               ]
             ), JSON_PRETTY_PRINT ));
-            fclose($f);
+            fclose( $f );
             return $this->cquery;
         }
 

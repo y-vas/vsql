@@ -1,8 +1,8 @@
 <?php
 
 namespace VSQL\VSQL;
+require(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
-require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
@@ -26,7 +26,7 @@ class VSQL extends DB {
     $str = $this->modifier( $str, $vrs );
 
     $this->vquery = $str;
-    if ($debug){ $this->error('Inspect', 0 , true ); }
+    if ( $debug ){ $this->error('Inspect', 0 , true ); }
 
     return $this->vquery;
   }
@@ -113,7 +113,7 @@ class VSQL extends DB {
   }
 
 //------------------------------------------------ <  parser > ----------------------------------------------------------
-  private function parser( $parser , $var ){
+  public function parser( $parser , $var ){
     $res =  $this->secure( $var );
 
     //---------------------- cases ----------------------
@@ -128,12 +128,10 @@ class VSQL extends DB {
             break;
         case 'implode':
         case 'array':
-            $var =  $this->secure( $var );
-            $res = "'" . implode(',', $var ) . "'";
+            $res = "'" . implode(',', $res ) . "'";
             break;
         case 'json':
-            $var =  $this->secure( $var );
-            $res = "'" . json_encode($var) . "'";
+            $res = "'" . json_encode($res) . "'";
             break;
         case 't':
             $res = "'" . trim(strval($res)) . "'";
@@ -154,7 +152,7 @@ class VSQL extends DB {
           $s = $m[1][$k][0];
           $f = $m[2][$k][0];
           $this->fetched[trim($s)] = [trim($f)];
-          $str = str_replace($full," AS " . $s . " , ")
+          $str = str_replace($full," AS {$s} , ");
         }
 
         return $str;
@@ -216,7 +214,7 @@ class VSQL extends DB {
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
     public function _transform_get( $val, $datatype, $key ) {
-        $mysql_data_type_hash = array(
+        $dtypes = array(
             1 => array('tinyint', 'int'),
             2 => array('smallint', 'int'),
             3 => array('int', 'int'),
@@ -237,8 +235,8 @@ class VSQL extends DB {
 
 
         $dt_str = "string";
-        if (isset($mysql_data_type_hash[$datatype][1])) {
-            $dt_str = $mysql_data_type_hash[$datatype][1];
+        if (isset($dtypes[$datatype][1])) {
+            $dt_str = $dtypes[$datatype][1];
         }
 
         settype($val, $dt_str);
