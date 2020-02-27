@@ -78,7 +78,7 @@ class VSQL extends DB {
         } else if ( strlen( $qs ) > 0 ){
           $nv = $qs;
         } else if ( $cache ) {
-          $nv = $var;
+          $nv = 'test';
         } else {
           $nv = '';
           $ad = "!";
