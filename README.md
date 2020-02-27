@@ -26,25 +26,24 @@ $_ENV['DB_DATABASE'] = 'dtbs';
 $v = new VSQL( );
 
 // this is the vsql syntax
-$query = $v->query("SELECT
-    *
-  FROM dbtable d
-  WHERE TRUE
-  { AND d.name = :name }
+$query = $v->query("
+SELECT
+  *
+FROM dbtable d
+WHERE TRUE
+{ AND d.name = :name }
   ", array(
   'name'=> 'vsql'
 ), true /*if true it will die and show the debug */ );
 
-// this will compile the vsql query into a normal one
-var_dump($query);
 ````
-#### Returns
+#### Return query
 ````sql
 SELECT
-    *
-  FROM dbtable d
-  WHERE TRUE
-  AND d.name = 'vsql'
+  *
+FROM dbtable d
+WHERE TRUE
+AND d.name = 'vsql'
 ````
 
 ````php
@@ -106,7 +105,6 @@ AND d.pass = s:pswd
 
 /* combine to handdle errors  */
 AND d.id = i:pswd ? 0
-
 ````
 
 ### Transformers
