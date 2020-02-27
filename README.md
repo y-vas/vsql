@@ -109,9 +109,8 @@ AND d.id = i:pswd ? 0
 
 ````
 
-
 ### Transformers
-|                |variables                      |returns                        |
+|   transformer  |variables                      |returns                        |
 |----------------|-------------------------------|-------------------------------|
 |       i        |    'string',0 ,'123.3', null  |    0,0 ,123,   0              |
 |       f        |    'string',0 ,'123.3', null  |    0,0 ,123.3, 0              |
