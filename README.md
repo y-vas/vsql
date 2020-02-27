@@ -1,6 +1,6 @@
 # VSQL
 
-VSQL is a simple query helper and abstraction layer for php.
+VSQL is a query helper and abstraction layer for php.
 
 ### COMPOSER INSTALATION
 ```sh
