@@ -9,12 +9,12 @@ composer require vasyl/vsql
 
 ### Introduction
 
+
 ````php
 use VSQL\VSQL\VSQL;
 
 // set this to true if you are testing or debugging
 // it will show the difference between queries
-
 $_ENV['VSQL_INSPECT'] = true;
 
 // declare the database variables en ENV
@@ -24,7 +24,6 @@ $_ENV['DB_PASSWORD'] = 'pass';
 $_ENV['DB_DATABASE'] = 'dtbs';
 
 $v = new VSQL( );
-
 // this is the vsql syntax
 $query = $v->query("
 SELECT
