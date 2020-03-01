@@ -42,7 +42,7 @@ class Mold extends DB {
       $exp = explode(  '(',$r['Type']  )[0];
       $ht = $this->datatypes[ $exp ][ 2 ];
       $tp = $this->datatypes[ $exp ][ 0 ][ 0 ];
-      $nn = $this->datatypes[ $exp ][ 1 ][ 0 ];
+      $nn = $this->datatypes[ $exp ][ 1 ];
       $pr = 'is_'.$this->datatypes[$exp][ 0 ];
       $f = $r['Field'];
 
