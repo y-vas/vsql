@@ -7,7 +7,7 @@ class Cleaner {
     $dirs  = scandir($directorio);
 
     foreach ($dirs as $dir) {
-      if( $dir == '..' || $dir == '.'){ continue; }
+      if( $dir == '..' || $dir == '.' ){ continue; }
 
       self::php( $directorio . DIRECTORY_SEPARATOR . $dir );
 
