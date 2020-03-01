@@ -1,3 +1,6 @@
+
+<h1> Testing env </h1>
+
 <?php
 
 require(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'Mold.php');
@@ -11,6 +14,4 @@ $_ENV['DB_DATABASE'] = 'u345239147_datab';
 use VSQL\VSQL\Mold;
 
 $v = new Mold( );
-$v->smarty('tba');
-$v->controller('tba');
-$v->model('tba');
+$v->makeMold('tba','test');

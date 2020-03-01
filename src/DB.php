@@ -108,7 +108,7 @@ class DB {
       throw new \Exception("Error : " . $msg, $code );
     }
 
-    private function trace_func($func){
+    protected function trace_func($func){
       $e = new \Exception();
       foreach ($e->getTrace() as $key => $value) {
           if ($value['function'] == $func ) {

@@ -6,23 +6,23 @@ require(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 class Mold extends DB {
 
   private $datatypes = array(
-  /* datatype   |  parser   | default                  */
-  'tinyint'   =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'smallint'  =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'int'       =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'float'     =>[  'float'  ,  0.0       ,'number'        ,   0   ] ,
-  'double'    =>[  'float'  ,  0.0       ,'number'        ,   0   ] ,
-  'timestamp' =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'bigint'    =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'mediumint' =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'date'      =>[  'string' ,  "''"      ,'date'          ,   0   ] ,
-  'time'      =>[  'string' ,  "''"      ,'time'          ,   0   ] ,
-  'datetime'  =>[  'string' ,  "''"      ,'datetime-local',   0   ] ,
-  'year'      =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'bit'       =>[  'int'    ,  0         ,'number'        ,   0   ] ,
-  'varchar'   =>[  'string' ,  "''"      ,'text'          ,   0   ] ,
-  'char'      =>[  'string' ,  "''"      ,'text'          ,   0   ] ,
-  'decimal'   =>[  'float'  ,  0.0       ,'number'        ,   0   ]
+  /* datatype   |  parser   | default | html           |    */
+  'tinyint'   =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'smallint'  =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'int'       =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'float'     =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+  'double'    =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+  'timestamp' =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'bigint'    =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'mediumint' =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'date'      =>[  'string' ,  "''"   ,'date'          ,   0   ] ,
+  'time'      =>[  'string' ,  "''"   ,'time'          ,   0   ] ,
+  'datetime'  =>[  'string' ,  "''"   ,'datetime-local',   0   ] ,
+  'year'      =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'bit'       =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'varchar'   =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+  'char'      =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+  'decimal'   =>[  'float'  ,  0.0    ,'number'        ,   0   ]
   );
 
   public function __construct(){
@@ -76,9 +76,9 @@ class Mold extends DB {
     $d = "$e\$v->query(\"DELETE FROM {$table} WHERE " . $data['ff'] . " = {\$id}\",[], false );\n";
     $a = " {$array} ";
     $p = " {$parser} \n";
-    $r = "$e\$v->query(\"REPLCAE {$table} SET {$update} \n$e\", \$arr, false \n$e);\n";
+    $r = "$e\$v->query(\"REPLACE {$table} SET {$update} \n$e\", \$arr, false \n$e);\n";
 
-    return [$data, $q,$i,$u,$d,$p,$a,$r,$s];
+    return [ $data, $q,$i,$u,$d,$p,$a,$r,$s ];
   }
 
   public function model( $table /*, $type = 'static'*/){
@@ -112,75 +112,93 @@ class Mold extends DB {
     $par .= "\t\t\t\$data[\$k] = \$v;\n\t\t}";
     $par .= "\n\t\treturn \$data;\n\t}";
 
-    $inner = $par . $sel . $add . $del . $upd . $rep;
-    $class = "use VSQL\VSQL\VSQL;\n\n";
+    $inner = $par ."\n\n". $sel ."\n\n". $add ."\n\n". $del ."\n\n". $upd ."\n\n". $rep;
+    $class = "<?php\nuse VSQL\VSQL\VSQL;\n\n";
     $class .= "class {$classname} {{$inner}\n}";
 
-    echo "<pre> $class <pre>";
-    die;
     return $class;
   }
 
   public function controller( $table /*, $type = 'smarty'*/ ){
-      $abs = $this->abstraction($table,"\t\t");
-      $id = $abs[0]['ff'];
+    $abs = $this->abstraction($table,"\t\t");
+    $id = $abs[0]['ff'];
 
-      $classname = ucfirst(strtolower($table));
+    $classname = ucfirst(strtolower($table));
 
-      $one = "\n\tpublic function showOne{$classname}(){\n";
-      $one .= "\t\t\$details = {$classname}::parse(\$_GET); \n";
-      $one .= "\t\tif( \$details == null ){return;} \n\n";
-      $one .= "\t\t\$smarty->assign('obj'=>{$classname}::sel(\$details)); \n";
-      $one .= "\n\t}";
+    $one = "\n\tpublic function showOne{$classname}(){\n";
+    $one .= "\t\t\$details = {$classname}::parse(\$_GET); \n";
+    $one .= "\t\tif( \$details == null ){return;} \n\n";
+    $one .= "\t\t\$smarty->assign('obj'=>{$classname}::sel(\$details)); \n";
+    $one .= "\n\t}";
 
-      $all = "\n\tpublic function showAll{$classname}(){\n";
-      $all .= "\t\t\$details = {$classname}::parse(\$_GET); \n";
-      $all .= "\t\tif( \$details == null ){return;} \n\n";
-      $all .= "\t\t\$smarty->assign('obj'=>{$classname}::sel(\$details,true)); \n";
-      $all .= "\n\t}";
+    $all = "\n\tpublic function showAll{$classname}(){\n";
+    $all .= "\t\t\$details = {$classname}::parse(\$_GET); \n";
+    $all .= "\t\tif( \$details == null ){return;} \n\n";
+    $all .= "\t\t\$smarty->assign('obj'=>{$classname}::sel(\$details,true)); \n";
+    $all .= "\n\t}";
 
-      $mod = "\n\tpublic function modifyOne{$classname}( ){\n";
-      $mod .= "\t\t\$details = {$classname}::parse(\$_POST); \n";
-      $mod .= "\t\tif( \$details == null ){return;}\n";
-      $mod .= "\n\t\t{$classname}::rep(\$details);\n\t}";
+    $mod = "\n\tpublic function modifyOne{$classname}( ){\n";
+    $mod .= "\t\t\$details = {$classname}::parse(\$_POST); \n";
+    $mod .= "\t\tif( \$details == null ){return;}\n";
+    $mod .= "\n\t\t{$classname}::rep(\$details);\n\t}";
 
-      $upd = "\n\tpublic function updateOne{$classname}( ){\n";
-      $upd .= "\t\t\$details = {$classname}::parse(\$_POST); \n";
-      $upd .= "\t\tif( \$details == null ){return;}\n";
-      $upd .= "\n\t\t{$classname}::upd(\$details);\n\t}";
+    $upd = "\n\tpublic function updateOne{$classname}( ){\n";
+    $upd .= "\t\t\$details = {$classname}::parse(\$_POST); \n";
+    $upd .= "\t\tif( \$details == null ){return;}\n";
+    $upd .= "\n\t\t{$classname}::upd(\$details);\n\t}";
 
-      $add = "\n\tpublic function addOne{$classname}( ){\n";
-      $add .= "\t\t\$details = {$classname}::parse(\$_POST); \n";
-      $add .= "\t\tif( \$details == null ){return;}\n";
-      $add .= "\n\t\t{$classname}::add(\$details);\n\t}";
+    $add = "\n\tpublic function addOne{$classname}( ){\n";
+    $add .= "\t\t\$details = {$classname}::parse(\$_POST); \n";
+    $add .= "\t\tif( \$details == null ){return;}\n";
+    $add .= "\n\t\t{$classname}::add(\$details);\n\t}";
 
-      $del = "\n\tpublic function delOne{$classname}(){\n";
-      $del .= "\t\t{$classname}::del(\$_GET['id']); \n";
-      $del .= "\n\t\t\n\t}";
+    $del = "\n\tpublic function delOne{$classname}(){\n";
+    $del .= "\t\t{$classname}::del(\$_GET['id']); \n";
+    $del .= "\n\t\t\n\t}";
 
-      $inner = $one . $all . $mod . $upd. $add. $del;
-      $class = "use $classname;\n\n";
-      $class .= "class Ctrl{$classname} {{$inner}\n}";
+    $inner = $one . $all . $mod . $upd. $add. $del;
+    $class = "<?php\nuse $classname;\n\n";
+    $class .= "class Ctrl{$classname} {{$inner}\n}";
 
-      echo "<pre>$class<pre>";
-      die;
-      return $class;
+    return $class;
+  }
+
+  public function smarty( $table ){
+    $abs = $this->abstraction($table,"\t");
+    $id = $abs[0]['ff'];
+
+    $classname = ucfirst(strtolower($table));
+
+    $inner = $abs[8];
+    $inner.= "\n\t<input type='submit' class='btn btn-primary' value='Save'>";
+    $inner.= "\n\t<input type='submit' class='btn btn-danger' value='Delete'>";
+    $class = "<form action='modifyOne{$classname}/{\$$id}' method='post'>\n{$inner}\n</form>";
+
+    return $class;
+  }
+  public function makeMold( $table ,$dir = '') {
+    if ($dir == ''){
+      $dir = dirname($this->trace_func( 'makeMold' )['file']);
     }
 
-  public function smarty( $table /*, $type = 'smarty'*/ ){
-        $abs = $this->abstraction($table,"\t");
-        $id = $abs[0]['ff'];
+    mkdir($dir , 0777);
 
-        $classname = ucfirst(strtolower($table));
+    $sname = strtolower($table);
+    $classname = ucfirst($sname);
 
-        $inner = $abs[8];
-        $inner.= "\n\t<input type='submit' class='btn btn-primary' value='Save'>";
-        $inner.= "\n\t<input type='submit' class='btn btn-danger' value='Delete'>";
-        $class = "<form action='modifyOne{$classname}/{\$$id}' method='post'>\n{$inner}\n</form>";
+    $f = fopen("{$dir}/{$sname}.tpl", "w");
+    fwrite($f, $this->smarty($table));
+    fclose($f);
 
-        echo "<pre>".htmlspecialchars($class)."<pre>";
-        die;
-        return $class;
-      }
+    $f = fopen("{$dir}/{$classname}.php", "w");
+    fwrite($f, $this->controller($table));
+    fclose($f);
+
+    $f = fopen("{$dir}/Model{$classname}.php", "w");
+    fwrite($f, $this->model($table));
+    fclose($f);
+
+
+  }
 
 }
