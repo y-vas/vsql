@@ -37,7 +37,7 @@ class Cleaner {
     $f = file_get_contents($file);
 
     // hardcoded globals
-    preg_match_all('~\)\s*{[^}]*\bglobal\b\s{1,}[$\w]+;~', $f , $m );
+    preg_match_all('~\)\s*{[^}[\(]*\bglobal\b\s{1,}[$\w]+;~', $f , $m );
     foreach ($m[0] as $k => $v) {
       preg_match_all('~([^\n\w]*)global\b\s{1,}([$\w]*);~', $v , $m2 );
 
