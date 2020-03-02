@@ -18,6 +18,6 @@ use VSQL\VSQL\Mold;
 $v = new Cleaner();
 
 echo "<pre>";
-// $v->clean(getcwd()."/test");
-$v = new Mold();
-$v->makeMold('tba','test');
+$v->clean( getcwd() . "/test" );
+// $v = new Mold();
+// $v->makeMold('tba','test');

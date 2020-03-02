@@ -11,16 +11,26 @@ class Cleaner {
 
       self::php( $directorio . DIRECTORY_SEPARATOR . $dir );
 
-
-      if (is_dir($dir)){
-        self::clean($dir);
+      if ( is_dir( $dir ) ){
+        self::clean( $dir );
       }
     }
-
   }
 
-  private static function balance($str,$end){
+  private static function pmac($str,$w){
+    $vs = array( "}"=>'{', ")"=>'(', "]"=>'[' );
+    $s = $vs[$w];
 
+    $c = 1;
+    for ($i=0; $i < strlen($str); $i++) {
+      $st = strlen($str) - $i;
+      $p = $str[$st];
+      if ($p == $w) { $c++; }
+      if ($p == $s) { $c--; }
+      if ($c == 0 ) {return $st;}
+    }
+
+    return 0;
   }
 
   private static function php($file){
@@ -40,14 +50,60 @@ class Cleaner {
       $f = str_replace($v, $st , $f );
     }
 
-    // // definitive else
-    // preg_match_all('~\sif\s*\(~', $f , $m , PREG_OFFSET_CAPTURE );
-    // foreach ($m[0] as $k => $v) {
-    //   var_dump($v);
-    //   echo "<hr>";
-    // }
+    // definitive else
+    preg_match_all('~(?:([{(\[])|([})\]])|([^{}()\[\]\n]*))~', $f , $m , PREG_OFFSET_CAPTURE );
+    foreach ($m[0] as $k => $v) {
+      $tv = trim($v[0]);
+      $m[0][$k][2] = $tv;
+
+      if( in_array($tv, ['(','[','{'] )){
+        $co .= $tv;
+      } elseif( in_array($tv, [')',']'] )){
+        $co .= $tv;
+      } elseif($tv == '}'){
+        $cp = self::pmac($co,'}');
+
+        if ($co[$cp-1] == 'e') {
+          $ss = substr(  $co, 0 , $cp-2 );
+          $ip = self::pmac($ss,'}');
+          $ci = strrpos( $ss, 'i' );
+          $pr = substr($ss, $ci, $ip );
+
+          if (strpos($pr, 'f') === false) {
+            echo "sf";
+            echo substr(  $f , $m[0][$k][1] , strlen( $ss ) ) . '}<br>';
+            echo substr(  $co, $cp, strlen( $co ) ) . '}';
+          }
+
+          // if ($ss[$ip-1] == 'i') {
+          //
+          // }
 
 
+
+
+
+          // echo substr(  $ss, $ip, strlen( $ss ) ) . '}<br>';
+          // echo substr(  $co, $cp, strlen( $co ) ) . '}';
+          echo "<hr>";
+        }
+
+
+        $co .= $tv;
+      } elseif( $tv == 'elseif' || $tv == 'else if'){
+        $co .= 'f';
+      } elseif( $tv == 'else' ){
+        $co .= 'e';
+      } elseif( $tv == 'if' ){
+        $co .= 'i';
+      } else {
+        $co .= "_";
+      }
+    }
+
+    echo $co;
+    echo "<hr>";
+    var_dump($m);
 
 
     $fp = fopen($file, 'w');
