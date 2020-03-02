@@ -5,7 +5,6 @@ namespace VSQL\VSQL;
 define( 'VSQL_NULL_FIELD' , 1 );
 
 class DB {
-
     public $inspect;
     public $vquery='';
     public $cquery;
@@ -109,7 +108,7 @@ class DB {
       throw new \Exception("Error : " . $msg, $code );
     }
 
-    private function trace_func($func){
+    protected function trace_func($func){
       $e = new \Exception();
       foreach ($e->getTrace() as $key => $value) {
           if ($value['function'] == $func ) {
@@ -171,9 +170,7 @@ class DB {
           $i = "\$v->query(\"INSERT INTO {$table} VALUES ({$insert}\n)\", \$arr);\n\n";
           $u = "\$v->query(\"UPDATE {$table} SET {$update} \n\", \$arr);\n";
 
-          $_ENV['VSQL_INSPECT'] = true;
           $this->error( $q.$i.$u );
-
         }}
 
         $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable model creation " );
@@ -182,9 +179,7 @@ class DB {
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
     private function chquery() {
         if (!isset($_ENV['VSQL_CACHE'])) { return; }
-
         if (empty( $this->id )) { return; }
-
         if (!file_exists($_ENV['VSQL_CACHE'])) {
             mkdir($_ENV['VSQL_CACHE'], 0755, true);
         }

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <title>VSQL INFO</title>
   <meta charset="utf-8">
@@ -13,49 +12,35 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.10/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
 </head>
-
 <body>
 
 <div class="d-flex">
-
-<div class="col-sm-12">
-  <div>&nbsp;</div>
-
-  <div class="container-fluid board debug">
-
-    <div class="col-lg-12">
-      <pre style="height:200;"> <ERROR_MESAGES> </pre>
-    </div>
-
-    <div class="col-sm-6">
-      <button class='btn btn-block btn-success' data-clipboard-target=".m2" >COPY ORIGINAL</button>
-      <hr>
-      <pre><code class='sql' style="height:500px;"><div class='m2'> <ORIGINALQUERY> </div></code></pre>
-      <hr>
-    </div>
-
-    <div class="col-sm-6">
-      <button class='btn btn-block' data-clipboard-target=".m1">COPY TRANSFORMED</button>
-      <hr>
-      <pre><code class='sql' style="height:500px;"><div class='m1' > <TRANSFRMQUERY> </div></code></pre>
-      <hr>
+  
+  <div class="col-sm-12">
+    <div>&nbsp;</div>
+    <div class="container-fluid board debug">
+      <div class="col-lg-12">
+        <pre style="height:200;"> <ERROR_MESAGES> </pre>
+      </div>
+      <div class="col-sm-6">
+        <button class='btn btn-block btn-success' data-clipboard-target=".m2" >COPY ORIGINAL</button>
+        <hr>
+        <pre><code class='sql' style="height:500px;"><div class='m2'> <ORIGINALQUERY> </div></code></pre>
+        <hr>
+      </div>
+      <div class="col-sm-6">
+        <button class='btn btn-block' data-clipboard-target=".m1">COPY TRANSFORMED</button>
+        <hr>
+        <pre><code class='sql' style="height:500px;"><div class='m1' > <TRANSFRMQUERY> </div></code></pre>
+        <hr>
+      </div>
     </div>
   </div>
-
-</div>
 
 </body>
 
 <script type="text/javascript">
-
-  function toggleboard(field){
-    $( ".board" ).addClass( 'hidden' );
-    $( "."+field ).removeClass( 'hidden' );
-  }
-
   hljs.initHighlightingOnLoad();
   var clipboard = new ClipboardJS('.btn');
-
 </script>
-
 </html>
