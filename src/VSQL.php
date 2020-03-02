@@ -118,6 +118,10 @@ class VSQL extends DB {
 
     //---------------------- cases ----------------------
     switch ($parser) {
+        case 'd':
+            settype($var, 'string');
+            $res = empty($var) ? "'0000-00-00'": "'$var'";
+            break;
         case 'i':
             settype($var, 'int');
             $res = $var;
