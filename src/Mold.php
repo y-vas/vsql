@@ -46,7 +46,7 @@ class Mold extends DB {
       $pr = 'is_'.$this->datatypes[$exp][ 0 ];
       $f = $r['Field'];
 
-      $n = ($c++ % 3 == 0) ? "\n$e" : '';
+      $n = ($c++ % 3 == 0) ? "\n$e" : "\n$e";
       $na = ($c % 8 == 0) ? "\n\t$e" : '';
       $t = ($c != $max) ? "," : '';
 
@@ -177,14 +177,20 @@ class Mold extends DB {
     return $class;
   }
   public function makeMold( $table ,$dir = '') {
+    $sname = strtolower($table);
+    $classname = ucfirst($sname);
+    $gitignore = "__mold__";
+
     if ($dir == ''){
-      $dir = dirname($this->trace_func( 'makeMold' )['file']);
+      $diro = dirname($this->trace_func( 'makeMold' )['file']);
+      $f = fopen("{$diro}/.gitignore", "w");
+      fwrite($f, '__mold__*/');
+      fclose($f);
+      $dir = $diro . DIRECTORY_SEPARATOR . $gitignore . $classname;
     }
 
     mkdir($dir , 0777);
 
-    $sname = strtolower($table);
-    $classname = ucfirst($sname);
 
     $f = fopen("{$dir}/{$sname}.tpl", "w");
     fwrite($f, $this->smarty($table));

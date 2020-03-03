@@ -14,7 +14,6 @@ require(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 class VSQL extends DB {
   public function __construct( $id = null ) {
     $this->connect();
-
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
@@ -120,7 +119,7 @@ class VSQL extends DB {
     switch ($parser) {
         case 'd':
             settype($var, 'string');
-            $res = empty($var) ? "'0000-00-00'": "'$var'";
+            $res = empty($var) ? "'0000-00-00'": "'{$var}'";
             break;
         case 'i':
             settype($var, 'int');
@@ -135,7 +134,7 @@ class VSQL extends DB {
             $res = "'" . implode(',', $res ) . "'";
             break;
         case 'json':
-            $res = "'" . json_encode($res) . "'";
+            $res = "'" . json_encode($res, JSON_UNESCAPED_UNICODE ) . "'";
             break;
         case 't':
             $res = "'" . trim(strval($res)) . "'";
@@ -245,7 +244,7 @@ class VSQL extends DB {
 
         settype($val, $dt_str);
         if ($dt_str) {
-            $val = utf8_encode($val);
+            $val = utf8_decode(utf8_encode($val));
         }
         settype($val, $dt_str);
 
@@ -271,7 +270,7 @@ class VSQL extends DB {
 
           case 'array':
               $non = json_decode($val,true);
-              if ($non!=null){
+              if ( $non!=null ){
                 return $non;
               }
               return json_decode(utf8_decode($val), true);
