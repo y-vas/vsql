@@ -99,7 +99,6 @@ class DB {
         return $mysqli;
     }
 
-
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
       if ($debug) { $_ENV['VSQL_INSPECT'] = true; }

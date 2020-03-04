@@ -19,7 +19,7 @@ class VSQL extends DB {
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query($str, $vrs, $debug = false) {
     $this->query = $str;
-    $this->vars = $vrs;
+    $this->vars  = $vrs;
 
     $str = $this->compiler( $str, $vrs );
     $str = $this->modifier( $str, $vrs );
@@ -134,7 +134,7 @@ class VSQL extends DB {
             $res = empty($var) ? "'0000-00-00'": "'{$var}'";
             break;
         case 'email':
-            preg_match_all( '/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
+            preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
             $res = "'".$m[0][0]."'";
             break;
         case 'i':
@@ -234,22 +234,22 @@ class VSQL extends DB {
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
     public function _transform_get( $val, $datatype, $key ) {
         $dtypes = array(
-            1 => array('tinyint', 'int'),
-            2 => array('smallint', 'int'),
-            3 => array('int', 'int'),
-            4 => array('float', 'float'),
-            5 => array('double', 'double'),
-            7 => array('timestamp', 'string'),
-            8 => array('bigint', 'int'),
-            9 => array('mediumint', 'int'),
-            10 => array('date', 'string'),
-            11 => array('time', 'string'),
-            12 => array('datetime', 'string'),
-            13 => array('year', 'int'),
-            16 => array('bit', 'int'),
-            253 => array('varchar', 'string'),
-            254 => array('char', 'string'),
-            246 => array('decimal', 'float')
+            1   => ['tinyint', 'int'],
+            2   => ['smallint', 'int'],
+            3   => ['int', 'int'],
+            4   => ['float', 'float'],
+            5   => ['double', 'double'],
+            7   => ['timestamp', 'string'],
+            8   => ['bigint', 'int'],
+            9   => ['mediumint', 'int'],
+            10  => ['date', 'string'],
+            11  => ['time', 'string'],
+            12  => ['datetime', 'string'],
+            13  => ['year', 'int'],
+            16  => ['bit', 'int'],
+            253 => ['varchar', 'string'],
+            254 => ['char', 'string'],
+            246 => ['decimal', 'float']
         );
 
 
