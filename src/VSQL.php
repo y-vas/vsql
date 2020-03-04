@@ -30,6 +30,18 @@ class VSQL extends DB {
     return $this->vquery;
   }
 
+  public function run($list = false) {
+      $qtipe = strtolower(explode(' ',trim($this->vquery))[0]);
+
+      if ($qtipe == 'select') {
+        return $this->get($list);
+      }
+
+      $mysqli = $this->connect;
+      $mysqli->query( $this->vquery );
+      return $mysqli;
+  }
+
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
   protected function compiler($str,$vrs,$cache = false){
     preg_match_all('~(?:([^\s,=]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
@@ -121,6 +133,10 @@ class VSQL extends DB {
             settype($var, 'string');
             $res = empty($var) ? "'0000-00-00'": "'{$var}'";
             break;
+        case 'email':
+            preg_match_all( '/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
+            $res = "'".$m[0][0]."'";
+            break;
         case 'i':
             settype($var, 'int');
             $res = $var;
@@ -163,7 +179,7 @@ class VSQL extends DB {
     }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-    public function get( $list = false) {
+    public function get( $list = false ) {
         $mysqli = $this->connect;
         $obj = new \stdClass();
 

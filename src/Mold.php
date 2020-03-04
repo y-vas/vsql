@@ -66,7 +66,7 @@ class Mold extends DB {
       $name = ucfirst(strtolower($f));
 
       $l = "<label for='{$f}'>{$name}</label>";
-      $l.= "\n$e\t<input type='{$ht}' class='form-control' id='{$f}' value='{\$obj->{$f}}' placeholder='{$name}'>";
+      $l.= "\n$e\t<input type='{$ht}' class='form-control' name='{$f}' id='{$f}' value='{\$obj->{$f}}' placeholder='{$name}'>";
       $s .= "$e<div class='form-group'>\n$e\t{$l}\n$e</div>\n";
     }
 
@@ -191,7 +191,6 @@ class Mold extends DB {
 
     mkdir($dir , 0777);
 
-
     $f = fopen("{$dir}/{$sname}.tpl", "w");
     fwrite($f, $this->smarty($table));
     fclose($f);
@@ -204,7 +203,7 @@ class Mold extends DB {
     fwrite($f, $this->model($table));
     fclose($f);
 
-
+    die;
   }
 
 }

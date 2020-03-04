@@ -27,6 +27,10 @@ class DB {
             }
         }
 
+        if (!isset($_ENV['VSQL_UTF8'])) {
+          $_ENV['VSQL_UTF8'] = true;
+        }
+
         $this->error = false;
         $this->errno = false;
         $this->inspect = isset($_ENV['VSQL_INSPECT']) ? $_ENV['VSQL_INSPECT'] : null;
@@ -46,7 +50,7 @@ class DB {
 
     public function connect() {
       $this->connect = mysqli_connect(
-        $_ENV['DB_HOST'],
+        $_ENV[  'DB_HOST'  ],
         $_ENV['DB_USERNAME'],
         $_ENV['DB_PASSWORD'],
         $_ENV['DB_DATABASE']
@@ -56,13 +60,16 @@ class DB {
         $this->error('Unable to connect to the database!');
       }
 
-      $this->connect->query("
-        SET character_set_results = 'utf8',
-        character_set_client = 'utf8',
-        character_set_connection = 'utf8',
-        character_set_database = 'utf8',
-        character_set_server = 'utf8'
-      ");
+      if ($_ENV['VSQL_UTF8']) {
+        $this->connect->query("
+          SET
+          character_set_results    = 'utf8',
+          character_set_client     = 'utf8',
+          character_set_connection = 'utf8',
+          character_set_database   = 'utf8',
+          character_set_server     = 'utf8'
+        ");
+      }
 
       return $this->connect;
     }
@@ -129,59 +136,6 @@ class DB {
       }
 
       return null;
-    }
-
-//------------------------------------------------ <  makemodel > ------------------------------------------------------
-    public function model( $table ) {
-        if (isset($_ENV['VSQL_INSPECT'])){if ($_ENV['VSQL_INSPECT']){
-
-          $this->connect();
-          $result = $this->connect->query( "SHOW COLUMNS FROM {$table} FROM " . $_ENV['DB_DATABASE'] );
-
-          $tipe = array(
-            'tinyint' => ['i',0] ,
-            'smallint' => ['i',0] ,
-            'int' => ['i',0] ,
-            'float' => ['f',0] ,
-            'double' => ['f',0] ,
-            'timestamp' => ['i',0] ,
-            'bigint' => ['i',0] ,
-            'mediumint' => ['i',0] ,
-            'date' => ['s',"''"] ,
-            'time' => ['s',"''"] ,
-            'datetime' => ['s',"''"] ,
-            'year' => ['i',0] ,
-            'bit' => ['i',0] ,
-            'varchar' => ['s',"''"] ,
-            'char' => ['s',"''"] ,
-            'decimal' => ['f',0]
-          );
-
-          while($r = $result->fetch_assoc()) {
-            $tp = $tipe[explode(  '(',$r['Type']  )[0]][0];
-            $nn = $tipe[explode(  '(',$r['Type']  )[0]][1];
-
-            $n = ($c++ % 3 == 0) ? "\n" : '';
-
-            $select .= "$n`" . $r['Field'] .'`,' ;
-            $where .= "$n{ AND `" . $r['Field'] ."` =  $tp:". $r['Field'] ." }" ;
-            $insert .= "$n $tp:". $r['Field'] ." ? {$nn}; ," ;
-            $update .= "$n{ ". $r['Field'] ." = $tp:". $r['Field'] ." ,}" ;
-          }
-
-          $select = rtrim($select,',');
-          $insert = rtrim($insert,',');
-          $update = rtrim($update,',}');
-          $update .= '}';
-
-          $q = "\$v->query(\"SELECT {$select}\nFROM {$table} WHERE TRUE {$where} \n\", \$arr);\n\n";
-          $i = "\$v->query(\"INSERT INTO {$table} VALUES ({$insert}\n)\", \$arr);\n\n";
-          $u = "\$v->query(\"UPDATE {$table} SET {$update} \n\", \$arr);\n";
-
-          $this->error( $q.$i.$u );
-        }}
-
-        $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable model creation " );
     }
 
 //------------------------------------------------ <  _cache > ---------------------------------------------------------
