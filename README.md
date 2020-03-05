@@ -46,7 +46,7 @@ AND d.name = 'vsql'
 ````
 
 ````php
-$res = $v->get( true /* if true it will fetch all rows else only 1 */ );
+$res = $v->run( true /* if true it will fetch all rows else only 1 */ );
 //get returns a standart class object
 
 ````
@@ -118,12 +118,18 @@ AND d.id = i:pswd ? 0
 
 
 ### Classes
+- VSQL
+  - Query Compiler ```php $db->query('select * from dbtable',array()); ```
+  - Fetch Rows ```php $db->get( $list = false ); ```
+  - Execute ```php $db->run(); /* retuns mysql instance */```
+
 - DB
   - Connection ```php $db->connect(); ```
   - Model Maker ```php $db->model('dbtable'); ```
   - Cache ```php $db->chquery(); ``` **NOT USED**
 
-- VSQL
-  - Query Compiler ```php $db->query('select * from dbtable',array()); ```
-  - Fetch Rows ```php $db->get( $list = false ); ```
-  - Execute ```php $db->run(); /* retuns mysql instance */```
+- Mold (MVC)
+  - Modle ```php $mold->model($table); ```
+  - View ```php $mold->smarty($table); ```
+  - Controller ```php $mold->controller($table);```
+  - MVC ```php $mold->makeMold($table,$dir);```
