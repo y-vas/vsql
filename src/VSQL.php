@@ -17,9 +17,10 @@ class VSQL extends DB {
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-  public function query($str, $vrs, $debug = false) {
-    $this->query = $str;
-    $this->vars = $vrs;
+  public function query($str, $vrs, $strict = false , $debug = false) {
+    $this->query  = $str;
+    $this->vars   = $vrs;
+    $this->strict = $strict;
 
     $str = $this->compiler( $str, $vrs );
     $str = $this->modifier( $str, $vrs );
@@ -34,7 +35,7 @@ class VSQL extends DB {
       $qtipe = strtolower(explode(' ',trim($this->vquery))[0]);
 
       if ($qtipe == 'select') {
-        return $this->get($list);
+        return $this->get( $list );
       }
 
       $mysqli = $this->connect;
@@ -49,7 +50,7 @@ class VSQL extends DB {
     $ofst = 0;
     $co = '';
     foreach ($m[0] as $k => $full) {
-      $full = $full[0];
+      $full = $full[ 0 ];
       $n1 = trim($m[3][$k][0]);
       $n2 = trim($m[6][$k][0]);
       $var= strlen( $n1 ) == 0 ? $n2 : $n1;
@@ -78,12 +79,18 @@ class VSQL extends DB {
         $exist = array_key_exists( $var , $vrs );
 
         if ($exist && $r != ';' ) {
-          // here we make the substitution
-          $nv = $this->parser( $parser, $vrs[ $var ] );
-          if ( empty( $nv ) && ($a == '!') ) {
-            $this->error( "null value for $var" , VSQL_NULL_FIELD );
+          /* ---------------------------------------------------------------- */
+          // if the strict mode is enabled trows an error on any empty value
+          if ( empty( $vrs[ $var ] ) && $this->strict ) {
+            $this->error( $var , VSQL_NULL_FIELD );
           }
 
+          // here we make the substitution
+          $nv = $this->parser( $parser , $vrs[ $var ] );
+          if ( empty( $nv ) && ($a == '!') ) {
+            $this->error( $var , VSQL_NULL_FIELD );
+          }
+          /* ---------------------------------------------------------------- */
         } else if ($exist && $r == ';' ){
           $nv = '';
         } else if ( strlen( $qs ) > 0 ){
@@ -134,7 +141,7 @@ class VSQL extends DB {
             $res = empty($var) ? "'0000-00-00'": "'{$var}'";
             break;
         case 'email':
-            preg_match_all( '/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
+            preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
             $res = "'".$m[0][0]."'";
             break;
         case 'i':
@@ -164,146 +171,144 @@ class VSQL extends DB {
   }
 
 //-------------------------------------------- <  modifier > ------------------------------------------------------
-    private function modifier( $str , $vrs ) {
-        preg_match_all('!\s{1,}(?:as|AS|As|aS)\s{1,}([^,]*)\s{1,}(?:to|TO|tO|To)\s{1,}(\w+),*!', $str, $m );
+  private function modifier( $str , $vrs ) {
+      preg_match_all('!\s{1,}(?:as|AS|As|aS)\s{1,}([^,]*)\s{1,}(?:to|TO|tO|To)\s{1,}(\w+),*!', $str, $m );
 
-        foreach ($m[0] as $k => $full) {
-          $s = $m[1][$k][0];
-          $f = $m[2][$k][0];
-          $this->fetched[trim($s)] = [trim($f)];
-          $str = str_replace($full," AS {$s} , ");
-        }
-
-        return $str;
-
-    }
+      foreach ($m[0] as $k => $full) {
+        $s = $m[1][$k];
+        $f = $m[2][$k];
+        $this->fetched[trim($s)] = [trim($f)];
+        $str = str_replace($full," AS {$s} ",$str);
+      }
+      return $str;
+  }
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
-    public function get( $list = false ) {
-        $mysqli = $this->connect;
-        $obj = new \stdClass();
+  public function get( $list = false ) {
+      $mysqli = $this->connect;
+      $obj = new \stdClass();
 
-        $nr = 0;
-        if (mysqli_multi_query($mysqli, $this->vquery)) {
-            if ($list) {
-                do {
+      $nr = 0;
+      if (mysqli_multi_query($mysqli, $this->vquery)) {
+          if ($list) {
+              do {
 
-                  if($result = mysqli_store_result($mysqli)) {
+                if($result = mysqli_store_result($mysqli)) {
 
-                    while ($proceso = mysqli_fetch_assoc($result)) {
-                        $rt = $this->fetch($result, $proceso);
-                        $obj->$nr = $rt;
-                        $nr++;
-                    }
-
-                    mysqli_free_result($result);
+                  while ($proceso = mysqli_fetch_assoc($result)) {
+                      $rt = $this->fetch($result, $proceso);
+                      $obj->$nr = $rt;
+                      $nr++;
                   }
 
-                  if (!mysqli_more_results($mysqli)) { break; }
-                } while (mysqli_next_result($mysqli) && mysqli_more_results());
+                  mysqli_free_result($result);
+                }
 
-            } else {
-                $result = mysqli_store_result($mysqli);
-                $proceso = mysqli_fetch_assoc($result);
-                if($proceso == null){ $obj = null; }
-                else { $obj = $this->fetch($result, $proceso); }
-            };
+                if (!mysqli_more_results($mysqli)) { break; }
+              } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
-        } else {
-            $this->error("Fail on query get :" . mysqli_error($mysqli));
-        }
+          } else {
+              $result = mysqli_store_result($mysqli);
+              $proceso = mysqli_fetch_assoc($result);
+              if($proceso == null){ $obj = null; }
+              else { $obj = $this->fetch($result, $proceso); }
+          };
 
-        return $obj;
-    }
+      } else {
+          $this->error("Fail on query get :" . mysqli_error($mysqli));
+      }
+
+      return $obj;
+  }
 
 // ------------------------------------------------ <  fetch > ----------------------------------------------------
-    private function fetch( $result, $proceso ) {
-        $row = new \stdClass();
+  private function fetch( $result, $proceso ) {
+      $row = new \stdClass();
 
-        $count = 0;
-        foreach ($proceso as $key => $value) {
-            $direct = $result->fetch_field_direct($count++);
-            $ret = $this->_transform_get($value, $direct->type, $key);
-            $key = $ret[1];
-            $row->$key = $ret[0];
-        }
+      $count = 0;
+      foreach ($proceso as $key => $value) {
+          $direct = $result->fetch_field_direct($count++);
+          $ret = $this->_transform_get($value, $direct->type, $key);
+          $key = $ret[1];
+          $row->$key = $ret[0];
+      }
 
-        return $row;
-    }
+      return $row;
+  }
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
-    public function _transform_get( $val, $datatype, $key ) {
-        $dtypes = array(
-            1 => array('tinyint', 'int'),
-            2 => array('smallint', 'int'),
-            3 => array('int', 'int'),
-            4 => array('float', 'float'),
-            5 => array('double', 'double'),
-            7 => array('timestamp', 'string'),
-            8 => array('bigint', 'int'),
-            9 => array('mediumint', 'int'),
-            10 => array('date', 'string'),
-            11 => array('time', 'string'),
-            12 => array('datetime', 'string'),
-            13 => array('year', 'int'),
-            16 => array('bit', 'int'),
-            253 => array('varchar', 'string'),
-            254 => array('char', 'string'),
-            246 => array('decimal', 'float')
-        );
+  public function _transform_get( $val, $datatype, $key ) {
+      $dtypes = array(
+          1   => ['tinyint', 'int'],
+          2   => ['smallint', 'int'],
+          3   => ['int', 'int'],
+          4   => ['float', 'float'],
+          5   => ['double', 'double'],
+          7   => ['timestamp', 'string'],
+          8   => ['bigint', 'int'],
+          9   => ['mediumint', 'int'],
+          10  => ['date', 'string'],
+          11  => ['time', 'string'],
+          12  => ['datetime', 'string'],
+          13  => ['year', 'int'],
+          16  => ['bit', 'int'],
+          253 => ['varchar', 'string'],
+          254 => ['char', 'string'],
+          246 => ['decimal', 'float']
+      );
 
 
-        $dt_str = "string";
-        if (isset($dtypes[$datatype][1])) {
-            $dt_str = $dtypes[$datatype][1];
-        }
+      $dt_str = "string";
+      if (isset($dtypes[$datatype][1])) {
+          $dt_str = $dtypes[$datatype][1];
+      }
 
-        settype($val, $dt_str);
-        if ($dt_str) {
-            $val = utf8_decode(utf8_encode($val));
-        }
-        settype($val, $dt_str);
+      settype($val, $dt_str);
+      if ($dt_str) {
+          $val = utf8_decode(utf8_encode($val));
+      }
+      settype($val, $dt_str);
 
-        foreach ($this->fetched as $k => $value) {
-            if (trim($key) == trim($k)) {
-                foreach ($value as $t => $tr) {
-                  $val = $this->_transform($tr, $val);
-        }}}
+      foreach ($this->fetched as $k => $value) {
+          if (trim($key) == trim($k)) {
+              foreach ($value as $t => $tr) {
+                $val = $this->_transform($tr, $val);
+      }}}
 
-        return array($val, $key);
+      return array($val, $key);
     }
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
-    private function _transform( $transform, $val ) {
+  private function _transform( $transform, $val ) {
 
-        switch ($transform) {
-          case 'json':
-              $non = json_decode($val,true);
-              if ($non!=null){
-                return (object) $non;
-              }
-              return (object)json_decode(utf8_decode($val), true);
-
-          case 'array':
-              $non = json_decode($val,true);
-              if ( $non!=null ){
-                return $non;
-              }
-              return json_decode(utf8_decode($val), true);
-
-          case 'array-std':
-              $non = json_decode($val,true);
-              if ($non==null){
-                $non = json_decode(utf8_decode($val), true);
-              }
-              foreach ($non as $key => $value) {
-                $non[$key] = (object) $value;
-              }
+      switch ($transform) {
+        case 'json':
+            $non = json_decode($val,true);
+            if ($non != null){
               return $non;
-        }
+            }
+            return json_decode(utf8_decode($val), true);
 
-        return $val;
-    }
+        case 'array':
+            $non = json_decode($val,true);
+            if ( $non!=null ){
+              return $non;
+            }
+            return json_decode(utf8_decode($val), true);
+
+        case 'array-std':
+            $non = json_decode($val,true);
+            if ($non == null ){
+              $non = json_decode(utf8_decode($val), true);
+            }
+            foreach ($non as $key => $value) {
+              $non[$key] = (object) $value;
+            }
+            return $non;
+      }
+
+      return $val;
+  }
 
 
 }

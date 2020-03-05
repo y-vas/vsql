@@ -1,5 +1,5 @@
 
-<h1> Testing env </h1>
+<h1> Testing ENV </h1>
 
 <?php
 
@@ -16,8 +16,6 @@ use VSQL\VSQL\Cleaner;
 use VSQL\VSQL\Mold;
 
 $v = new Cleaner();
-
-echo "<pre>";
 $v->clean( getcwd() . "/test" );
 // $v = new Mold();
 // $v->makeMold('tba','test');
