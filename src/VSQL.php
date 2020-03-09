@@ -50,7 +50,7 @@ class VSQL extends DB {
     $ofst = 0;
     $co = '';
     foreach ($m[0] as $k => $full) {
-      $full = $full[ 0 ];
+      $full = $full[0];
       $n1 = trim($m[3][$k][0]);
       $n2 = trim($m[6][$k][0]);
       $var= strlen( $n1 ) == 0 ? $n2 : $n1;
@@ -263,9 +263,8 @@ class VSQL extends DB {
           $dt_str = $dtypes[$datatype][1];
       }
 
-      settype($val, $dt_str);
-      if ($dt_str) {
-          $val = utf8_decode(utf8_encode($val));
+      if ($dt_str && $_ENV['VSQL_UTF8']) {
+          $val = utf8_decode(utf8_encode( $val ));
       }
       settype($val, $dt_str);
 
@@ -280,6 +279,9 @@ class VSQL extends DB {
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
   private function _transform( $transform, $val ) {
+      if ($dt_str && $_ENV['VSQL_UTF8']) {
+          $val = utf8_decode( $val );
+      }
 
       switch ($transform) {
         case 'json':
@@ -287,19 +289,19 @@ class VSQL extends DB {
             if ($non != null){
               return $non;
             }
-            return json_decode(utf8_decode($val), true);
+            return json_decode($val, true);
 
         case 'array':
             $non = json_decode($val,true);
             if ( $non!=null ){
               return $non;
             }
-            return json_decode(utf8_decode($val), true);
+            return json_decode($val, true);
 
         case 'array-std':
             $non = json_decode($val,true);
             if ($non == null ){
-              $non = json_decode(utf8_decode($val), true);
+              $non = json_decode($val, true);
             }
             foreach ($non as $key => $value) {
               $non[$key] = (object) $value;

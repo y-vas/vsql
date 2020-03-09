@@ -27,10 +27,6 @@ class DB {
             }
         }
 
-        if (!isset($_ENV['VSQL_UTF8'])) {
-          $_ENV['VSQL_UTF8'] = true;
-        }
-
         $this->error = false;
         $this->errno = false;
         $this->inspect = isset($_ENV['VSQL_INSPECT']) ? $_ENV['VSQL_INSPECT'] : null;
