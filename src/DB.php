@@ -56,7 +56,7 @@ class DB {
         $this->error('Unable to connect to the database!');
       }
 
-      if ($_ENV['VSQL_UTF8']) {
+      if (isset($_ENV['VSQL_UTF8'])) {
         $this->connect->query("
           SET
           character_set_results    = 'utf8',
