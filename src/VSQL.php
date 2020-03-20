@@ -51,18 +51,19 @@ class VSQL extends DB {
     $co = '';
     foreach ($m[0] as $k => $full) {
       $full = $full[0];
-      $n1 = trim($m[3][$k][0]);
-      $n2 = trim($m[6][$k][0]);
+      $n1 = isset($m[ 3 ][$k][0]) ? trim($m[ 3 ][$k][0]) : null;
+      $n2 = isset($m[ 6 ][$k][0]) ? trim($m[ 6 ][$k][0]) : null;
       $var= strlen( $n1 ) == 0 ? $n2 : $n1;
 
-      $s = $m[ 8 ][$k][0];
-      $f = $m[ 9 ][$k][0];
-      $a = $m[ 5 ][$k][0];
-      $p = $m[ 0 ][$k][1];
+      $s = isset($m[ 8 ][$k][0]) ? $m[ 8 ][$k][0] : null;
+      $f = isset($m[ 9 ][$k][0]) ? $m[ 9 ][$k][0] : null;
+      $a = isset($m[ 5 ][$k][0]) ? $m[ 5 ][$k][0] : null;
+      $p = isset($m[ 0 ][$k][1]) ? $m[ 0 ][$k][1] : null;
 
-      $r =  trim($m[7][$k][0]);
-      $qs = trim($m[4][$k][0]);
-      $parser = $m[1][$k][0];
+      $r  = isset($m[ 7 ][$k][0]) ? trim($m[ 7 ][$k][0]) : null;
+      $qs = isset($m[ 4 ][$k][0]) ? trim($m[ 4 ][$k][0]) : null;
+
+      $parser = isset($m[ 1 ][$k][0]) ? $m[ 1 ][$k][0] : null;
 
       if($s == '{' ){
         $co .= $s;
@@ -263,7 +264,7 @@ class VSQL extends DB {
           $dt_str = $dtypes[$datatype][1];
       }
 
-      if ($dt_str && $_ENV['VSQL_UTF8']) {
+      if ($dt_str && isset($_ENV['VSQL_UTF8']) && $_ENV['VSQL_UTF8'] == true) {
           $val = utf8_decode(utf8_encode( $val ));
       }
       settype($val, $dt_str);
@@ -279,7 +280,7 @@ class VSQL extends DB {
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
   private function _transform( $transform, $val ) {
-      if ($dt_str && $_ENV['VSQL_UTF8']) {
+      if (isset($_ENV['VSQL_UTF8']) && $_ENV['VSQL_UTF8'] == true) {
           $val = utf8_decode( $val );
       }
 
