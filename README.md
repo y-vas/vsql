@@ -9,7 +9,6 @@ composer require vasyl/vsql
 
 ### Introduction
 
-
 ````php
 use VSQL\VSQL\VSQL;
 
@@ -54,6 +53,7 @@ $res = $v->run( true /* if true it will fetch all rows else only 1 */ );
 #### Query Syntax
 
 Our Table
+
 |id  |name    |surname    | pass | type   |
 |----|--------|-----------|------|--------|
 |1   |vas     |yv         | vsql | admin  |
@@ -110,7 +110,9 @@ AND d.id = i:pswd ? 0
 |   transformer  |variables                      |returns                        |
 |----------------|-------------------------------|-------------------------------|
 |       i        |    'string',0 ,'123.3', null  |    0,0 ,123,   0              |
+|      +i        |    'string',0 ,'123.3', null  |    0,0 ,123,   0              |
 |       f        |    'string',0 ,'123.3', null  |    0,0 ,123.3, 0              |
+|      +f        | -3, -1.3  ,0 ,'123.3' , null  |   3, 1.3 ,0 ,123.3, 0         |
 |       s        |    'string',0 ,'123.3', null  |    'string','0','123.3',''    |
 |       t        | '  string  ',0 ,'123.3', null |    'string','0','123.3',''    |
 | array/implode  |  ['string',0 ,'123.3', null]  |    'string,0,123.3,'          |
@@ -129,7 +131,4 @@ AND d.id = i:pswd ? 0
   - Cache ```php $db->chquery(); ``` **NOT USED**
 
 - Mold (MVC)
-  - Modle ```php $mold->model($table); ```
-  - View ```php $mold->smarty($table); ```
-  - Controller ```php $mold->controller($table);```
-  - MVC ```php $mold->makeMold($table,$dir);```
+  - MVC ```php $mold->makeMold($table,$dir_where);```
