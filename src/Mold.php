@@ -99,13 +99,17 @@ class Mold extends DB {
       $td    .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </th>";
 
       $l = "<label for='{$f}'>{$name}</label>";
+      $b = "<label for='{$f}'>{$name}</label>";
       $l.= "\n$e\t<input type='{$ht}' class='form-control' name='{$f}' id='{$f}' value='{\$obj->{$f}}' placeholder='{$name}'>";
+      $b.= "\n$e\t<input type='{$ht}' class='form-control' \n\t\tname='{$f}' id='{$f}' value='{{\$obj->{$f}}}' placeholder='{$name}'>";
       $s .= "$e<div class='form-group'>\n$e\t{$l}\n$e</div>\n";
+      $blade .= "$e<div class='form-group'>\n$e\t{$b}\n$e</div>\n";
     }
 
     $update .= "$e$n $id = $id $e$n WHERE $e$n $id = i:$id" ;
-    $where .=  "$n{ LIMIT i:limit { OFFSET i:offset } }" ;
+    $data['count'] = "$e\$v->query(\"SELECT COUNT(*) as count FROM {$table} WHERE TRUE {$where} \n$e\", \$arr, false \n$e);\n\n";
     $where .=  "$n{ ORDER BY :order }" ;
+    $where .=  "$n{ LIMIT i:limit { OFFSET i:offset } }" ;
 
     $q = "$e\$v->query(\"SELECT {$select}\n".$e."FROM {$table} WHERE TRUE {$where} \n$e\", \$arr, false \n$e);\n\n";
     $i = "$e\$v->query(\"INSERT INTO {$table} VALUES ({$insert})\"\n$e, \$arr, false \n$e);\n\n";
@@ -114,6 +118,8 @@ class Mold extends DB {
     $a = " {$array} ";
     $p = " {$parser} ";
     $r = "$e\$v->query(\"REPLACE {$table} SET {$update} \n$e\", \$arr, false \n$e);\n";
+
+    $data['blade'] = $blade;
 
     return [ $data, $q,$i,$u,$d,$p,$a,$r,$s,$search,$th,$td ];
   }
@@ -125,6 +131,10 @@ class Mold extends DB {
     $sel = "\n\tpublic static function sel( \$arr, \$all = false){\n";
     $sel .= "\t\t\$v = new VSQL(); \n" . $abs[1];
     $sel .= "\n\t\treturn \$v->get(\$all);\n\t}";
+
+    $num = "\n\tpublic static function num( \$arr ){\n";
+    $num .= "\t\t\$v = new VSQL(); \n" . $abs[0]['count'];
+    $num .= "\n\t\treturn \$v->get()->count;\n\t}";
 
     $add = "\n\tpublic static function add( \$arr ){\n";
     $add .= "\t\t\$v = new VSQL(); \n" . $abs[2];
@@ -148,8 +158,9 @@ class Mold extends DB {
     $par .= "\t\t\t\$data[\$k] = \$v;\n\t\t}";
     $par .= "\n\t\treturn \$data;\n\t}";
 
-    $inner = "\n\n". $sel ."\n\n". $add ."\n\n". $del ."\n\n". $upd ."\n\n". $rep;
-    $class = "<?php\nuse VSQL\VSQL\VSQL;\n\n";
+    $inner = "\n\n". $sel ."\n\n". $num ."\n\n". $add ."\n\n". $del ."\n\n". $upd ."\n\n". $rep;
+    $class = "<?php\nnamespace App\Http\Controllers\\{$classname};\n";
+    $class .= "\nuse VSQL\VSQL\VSQL;\n\n";
     $class .= "class Model{$classname} {{$inner}\n}";
 
     return $class;
@@ -157,7 +168,7 @@ class Mold extends DB {
 
   public function controller( $table ){
     $abs = $this->abstraction($table,"\t\t");
-    $id = $abs[0]['ff'];
+    $id = $abs[0]['id'];
 
     $classname = ucfirst(strtolower($table));
 
@@ -206,33 +217,36 @@ class Mold extends DB {
     $classname = ucfirst(strtolower($table));
 
     $all  = "\n\n\tpublic function index(){";
-    $all .= "\n\t\t\$search = array(\n$abs[5]\t\t\t'limit' => 10\n\t\t);\n";
-    $all .= "\n\t\t\$obj = Model{$classname}::sel(\$search,true);";
-    $all .= "\n\n\t\treturn view('{$classname}/index',
-      'objs' => \$obj \n\t\t); ";
+    $all .= "\n\t\t\$limit = 10;\n";
+    $all .= "\n\t\t\$page = ((\$_GET['page'] ?? 1) - 1) * \$limit;\n";
+    $all .= "\n\t\t\$search = [\n$abs[5]\t\t\t'limit'  => \$limit,\n\t\t\t'offset' => \$page\n\t\t];\n";
+    $all .= "\n\n\t\treturn view('{$classname}/index',[
+      'objs'=> Model{$classname}::sel(\$search, true ),
+      'max' => ceil( Model{$classname}::num(\$search ) / \$limit )
+    ]); ";
     $all .= "\n\t}\n";
 
     $mod = "\n\tpublic function compose(){\n";
-    $mod .= "\n\t\t\$what = array(\n$abs[6]\t\t);\n";
+    $mod .= "\n\t\t\$what = [\n$abs[6]\t\t];\n";
     $mod .= "\n\t\tModel{$classname}::rep(\$what);\n\t}\n";
 
     $del = "\n\tpublic function del(\$id){\n";
     $del .= "\t\tModel{$classname}::del(\$id); \n";
     $del .= "\n\t}\n";
 
-    $shw  = "\n\n\tpublic function show(\$id){";
-    $shw .= "\n\t\t\$obj = Model{$classname}::sel(array('$id'=>\$id));";
+    $shw  = "\n\n\tpublic function show(){";
+    $shw .= "\n\t\t\$obj = Model{$classname}::sel(['$id'=>request()->route('id')]);";
     $shw .= "\n\n\t\tif (!isset(\$obj->$id)){
       return;
     }";
-    $shw .= "\n\n\t\treturn view('{$classname}/index',
-      'obj' => \$obj \n\t\t); ";
+    $shw .= "\n\n\t\treturn view('{$classname}/show',[
+      'obj' => \$obj \n\t\t]); ";
     $shw .= "\n\t}\n";
 
     $inner = $all . $shw. $mod . $del;
     $class = "<?php\nnamespace App\Http\Controllers\\{$classname};\n\n";
-    $class .= "use $classname;\n\n";
-    $class .= "class Ctrl{$classname} extends Controller {{$inner}\n}";
+    $class .= "use App\Http\Controllers\\{$classname}\\Model{$classname};\n\n";
+    $class .= "class Controller extends \App\Http\Controllers\Core {{$inner}\n}";
 
     return $class;
   }
@@ -240,7 +254,7 @@ class Mold extends DB {
 
   public function smarty( $table ){
     $abs = $this->abstraction($table,"\t");
-    $id = $abs[0]['ff'];
+    $id = $abs[0]['id'];
 
     $classname = ucfirst(strtolower($table));
 
@@ -254,7 +268,7 @@ class Mold extends DB {
 
   public function blade_list( $table ){
     $abs = $this->abstraction($table,"\t");
-    $id = $abs[0]['ff'];
+    $id = $abs[0]['id'];
 
     $search = $abs[ 9];
     $th     = $abs[10];
@@ -267,10 +281,13 @@ class Mold extends DB {
     $tbody = "\t<tbody>\n\t\t\t@foreach (\$objs as \$obj)\n\t\t\t<tr>{$td}\n\t\t</tr>\n\t\t@endforeach\n\t</tbody>";
     $table = "<table class='table'>\n\t{$thead}\n\t{$tbody}\n</table>";
 
+    $pagination = "\n\n@component('components.page',[ 'max' => \$max ])\n/urls\n";
+    $pagination.= "@endcomponent";
+
     $blade = "@extends('base')\n\n";
     $blade.= "@section('search'){$search}\n\t<button class='btn btn-sm btn-info' type='submit' >Search</button>\n@endsection\n\n";
     $blade.= "@section('main-buttons'){$buttons}@endsection\n\n";
-    $blade.= "@section('container')\n{$table}\n@endsection\n";
+    $blade.= "@section('container')\n{$table}{$pagination}\n\n@endsection\n";
 
     return $blade;
   }
@@ -288,7 +305,7 @@ class Mold extends DB {
     $blade ="@extends('base')\n\n";
     $blade.= "@section('main-buttons'){$buttons}@endsection\n\n";
 
-    $inner = $abs[8];
+    $inner = $abs[0]['blade'];
     $inner.= "\n\t<input type='submit' class='btn btn-primary' value='Save'>";
     $inner.= "\n\t<a href='.../del/{{\$obj->id}}' class='btn btn-primary'> Delete </a>";
     $class = "<form action='.../compose/{{ \$obj->$id ?? 0 }}' method='post'>\n{$inner}\n</form>";

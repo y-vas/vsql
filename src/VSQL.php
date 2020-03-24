@@ -45,7 +45,7 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
   protected function compiler($str,$vrs,$cache = false){
-    preg_match_all('~(?:([^\s,=]*)\s*(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+    preg_match_all('~(?:([^\s,=%]*)(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|(!*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0;
     $co = '';
@@ -79,7 +79,7 @@ class VSQL extends DB {
         $ad = ':';
         $exist = array_key_exists( $var , $vrs );
 
-        if ($exist && $r != ';' ) {
+        if ($exist && $r != ';') {
           /* ---------------------------------------------------------------- */
           // if the strict mode is enabled trows an error on any empty value
           if ( empty( $vrs[ $var ] ) && $this->strict ) {
@@ -88,6 +88,11 @@ class VSQL extends DB {
 
           // here we make the substitution
           $nv = $this->parser( $parser , $vrs[ $var ] );
+
+          if ($nv == null){
+            $ad = "!";
+          }
+
           if ( empty( $nv ) && ($a == '!') ) {
             $this->error( $var , VSQL_NULL_FIELD );
           }
@@ -104,9 +109,9 @@ class VSQL extends DB {
         }
 
         $co .= $ad;
-        $sub = " {$nv} ";
+        $sub = $nv;
         $str = substr_replace($str, $sub , $ofst + $p , strlen($full) );
-        $ofst += strlen($sub) - strlen($full);
+        $ofst += strlen( $sub ) - strlen( $full );
       }
 
       if($f == '}'){
@@ -127,6 +132,7 @@ class VSQL extends DB {
         $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
       }
     }
+    // echo $co;
 
     return $str;
   }
@@ -149,9 +155,17 @@ class VSQL extends DB {
             settype($var, 'int');
             $res = $var;
             break;
+        case '+i':
+            settype($var, 'int');
+            $res = abs($var);
+            break;
         case 'f':
             settype($var, 'float');
             $res = $var;
+            break;
+        case '+f':
+            settype($var, 'float');
+            $res = abs($var);
             break;
         case 'implode':
         case 'array':
@@ -164,7 +178,8 @@ class VSQL extends DB {
             $res = "'" . trim(strval($res)) . "'";
             break;
         case 's':
-            $res = "'". strval($res) . "'";
+            $v = strval($res);
+            $res = (strlen($v) > 1) ? "'". $v . "'": null;
             break;
     }
 
@@ -298,6 +313,9 @@ class VSQL extends DB {
               return $non;
             }
             return json_decode($val, true);
+
+        case 'explode':
+            return explode(',',$val);
 
         case 'array-std':
             $non = json_decode($val,true);
