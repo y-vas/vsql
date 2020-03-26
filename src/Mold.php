@@ -127,6 +127,7 @@ class Mold extends DB {
   public function model( $table /*, $type = 'static'*/){
     $abs = $this->abstraction($table,"\t\t");
     $classname = ucfirst(strtolower($table));
+    $id = $abs[0]['id'];
 
     $sel = "\n\tpublic static function sel( \$arr, \$all = false){\n";
     $sel .= "\t\t\$v = new VSQL(); \n" . $abs[1];
@@ -148,9 +149,16 @@ class Mold extends DB {
     $del .= "\t\t\$v = new VSQL(); \n" . $abs[4];
     $del .= "\n\t\treturn \$v->run();\n\t}";
 
-    $rep = "\n\tpublic static function rep( \$arr ){\n";
-    $rep .= "\t\t\$v = new VSQL(); \n" . $abs[7];
-    $rep .= "\n\t\treturn \$v->run();\n\t}";
+    $rep = "\n\tpublic static function rep( \$arr ){";
+    $rep.= "\n\t\t\$id = isset(\$arr['$id']) : \$arr['$id'] : null;"
+    $rep.= "\n\t\tif (\$id != null){
+      Model{$classname}::upd(\$arr);
+    }else{
+      \$id = Model{$classname}::add(\$arr);
+    }
+
+    return \$id;
+    ";
 
     $par = "\n\tpublic static function parse( \$arr ){\n";
     $par .= "\n\t\tforeach([".$abs[6]."] as \$k ) {";
