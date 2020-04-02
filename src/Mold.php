@@ -150,14 +150,15 @@ class Mold extends DB {
     $del .= "\n\t\treturn \$v->run();\n\t}";
 
     $rep = "\n\tpublic static function rep( \$arr ){";
-    $rep.= "\n\t\t\$id = isset(\$arr['$id']) : \$arr['$id'] : null;"
+    $rep.= "\n\t\t\$id = isset(\$arr['$id']) ? \$arr['$id'] : null;";
     $rep.= "\n\t\tif (\$id != null){
-      Model{$classname}::upd(\$arr);
+      self::upd(\$arr);
     }else{
-      \$id = Model{$classname}::add(\$arr);
+      \$id = self::add(\$arr);
     }
 
     return \$id;
+    }
     ";
 
     $par = "\n\tpublic static function parse( \$arr ){\n";
@@ -282,7 +283,7 @@ class Mold extends DB {
     $th     = $abs[10];
     $td     = $abs[11];
 
-    $buttons = "\n<button class='btn btn-sm btn-warning' type='button' name='button'>Add</button>";
+    $buttons = "\n<a href='#' class='btn btn-sm btn-warning'> Add </a>";
     $buttons.= "\n";
 
     $thead = "<thead class='table-active'>\n\t\t\t<tr>{$th}\n\t\t</tr>\n\t</thead>";
