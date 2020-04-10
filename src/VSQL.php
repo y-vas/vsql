@@ -1,7 +1,7 @@
 <?php
 
 namespace VSQL\VSQL;
-require(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
@@ -40,6 +40,7 @@ class VSQL extends DB {
 
       $mysqli = $this->connect;
       $mysqli->query( $this->vquery );
+      // printf("Errormessage: %s\n", $mysqli->error);
       return $mysqli;
   }
 
@@ -89,7 +90,7 @@ class VSQL extends DB {
           // here we make the substitution
           $nv = $this->parser( $parser , $vrs[ $var ] );
 
-          if ($nv == null){
+          if ($nv === null){
             $ad = "!";
 
             if (strlen( $qs ) > 0){
@@ -148,44 +149,76 @@ class VSQL extends DB {
 
     //---------------------- cases ----------------------
     switch ($parser) {
-        case 'd':
-            settype($var, 'string');
-            $res = empty($var) ? "'0000-00-00'": "'{$var}'";
+      case 'd':
+          settype($var, 'string');
+          $res = empty($var) ? "'1970-01-01'": "'{$var}'";
+          break;
+      case 'email':
+          preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
+          $res = "'".$m[0][0]."'";
+          break;
+      case 'i':
+          if ($var === null){
+            $res = null;
             break;
-        case 'email':
-            preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
-            $res = "'".$m[0][0]."'";
+          }
+          settype($var, 'int');
+          $res = $var;
+          break;
+      case '+i':
+          if ($var === null){
+            $res = null;
             break;
-        case 'i':
-            settype($var, 'int');
-            $res = $var;
+          }
+          settype($var, 'int');
+          $res = abs($var);
+          break;
+      case 'f':
+          if ($var === null){
+            $res = null;
             break;
-        case '+i':
-            settype($var, 'int');
-            $res = abs($var);
+          }
+          settype($var, 'float');
+          $res = $var;
+          break;
+      case '+f':
+          if ($var === null){
+            $res = null;
             break;
-        case 'f':
-            settype($var, 'float');
-            $res = $var;
-            break;
-        case '+f':
-            settype($var, 'float');
-            $res = abs($var);
-            break;
-        case 'implode':
-        case 'array':
-            $res = "'" . implode(',', $res ) . "'";
-            break;
-        case 'json':
-            $res = "'" . json_encode($res, JSON_UNESCAPED_UNICODE ) . "'";
-            break;
-        case 't':
-            $res = "'" . trim(strval($res)) . "'";
-            break;
-        case 's':
-            $v = strval($res);
-            $res = (strlen($v) > 1) ? "'". $v . "'": null;
-            break;
+          }
+          settype($var, 'float');
+          $res = abs($var);
+          break;
+      case 'implode':
+      case 'array':
+          $res = "'" . implode(',', $res ) . "'";
+          break;
+      case 'json':
+          $res = "'" . json_encode($res, JSON_UNESCAPED_UNICODE ) . "'";
+          break;
+      case 't':
+          $res = "'" . trim(strval($res)) . "'";
+          break;
+      case 's':
+          $v = strval($res);
+          $res = (strlen($v) > 1) ? "'". $v . "'": null;
+          break;
+      case 'image':
+          if (is_array($res)){
+            self::upload(
+              $res[0],
+              $res[1] ?? $_ENV['VSQL_CACHE'],
+              $res[3] ?? ['jpg','png','jpeg']
+            );
+          }else{
+            self::upload($res);
+          }
+
+          break;
+      default:
+          $v = strval($res);
+          $res = (strlen($v) > 1) ? $v : null;
+          break;
     }
 
     return $res;
@@ -211,21 +244,34 @@ class VSQL extends DB {
 
       $nr = 0;
       if (mysqli_multi_query($mysqli, $this->vquery)) {
-          if ($list) {
-              do {
 
-                if($result = mysqli_store_result($mysqli)) {
-
+          if ($list === 'output-csv') {
+              //---------------------------------------
+              $fp = fopen('php://output', 'wb');
+              do { if($result = mysqli_store_result($mysqli)) {
                   while ($proceso = mysqli_fetch_assoc($result)) {
-                      $rt = $this->fetch($result, $proceso);
-                      $obj->$nr = $rt;
+                      fputcsv($fp, (array) $this->fetch($result, $proceso));
+                  }
+                  mysqli_free_result($result);
+              }
+
+              if (!mysqli_more_results($mysqli)) { break; }
+              } while (mysqli_next_result($mysqli) && mysqli_more_results());
+
+              fclose($fp);
+
+              return $fp;
+          } elseif ($list === true) {
+              //---------------------------------------
+              do { if($result = mysqli_store_result($mysqli)) {
+                  while ($proceso = mysqli_fetch_assoc($result)) {
+                      $obj->$nr = $this->fetch($result, $proceso);
                       $nr++;
                   }
-
                   mysqli_free_result($result);
                 }
 
-                if (!mysqli_more_results($mysqli)) { break; }
+              if (!mysqli_more_results($mysqli)) { break; }
               } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
           } else {
@@ -241,6 +287,7 @@ class VSQL extends DB {
 
       return $obj;
   }
+
 
 // ------------------------------------------------ <  fetch > ----------------------------------------------------
   private function fetch( $result, $proceso ) {
@@ -310,8 +357,13 @@ class VSQL extends DB {
             if ($non != null){
               return $non;
             }
-            return json_decode($val, true);
 
+            $non = json_decode(utf8_encode($val),true);
+            if ($non != null){
+              return $non;
+            }
+
+            return json_decode($val, true);
         case 'array':
             $non = json_decode($val,true);
             if ( $non!=null ){
@@ -331,10 +383,38 @@ class VSQL extends DB {
               $non[$key] = (object) $value;
             }
             return $non;
+        default:
+          break;
       }
 
       return $val;
   }
+
+  public static function upload( $target, $dir , $types ){
+		$ok = 1;
+
+		$name = str_replace(' ', '_', strtolower( strval(time()) . '_' . basename($_FILES[ $target ]["name"])));
+		$store = $dir . $name;
+		$dirn = dirname($store);
+
+		if (!is_dir($dirn)) {
+			mkdir($dirn, 0755 , true );
+		}
+
+		if ($_FILES[ $target ]["size"] > 5000000) {
+			return null;
+		}
+
+		if(!in_array(strtolower(pathinfo( $store ,PATHINFO_EXTENSION)) ,$types)) {
+			return null;
+		}
+
+    if (move_uploaded_file($_FILES[ $target ]["tmp_name"], $store )) {
+        return $name;
+    }
+
+    $this->error("Fail on loading image :" . mysqli_error($mysqli));
+	}
 
 
 }

@@ -39,13 +39,20 @@ class Mold extends DB {
   public function abstraction( $table ,$e = "\t"){
     $id = 'none';
     $lenght = 0;
-    $data = [];
+    $data = [
+      'order' => 'ORDER_COLUMN',
+      'clone' => ''
+    ];
 
     $res = $this->connect->query( "SHOW COLUMNS FROM {$table} FROM " . $_ENV['DB_DATABASE'] );
     while($r = $res->fetch_assoc()) {
       if ( $r['Extra'] == 'auto_increment' && $r['Type'] ){
         $id = $r['Field'];
         $data['id'] = $id;
+      }
+
+      if ( strpos(strtolower($r['Field']),'ord') !== false && $r['Type'] == 'int'){
+        $data['order'] = $r['Field'];
       }
 
       $lenght = (strlen($r['Field']) > $lenght) ? strlen($r['Field']) : $lenght;
@@ -65,7 +72,6 @@ class Mold extends DB {
     $search = '';
     $th     = '';
     $td     = '';
-
 
     while($r = $res->fetch_assoc()) {
       var_dump($r);
@@ -92,6 +98,7 @@ class Mold extends DB {
 
       $parser.= $e ."\t'{$f}' $ofs=> \$_GET['{$f}'] $ofs ?? null ,\n";
       $array.= $e ."\t'{$f}' $ofs=> \$_POST['{$f}'] $ofs ?? null ,\n";
+      $data['clone'] .= $e ."\t'{$f}' $ofs=> \$obj->{$f} $ofs ,\n";
 
       $name = ucfirst(strtolower($f));
       $search.= "\n\t<input class='form-control-sm' type='{$ht}' name='{$f}' {$ofs} placeholder='{$name}'>";
@@ -108,7 +115,8 @@ class Mold extends DB {
 
     $update .= "$e$n $id = $id $e$n WHERE $e$n $id = i:$id" ;
     $data['count'] = "$e\$v->query(\"SELECT COUNT(*) as count FROM {$table} WHERE TRUE {$where} \n$e\", \$arr, false \n$e);\n\n";
-    $where .=  "$n{ ORDER BY :order }" ;
+    $where .=  "$n{ AND `$id` != i:n$id               }" ;
+    $where .=  "$n{ ORDER BY      :order              }" ;
     $where .=  "$n{ LIMIT i:limit { OFFSET i:offset } }" ;
 
     $q = "$e\$v->query(\"SELECT {$select}\n".$e."FROM {$table} WHERE TRUE {$where} \n$e\", \$arr, false \n$e);\n\n";
@@ -128,6 +136,7 @@ class Mold extends DB {
     $abs = $this->abstraction($table,"\t\t");
     $classname = ucfirst(strtolower($table));
     $id = $abs[0]['id'];
+    $ord = $abs[0]['order'];
 
     $sel = "\n\tpublic static function sel( \$arr, \$all = false){\n";
     $sel .= "\t\t\$v = new VSQL(); \n" . $abs[1];
@@ -136,6 +145,12 @@ class Mold extends DB {
     $num = "\n\tpublic static function num( \$arr ){\n";
     $num .= "\t\t\$v = new VSQL(); \n" . $abs[0]['count'];
     $num .= "\n\t\treturn \$v->get()->count;\n\t}";
+
+    $clone = "\n\tpublic static function clone( \$arr ){\n";
+    $clone .= "\t\t\$obj = self::sel([ '$id' => \$arr['$id'] ]);\n";
+    $clone .= "\n\t\t\$id = self::add([\n".$abs[0]['clone']."\t\t]); \n";
+    $clone .= "\n\t\t\$obj->$id = \$id; \n";
+    $clone .= "\n\t\treturn \$obj;\n\t}";
 
     $add = "\n\tpublic static function add( \$arr ){\n";
     $add .= "\t\t\$v = new VSQL(); \n" . $abs[2];
@@ -150,7 +165,7 @@ class Mold extends DB {
     $del .= "\n\t\treturn \$v->run();\n\t}";
 
     $rep = "\n\tpublic static function rep( \$arr ){";
-    $rep.= "\n\t\t\$id = isset(\$arr['$id']) ? \$arr['$id'] : null;";
+    $rep.= "\n\t\t\$id = !empty(\$arr['$id']) ? \$arr['$id'] : null;";
     $rep.= "\n\t\tif (\$id != null){
       self::upd(\$arr);
     }else{
@@ -158,8 +173,28 @@ class Mold extends DB {
     }
 
     return \$id;
-    }
+  }
     ";
+
+    $sort = "\n\tpublic static function sort(\$id, \$put){";
+    $sort.= "\n\t\t\$elem = self::sel(['$id' => \$id ]);";
+    $sort.= "\n\t\t\$pos = \$elem->$ord;
+    \$zon = \$elem->zone;
+
+    if (\$id == null) return;
+    \$sorts = self::sel([
+			'zone' => \$zon,
+			'order' => '$ord',
+			'n$id' => \$id
+		], true );
+
+    foreach (\$sorts as \$k => \$v) {
+      if (\$k >= \$put) \$k++;
+			self::upd(['$id'=>\$v->$id,'$ord'=>\$k]);
+		}
+
+    self::upd(['$id'=> \$id,'$ord'=> \$put ]);
+  }";
 
     $par = "\n\tpublic static function parse( \$arr ){\n";
     $par .= "\n\t\tforeach([".$abs[6]."] as \$k ) {";
@@ -167,7 +202,7 @@ class Mold extends DB {
     $par .= "\t\t\t\$data[\$k] = \$v;\n\t\t}";
     $par .= "\n\t\treturn \$data;\n\t}";
 
-    $inner = "\n\n". $sel ."\n\n". $num ."\n\n". $add ."\n\n". $del ."\n\n". $upd ."\n\n". $rep;
+    $inner = implode([ $sel, $num, $add, $del, $upd, $rep, $sort,$clone],"\n\n");
     $class = "<?php\nnamespace App\Http\Controllers\\{$classname};\n";
     $class .= "\nuse VSQL\VSQL\VSQL;\n\n";
     $class .= "class Model{$classname} {{$inner}\n}";
@@ -225,6 +260,19 @@ class Mold extends DB {
 
     $classname = ucfirst(strtolower($table));
 
+    $sort  = "\n\n\tpublic function sort(){";
+    $sort .= "\n\t\t\$id = request()->route('id');";
+    $sort .= "
+    if (!isset(\$_GET['pos'])){
+      die(json_encode([  'success'=> false ]));
+    }
+
+    Model{$classname}::sort( \$id , \$_GET['pos'] );
+
+    die(json_encode([
+			'success' => true,
+		]));\n\t}\n";
+
     $all  = "\n\n\tpublic function index(){";
     $all .= "\n\t\t\$limit = 10;\n";
     $all .= "\n\t\t\$page = ((\$_GET['page'] ?? 1) - 1) * \$limit;\n";
@@ -237,10 +285,10 @@ class Mold extends DB {
 
     $mod = "\n\tpublic function compose(){\n";
     $mod .= "\n\t\t\$what = [\n$abs[6]\t\t];\n";
-    $mod .= "\n\t\tModel{$classname}::rep(\$what);\n\t}\n";
+    $mod .= "\n\t\t\$id = Model{$classname}::rep(\$what);\n\t}\n";
 
-    $del = "\n\tpublic function del(\$id){\n";
-    $del .= "\t\tModel{$classname}::del(\$id); \n";
+    $del = "\n\tpublic function del(){\n";
+    $del .= "\t\tModel{$classname}::del(request()->route('id')); \n";
     $del .= "\n\t}\n";
 
     $shw  = "\n\n\tpublic function show(){";
@@ -252,7 +300,7 @@ class Mold extends DB {
       'obj' => \$obj \n\t\t]); ";
     $shw .= "\n\t}\n";
 
-    $inner = $all . $shw. $mod . $del;
+    $inner = $all . $shw. $mod . $sort .$del;
     $class = "<?php\nnamespace App\Http\Controllers\\{$classname};\n\n";
     $class .= "use App\Http\Controllers\\{$classname}\\Model{$classname};\n\n";
     $class .= "class Controller extends \App\Http\Controllers\Core {{$inner}\n}";
@@ -344,10 +392,10 @@ class Mold extends DB {
     } catch (\Exception $e) { }
 
     $files = array(
-      ['name'=> "/{$sname}.tpl"         , 'func'=>'smarty'],
+      // ['name'=> "/{$sname}.tpl"         , 'func'=>'smarty'],
       ['name'=> "/index.blade.php"      , 'func'=>'blade_list'],
       ['name'=> "/show.blade.php"       , 'func'=>'blade_show'],
-      ['name'=> "/{$classname}.php"     , 'func'=>'controller'],
+      // ['name'=> "/Ctrl{$classname}.php"     , 'func'=>'controller'],
       ['name'=> "/Controller.php"       , 'func'=>'laravel_controller'],
       ['name'=> "/Model{$classname}.php", 'func'=>'model'],
     );
