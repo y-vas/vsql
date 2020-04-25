@@ -1,7 +1,7 @@
 <?php
 
 namespace VSQL\VSQL;
-require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
+use VSQL\VSQL\DB;
 
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
@@ -45,13 +45,14 @@ class VSQL extends DB {
   }
 
 //------------------------------------------------ <  compiler > ----------------------------------------------------------
-  protected function compiler($str,$vrs,$cache = false){
-    preg_match_all('~(?:([^\s,=%]*)(:)\s*(\w+)\s*(?(?=\?)\?([^;]*);|([!;]*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}}))~', $str, $m , PREG_OFFSET_CAPTURE );
+  protected function compiler($str, $vrs, $cache = false ){
+    preg_match_all('~(?:([^\s,=%]*)(:)(\w+)\s*(?(?=\?)\?([^;]*);|([!;]*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}})|(default\s{0,1}:))~', $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0;
     $co = '';
+    $switches = [];
     foreach ($m[0] as $k => $full) {
-      $full = $full[0];
+      $full = $full[ 0 ];
       $n1 = isset($m[ 3 ][$k][0]) ? trim($m[ 3 ][$k][0]) : null;
       $n2 = isset($m[ 6 ][$k][0]) ? trim($m[ 6 ][$k][0]) : null;
       $var= strlen( $n1 ) == 0 ? $n2 : $n1;
@@ -65,10 +66,15 @@ class VSQL extends DB {
       $qs = isset($m[ 4 ][$k][0]) ? trim($m[ 4 ][$k][0]) : null;
 
       $parser = isset($m[ 1 ][$k][0]) ? $m[ 1 ][$k][0] : null;
+      $default = isset($m[ 10][$k][0]) ? $m[ 10][$k][0] : null;
 
       if($s == '{' ){
         $co .= $s;
         $m[0][$k][2] = $p + $ofst;
+      }
+
+      if(!empty($default)){
+        $co .= '~';
       }
 
       if($s == '\{' || $f == '\}'){
@@ -107,7 +113,7 @@ class VSQL extends DB {
         } else if ( strlen( $qs ) > 0 ){
           $nv = $qs;
         } else if ( $cache ) {
-          $nv = 'test';
+          $nv = ' --test-- ';
         } else {
           $nv = '';
           $ad = "!";
@@ -125,8 +131,20 @@ class VSQL extends DB {
         $pr = substr(  $co, $cp, strlen( $co ) );
         $pb = $m[ 0 ][ intval( $cp ) ][ 2 ];
 
-        if (strpos($pr, ':') === false) {
-          $e = $p + $ofst - $pb + 1;
+        $e = $p + $ofst - $pb + 1;
+        if (strpos($pr, '~') !== false && strpos($pr, ':') !== false) {
+          $grp = substr(  $str , $pb + 1 , $e - 2 );
+          $exp = explode('default:', $grp );
+          $nst = str_repeat(' ',strlen($exp[1]) + 10) . $exp[0];
+          $str = substr_replace(  $str, $nst, $pb , $e );
+
+        } else if (strpos($pr, '~') !== false && strpos($pr, ':') === false) {
+          $grp = substr(  $str , $pb + 1 , $e - 2 );
+          $exp = explode('default:', $grp );
+          $nst = str_repeat(' ',strlen($exp[0]) + 10) . $exp[1];
+
+          $str = substr_replace(  $str, $nst, $pb , $e );
+        } else if (strpos($pr, ':') === false) {
           $str = substr_replace(  $str, str_repeat(' ', $e ), $pb , $e );
         } else {
           $str = substr_replace(  $str, ' ' , $pb ,        1 );
@@ -134,17 +152,17 @@ class VSQL extends DB {
         }
 
         $co = substr_replace($co, '(' , $cp , 1 );
-        $co = substr_replace($co, ')' , strlen($co)-1 , 1 );
+        $co = substr_replace($co, ')' , strlen( $co )-1 , 1 );
       }
     }
-    // echo $co;
+    echo $co;
 
     return $str;
   }
 
 //------------------------------------------------ <  parser > ----------------------------------------------------------
   public function parser( $parser , $var ){
-    $res =  $this->secure( $var );
+    $res = $this->secure( $var );
 
     //---------------------- cases ----------------------
     switch ($parser) {
@@ -202,18 +220,18 @@ class VSQL extends DB {
           $v = strval($res);
           $res = (strlen($v) > 1) ? "'". $v . "'": null;
           break;
-      case 'image':
-          if (is_array($res)){
-            self::upload(
-              $res[0],
-              $res[1] ?? $_ENV['VSQL_CACHE'],
-              $res[3] ?? ['jpg','png','jpeg']
-            );
-          }else{
-            self::upload($res);
-          }
-
-          break;
+      // case 'image':
+      //     if (is_array($res)){
+      //       self::upload(
+      //         $res[0],
+      //         $res[1] ?? $_ENV['VSQL_CACHE'],
+      //         $res[3] ?? ['jpg','png','jpeg']
+      //       );
+      //     }else{
+      //       self::upload($res);
+      //     }
+      //
+      //     break;
       default:
           $v = strval($res);
           $res = (strlen($v) > 1) ? $v : null;
@@ -225,7 +243,7 @@ class VSQL extends DB {
 
 //-------------------------------------------- <  modifier > ------------------------------------------------------
   private function modifier( $str , $vrs ) {
-      preg_match_all('!\s{1,}(?:as|AS|As|aS)\s{1,}([^,]*)\s{1,}(?:to|TO|tO|To)\s{1,}(\w+),*!', $str, $m );
+      preg_match_all('!\s{1,}(?:as|AS)\s{1,}([^,]*)\s{1,}(?:to|TO)\s{1,}(\w+),*!', $str, $m );
 
       foreach ($m[0] as $k => $full) {
         $s = $m[1][$k];
@@ -245,7 +263,8 @@ class VSQL extends DB {
       if (mysqli_multi_query($mysqli, $this->vquery)) {
 
           if ($list === 'output-csv') {
-              //---------------------------------------
+
+              //----------------------------------------------------------------
               $fp = fopen('php://output', 'wb');
               do { if($result = mysqli_store_result($mysqli)) {
                   while ($proceso = mysqli_fetch_assoc($result)) {
@@ -253,7 +272,6 @@ class VSQL extends DB {
                   }
                   mysqli_free_result($result);
               }
-
               if (!mysqli_more_results($mysqli)) { break; }
               } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
@@ -261,7 +279,8 @@ class VSQL extends DB {
 
               return $fp;
           } elseif ($list === true) {
-              //---------------------------------------
+
+              //----------------------------------------------------------------
               do { if($result = mysqli_store_result($mysqli)) {
                   while ($proceso = mysqli_fetch_assoc($result)) {
                       $obj->$nr = $this->fetch($result, $proceso);
@@ -269,7 +288,6 @@ class VSQL extends DB {
                   }
                   mysqli_free_result($result);
                 }
-
               if (!mysqli_more_results($mysqli)) { break; }
               } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
@@ -388,32 +406,5 @@ class VSQL extends DB {
 
       return $val;
   }
-
-  public static function upload( $target, $dir , $types ){
-		$ok = 1;
-
-		$name = str_replace(' ', '_', strtolower( strval(time()) . '_' . basename($_FILES[ $target ]["name"])));
-		$store = $dir . $name;
-		$dirn = dirname($store);
-
-		if (!is_dir($dirn)) {
-			mkdir($dirn, 0755 , true );
-		}
-
-		if ($_FILES[ $target ]["size"] > 5000000) {
-			return null;
-		}
-
-		if(!in_array(strtolower(pathinfo( $store ,PATHINFO_EXTENSION)) ,$types)) {
-			return null;
-		}
-
-    if (move_uploaded_file($_FILES[ $target ]["tmp_name"], $store )) {
-        return $name;
-    }
-
-    $this->error("Fail on loading image :" . mysqli_error($mysqli));
-	}
-
 
 }

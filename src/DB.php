@@ -70,7 +70,6 @@ class DB {
       return $this->connect;
     }
 
-
     public function secure($var) {
         if (is_array($var)) {
             foreach ($var as $k=>$e) {
@@ -153,8 +152,9 @@ class DB {
                 'cquery' => $this->cquery,
               ]
             ), JSON_PRETTY_PRINT ));
-            fclose( $f );
-            return $this->cquery;
+
+          fclose( $f );
+          return $this->cquery;
         }
 
         /* if file exists we get the content */
