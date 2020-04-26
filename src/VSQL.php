@@ -155,7 +155,7 @@ class VSQL extends DB {
         $co = substr_replace($co, ')' , strlen( $co )-1 , 1 );
       }
     }
-    echo $co;
+    // echo $co;
 
     return $str;
   }
