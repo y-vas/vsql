@@ -98,15 +98,13 @@ class VSQL extends DB {
 
           if ($nv === null){
             $ad = "!";
-
-            if (strlen( $qs ) > 0){
-              $nv = $qs;
-            }
+            if (strlen( $qs ) > 0){ $nv = $qs; }
           }
 
           if ( empty( $nv ) && ($a == '!') ) {
             $this->error( $var , VSQL_NULL_FIELD );
           }
+
           /* ---------------------------------------------------------------- */
         } else if ($exist && $r == ';' ){
           $nv = '';
@@ -133,15 +131,19 @@ class VSQL extends DB {
 
         $e = $p + $ofst - $pb + 1;
         if (strpos($pr, '~') !== false && strpos($pr, ':') !== false) {
+
           $grp = substr(  $str , $pb + 1 , $e - 2 );
           $exp = explode('default:', $grp );
           $nst = str_repeat(' ',strlen($exp[1]) + 10) . $exp[0];
           $str = substr_replace(  $str, $nst, $pb , $e );
+
         } else if (strpos($pr, '~') !== false && strpos($pr, ':') === false) {
+
           $grp = substr(  $str , $pb + 1 , $e - 2 );
           $exp = explode('default:', $grp );
           $nst = str_repeat(' ',strlen($exp[0]) + 10) . $exp[1];
           $str = substr_replace(  $str, $nst, $pb , $e );
+
         } else if (strpos($pr, ':') === false) {
           $str = substr_replace(  $str, str_repeat(' ', $e ), $pb , $e );
         } else {
