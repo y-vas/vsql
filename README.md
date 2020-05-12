@@ -21,7 +21,10 @@ $_ENV[  'DB_HOST'  ] = 'host';
 $_ENV['DB_USERNAME'] = 'name';
 $_ENV['DB_PASSWORD'] = 'pass';
 $_ENV['DB_DATABASE'] = 'dtbs';
+````
 
+
+````php
 $v = new VSQL( );
 // this is the vsql syntax
 $query = $v->query("
@@ -35,6 +38,7 @@ WHERE TRUE
 ), true /*if true it will die and show the debug */ );
 
 ````
+
 #### Return query
 ````sql
 SELECT

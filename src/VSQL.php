@@ -256,6 +256,10 @@ class VSQL extends DB {
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
   public function get( $list = false ) {
+      if ($list === 'output-query') {
+        return $this->vquery;
+      }
+
       $mysqli = $this->connect;
       $obj = new \stdClass();
 
