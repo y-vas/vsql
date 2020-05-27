@@ -1,10 +1,13 @@
 <?php
+namespace VSQL\VSQL;
 
-class Table {
+use VSQL\VSQL\DB;
+
+class Table extends DB {
+
   function __construct( ) {
-    echo "string";
+    $table = get_called_class();
   }
-
 
 
 }

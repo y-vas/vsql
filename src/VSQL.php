@@ -326,7 +326,7 @@ class VSQL extends DB {
   }
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
-  public function _transform_get( $val, $datatype, $key ) {
+  public function _transform_get( $val, $datatype, $key ){
       $dtypes = array(
           1   => ['tinyint', 'int'],
           2   => ['smallint', 'int'],
