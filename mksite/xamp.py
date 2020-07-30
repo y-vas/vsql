@@ -38,3 +38,4 @@ os.system( f'touch {dir}database/database.sqlite' )
 # $ npm run dev
 # # and repeat generate mixing
 # $ npm run dev
+# # php artisan serve
