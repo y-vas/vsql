@@ -33,7 +33,6 @@ class Mold extends DB {
       return;
     }}
 
-
     $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable Mold Class" );
   }
 
@@ -391,7 +390,7 @@ class Mold extends DB {
 
 
   public function makeMold( $table ,$dir = '') {
-    $sname = strtolower($table);
+    $sname = strtolower( $table );
     $classname = ucfirst($sname);
     $gitignore = "__mold__";
 
