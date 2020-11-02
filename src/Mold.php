@@ -388,7 +388,6 @@ class Mold extends DB {
     return $blade;
   }
 
-
   public function makeMold( $table ,$dir = '') {
     $sname = strtolower( $table );
     $classname = ucfirst($sname);
