@@ -1,6 +1,6 @@
 <?php
 
-namespace VSQL\VSQL;
+// namespace VSQL\VSQL;
 require(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
 class Mold extends DB {

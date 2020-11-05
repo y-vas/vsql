@@ -1,6 +1,7 @@
 version: "3.2"
 
 services:
+  
   php:
     build:
       context: './docker/php/'
@@ -22,7 +23,7 @@ services:
     networks:
       - backend
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./src/:/var/www/html/
       - ./docker/vhosts/default.conf:/usr/local/apache2/conf/demo.apache.conf

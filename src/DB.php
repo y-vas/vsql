@@ -1,5 +1,5 @@
 <?php
-namespace VSQL\VSQL;
+// namespace VSQL\VSQL;
 
 define( 'VSQL_NULL_FIELD' , 1 );
 

@@ -7,7 +7,6 @@
   --bg-secondary: #141418;
   --transition-speed: 600ms;
 }
-
 body {
   color: black;
   background-color: white;
@@ -20,13 +19,11 @@ main {
   padding: 1rem;
 }
 
-
 .navbar {
   position: fixed;
   background-color: var(--bg-primary);
   transition: width 600ms ease;
   overflow: scroll;
-
 }
 
 .navbar-nav {
@@ -129,52 +126,42 @@ main {
   transform: rotate(-180deg);
 }
 
-/* Small screens */
 @media only screen and (max-width: 600px) {
   .navbar {
     bottom: 0;
     width: 100vw;
     height: 5rem;
   }
-
   .logo {
     display: none;
   }
-
   .navbar-nav {
     flex-direction: row;
   }
-
   .nav-link {
     justify-content: center;
   }
-
   main {
     margin: 0;
   }
 }
 
-/* Large screens */
 @media only screen and (min-width: 600px) {
   .navbar {
     top: 0;
     width: 5rem;
     height: 100vh;
   }
-
   .navbar:hover {
     width: 16rem;
   }
-
   .navbar:hover .link-text {
     display: inline;
   }
-
   .navbar:hover .logo svg
   {
     margin-left: 11rem;
   }
-
   .navbar:hover .logo-text
   {
     left: 0px;
