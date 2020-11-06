@@ -1,7 +1,7 @@
 version: "3.2"
 
 services:
-  
+
   php:
     build:
       context: './docker/php/'
@@ -32,6 +32,7 @@ services:
   mysql:
     image: mysql/mysql-server:5.5
     restart: always
+    command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
     ports:
       - "9906:3306"
     volumes:
