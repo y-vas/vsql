@@ -230,7 +230,6 @@ class VSQL extends DB {
       //     }else{
       //       self::upload($res);
       //     }
-      //
       //     break;
       default:
           $v = strval($res);

@@ -10,4 +10,4 @@ $_ENV['DB_DATABASE'] = 'dbtest';
 
 
 $m = new Mold();
-$m->makeMold('users');
+$m->makeMold('Actius');
