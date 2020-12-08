@@ -50,8 +50,9 @@ class VSQL extends DB {
 
     $ofst = 0;
     $co = '';
+
     $switches = [];
-    foreach ($m[0] as $k => $full) {
+    foreach ( $m[0] as $k => $full ) {
       $full = $full[ 0 ];
       $n1 = isset($m[ 3 ][$k][0]) ? trim($m[ 3 ][$k][0]) : null;
       $n2 = isset($m[ 6 ][$k][0]) ? trim($m[ 6 ][$k][0]) : null;
@@ -59,7 +60,7 @@ class VSQL extends DB {
 
       $s = isset($m[ 8 ][$k][0]) ? $m[ 8 ][$k][0] : null;
       $f = isset($m[ 9 ][$k][0]) ? $m[ 9 ][$k][0] : null;
-      $a = isset($m[ 5 ][$k][0]) ? $m[ 5 ][$k][0] : null;
+      $a = isset($m[ 5 ][$k][0]) ? $m[ 5 ][$  k][0] : null;
       $p = isset($m[ 0 ][$k][1]) ? $m[ 0 ][$k][1] : null;
 
       $r  = isset($m[ 7 ][$k][0]) ? trim($m[ 7 ][$k][0]) : null;

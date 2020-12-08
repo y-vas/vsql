@@ -1,0 +1,54 @@
+ SELECT
+    { * full;}
+    { {, resum;}
+        ( SELECT group_concat(i.ImaArxiu) FROM Imatges i
+        LEFT JOIN ImatgesRelacio r ON r.ImRImatge = i.ImaId
+        WHERE r.ImRTipusElement = 'actuacio'
+        AND r.ImRElement = al.AcLId ) as imatges to explode ,
+        imatges;
+    }
+    { al.AcLId as id,
+        ap.AcPText as acttype to json
+        resum;}
+    { a.*                 ,
+        al.AcLId            ,
+        al.AcLAct           ,
+        al.AcLEle           ,
+        al.AcLVisible       ,
+        al.AcLDescripcio   as descr to json  ,
+        al.AcLPendentAC    as asd to json ,
+        al.AcLPendentSC    as pendent to json ,
+        al.AcLConfidencial as confide to json ,
+        al.AcLObservacions  ,
+        al.AcLDescripcioCodi
+        default;
+    }
+    FROM ActuacionsLinies al
+    LEFT JOIN Actuacions a on a.ActId = al.AcLAct
+    {
+        LEFT JOIN Elements e on al.AcLEle = e.EleId
+        LEFT JOIN Zones z on z.ZonId = e.EleZon
+        LEFT JOIN ActuacionsPredefinits ap on ap.AcPId = al.AcLDescripcioCodi
+        resum;
+    }
+    WHERE TRUE
+    { AND al.AcLId             =  i:AcLId             }
+    { AND al.AcLAct            =  i:AcLAct            }
+    { AND al.AcLAct            <  (
+        SELECT a3.ActId FROM Actuacions a3
+        WHERE +i:PrevAct; > a3.ActId
+        AND a3.ActMan = ( SELECT a2.ActMan FROM Actuacions a2
+        WHERE a2.ActId = +i:PrevAct; )
+        ORDER BY a3.ActId DESC LIMIT 1
+    ) }
+    { AND a.ActData like  '%:search%'  or a.ActNom like '%:search%'   }
+    { AND al.AcLEle            =  i:AcLEle            }
+    { AND al.AcLDescripcio     =  s:AcLDescripcio     }
+    { AND al.AcLPendentAC      =  s:AcLPendentAC      }
+    { AND al.AcLPendentSC      =  s:AcLPendentSC      }
+    { AND al.AcLConfidencial   =  s:AcLConfidencial   }
+    { AND al.AcLObservacions   =  s:AcLObservacions   }
+    { AND al.AcLDescripcioCodi =  i:AcLDescripcioCodi }
+    { ORDER BY :order }
+    { ORDER BY e.EleZon resum; }
+    { LIMIT i:limit { OFFSET i:offset } }
