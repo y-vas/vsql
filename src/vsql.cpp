@@ -30,14 +30,14 @@ int main() {
 
    // current key word found
    string cuw = "";
-   
+
    // add char to cuw
    bool addctw = false;
 
    for (int i=0; i < data.length(); ++i) {
       char c = data[i];
 
-      if (c == ' '){ 
+      if (c == ' '){
          cuw = "";
          addctw = false; 
       } else if ( c == ':' ){ 
