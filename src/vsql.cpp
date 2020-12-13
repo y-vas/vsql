@@ -3,7 +3,6 @@
 #include <string>
 using namespace std;
 
-
 string example(){
    string content = "";
    string line;
@@ -20,10 +19,8 @@ string example(){
 }
 
 string find_word(string data, int i){
-
    return 0;
 }
-
 
 int main() {
    string data = example();
@@ -32,26 +29,25 @@ int main() {
    string cuw = "";
 
    // add char to cuw
-   bool addctw = false;
+   int append = 0;
 
-   for (int i=0; i < data.length(); ++i) {
+   for (int i = 0; i < data.length(); ++i) {
       char c = data[i];
 
       if (c == ' '){
-         cuw = "";
-         addctw = false; 
-      } else if ( c == ':' ){ 
-         addctw = true; 
-      } else {
-         cuw += c;
+        cout << cuw << '\n';
+        cuw = "";
+        append = 0;
+      } else if ( c == ':' ){
+        append = 1;
       }
 
-
-      
-      cout << c;
-
+      // cout << c;
+      if ( append == 1 ) {
+        cuw += c;
+      }
    }
 
-   // cout << data; 
+   // cout << data;
    return 0;
 }
