@@ -13,14 +13,15 @@ $_ENV['DB_DATABASE'] = 'dbtest';
 final class VSQL_TEST extends TestCase {
     public $vsql = null;
     public $select_test_query = "SELECT
-     p.*
+     *
     FROM Products p {
-      INNER JOIN Users u on o.user_id = u.id
+      INNER JOIN Users u on p.user_id = u.id
       JOIN_USERS;
     }
     WHERE TRUE
     { AND p.name like '%:like%' }
-    LIMIT 2";
+    { LIMIT +i:limit }
+    ";
 
     public $insert_test_query = "INSERT
         INTO Products ( id, name, type, num, user_id, cost )
@@ -100,12 +101,21 @@ final class VSQL_TEST extends TestCase {
     public function testComplexSelect(): void {
         $retun_query = $this->vsql->query(
             $this->select_test_query, [
-            'name' => 'test',
+            'limit' => 2,
         ]);
 
-        $data = $this->vsql->get( true );
+        $data = (array) $this->vsql->get( true );
 
-        echo $data;
+        $this->assertEquals( count($data), 2 );
+        $this->assertEquals( count((array)$data[0]), 6 );
+
+        $retun_query = $this->vsql->query(
+            $this->select_test_query, [
+            'JOIN_USERS' => 2,
+        ]);
+
+        $data = (array) $this->vsql->get( true );
+        $this->assertEquals( count((array)$data[0]), 9 );
     }
 
 }
