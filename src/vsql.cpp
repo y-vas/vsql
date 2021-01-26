@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+
 using namespace std;
 
 string example(){
@@ -28,7 +29,7 @@ int main() {
    // current key word found
    string cuw = "";
 
-   // add char to cuw
+   // add char to cuw ----------
    int append = 0;
 
    for (int i = 0; i < data.length(); ++i) {
