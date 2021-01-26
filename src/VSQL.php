@@ -312,7 +312,7 @@ class VSQL extends \DB {
       $count = 0;
       if (mysqli_multi_query( $mysqli, $this->vquery )) {
 
-          // to remove for for making csv's 
+          // to remove for for making csv's
           // if ($list === 'output-csv') {
           //     //----------------------------------------------------------------
           //     $fp = fopen('php://output', 'wb');

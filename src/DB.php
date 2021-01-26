@@ -4,11 +4,11 @@ define( 'VSQL_NULL_FIELD' , 1 );
 
 class DB {
     public $inspect;   // shows if you are in inspect mode
-    public $vquery=''; //
-    public $cquery;
-    public $vars;
-    public $id;
-    public $func;
+    public $vquery=''; // given query
+    public $cquery; // compiled query
+    public $vars; // vars used between each query
+    public $id; // deprecated
+    public $func; // deprecated
     public $fetched = [];
     public $query; // query used as
     public $connect = false; # resource: DB connection
