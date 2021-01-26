@@ -104,7 +104,7 @@ final class VSQL_TEST extends TestCase {
             'limit' => 2,
         ]);
 
-        $data = (array) $this->vsql->get( true );
+        $data = ( array ) $this->vsql->get( true );
 
         $this->assertEquals( count($data), 2 );
         $this->assertEquals( count((array)$data[0]), 6 );
