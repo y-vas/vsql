@@ -1,12 +1,57 @@
-FROM httpd:2.4.32-alpine
+FROM php:7.3-apache
 
-RUN apk update; \
-    apk upgrade;
+RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
 
-# Copy apache vhost file to proxy php requests to php-fpm container
-COPY demo.apache.conf /usr/local/apache2/conf/demo.apache.conf
-RUN echo "Include /usr/local/apache2/conf/demo.apache.conf" \
-    >> /usr/local/apache2/conf/httpd.conf
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    libfreetype6-dev \
+    libicu-dev \
+    libssl-dev \
+    libjpeg62-turbo-dev \
+    libmcrypt-dev \
+    libedit-dev \
+    libedit2 \
+    libpq-dev \
+    libxslt1-dev \
+    libzip-dev \
+    apt-utils \
+    gnupg \
+    git \
+    vim \
+    wget \
+    curl \
+    lynx \
+    psmisc \
+    unzip \
+    tar \
+    cron \
+    bash-completion \
+    && apt-get clean
 
-RUN sed -i '/LoadModule rewrite_module/s/^#//g' /usr/local/apache2/conf/httpd.conf && \
-    sed -i 's#AllowOverride [Nn]one#AllowOverride All#' /usr/local/apache2/conf/httpd.conf
+#Install Dependencies
+RUN docker-php-ext-configure \
+    gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/; \
+    docker-php-ext-install \
+    opcache \
+    gd \
+    bcmath \
+    intl \
+    mbstring \
+    soap \
+    xsl \
+    zip
+
+
+RUN chmod 777 -R /var/www \
+    && chown -R www-data:www-data /var/www \
+    && usermod -u 1000 www-data \
+    && chsh -s /bin/bash www-data
+
+RUN a2enmod rewrite
+RUN a2enmod headers
+
+RUN ln -sf /dev/stdout /var/log/apache2/access.log \
+    && ln -sf /dev/stderr /var/log/apache2/error.log

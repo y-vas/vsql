@@ -1,51 +1,34 @@
 version: "3.2"
 
 services:
-
-  php:
-    build:
-      context: './docker/php/'
-      args:
-       PHP_VERSION: 7.0
-    networks:
-      - backend
-    volumes:
-      - ./src/:/var/www/html/
-    container_name: phpvsql
-
-  apache:
+  apache_vsql:
     build:
       context: './docker/apache/'
-      args:
-       APACHE_VERSION: 2.4.32
+    links:
+      - mysql_vsql:mysqldb
     depends_on:
-      - php
-    networks:
-      - backend
+      - mysql_vsql
     ports:
-      - "8080:80"
+      - "80:80"
     volumes:
-      - ./src/:/var/www/html/
-      - ./docker/vhosts/default.conf:/usr/local/apache2/conf/demo.apache.conf
-    container_name: apachevsql
+      - ./:/var/www/html/
+      - ./docker/apache/virtualhost.conf:/etc/apache2/sites-enabled/000-default.conf
+      - ./docker/apache/php.ini:/usr/local/etc/php/php.ini
+    container_name: apache_vsql
 
-  mysql:
-    image: mysql/mysql-server:5.5
+  mysql_vsql:
+    image: mysql/mysql-server:8.0
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci','--default-authentication-plugin=mysql_native_password']
     restart: always
-    command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
     ports:
-      - "9906:3306"
-    volumes:
-      - "/docker/mysql:/var/lib/mysql"
-    networks:
-      - backend
+      - "18906:3306"
+    # volumes:
+    #   - ./docker/mysql-dump:/docker-entrypoint-initdb.d
+
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: dbtest
       MYSQL_USER: root
       MYSQL_PASSWORD: root
-      MYSQL_ROOT_HOST: 172.21.0.2
-    container_name: mysqlvsql
-
-networks:
-  backend:
+      MYSQL_ROOT_HOST: '%'
+    container_name: mysql_vsql

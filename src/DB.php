@@ -1,17 +1,16 @@
 <?php
-// namespace VSQL\VSQL;
 
 define( 'VSQL_NULL_FIELD' , 1 );
 
 class DB {
-    public $inspect;
-    public $vquery='';
+    public $inspect;   // shows if you are in inspect mode
+    public $vquery=''; //
     public $cquery;
     public $vars;
     public $id;
     public $func;
     public $fetched = [];
-    public $query;
+    public $query; // query used as
     public $connect = false; # resource: DB connection
     public $error; # string: Error message
     public $errno; # integer: error no
@@ -22,7 +21,7 @@ class DB {
 
         foreach (array('DB_HOST', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE') as $value) {
             if (!isset($_ENV[$value])) {
-              $this->error("ENV value \$_ENV[" . $value . "] is not set!");
+              $this->error( "ENV value \$_ENV[" . $value . "] is not set!" );
             }
         }
 
@@ -86,27 +85,22 @@ class DB {
         }
     }
 
-//------------------------------------------------ <  run > ------------------------------------------------------------
-    public function run() {
-        $mysqli = $this->connect;
-        $mysqli->query( $this->vquery );
-        return $mysqli;
-    }
 
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
       if ($debug) { $_ENV['VSQL_INSPECT'] = true; }
 
       if (isset($_ENV['VSQL_INSPECT'])){ if ($_ENV['VSQL_INSPECT']){
+        // get the info wrapper for error
         $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
 
         $values = array(
           "ERROR_MESAGES" => $msg,
-          "ORIGINALQUERY" => htmlentities($this->query),
+          "ORIGINALQUERY" => htmlentities($this->query ),
           "TRANSFRMQUERY" => htmlentities($this->vquery),
         );
 
-        foreach ($values as $key => $value) {
+        foreach ($values as $key => $value ){
           $content = str_replace("<$key>", $value, $content);
         }
 
@@ -114,68 +108,6 @@ class DB {
       }}
 
       throw new \Exception("Error : " . $msg, $code );
-    }
-
-    protected function trace_func($func){
-      $e = new \Exception();
-      foreach ($e->getTrace() as $key => $value) {
-          if ($value['function'] == $func ) {
-              $bodytag = str_replace(DIRECTORY_SEPARATOR,"", $value['file']);
-              $value['date'] = filemtime($value['file']);
-              $value['json'] = $_ENV['VSQL_CACHE'].DIRECTORY_SEPARATOR."{$bodytag}.json";
-              $value['real'] = file_exists($value['json']);
-              return $value;
-          }
-      }
-
-      return null;
-    }
-
-//------------------------------------------------ <  _cache > ---------------------------------------------------------
-    private function chquery() {
-        if (!isset($_ENV['VSQL_CACHE'])) { return; }
-        if (empty( $this->id )) { return; }
-        if (!file_exists($_ENV['VSQL_CACHE'])) {
-            mkdir($_ENV['VSQL_CACHE'], 0755, true);
-        }
-
-        $data = $this->trace_func( 'query' );
-
-        // if file doesn't exist create one
-        if (!$data['real']){
-            $f = fopen( $data['json'], "w");
-            fwrite($f, json_encode(array(
-              $this->id => [
-                'update' => $data['date'],
-                'vtvars' => $this->vars  ,
-                'cquery' => $this->cquery,
-              ]
-            ), JSON_PRETTY_PRINT ));
-
-          fclose( $f );
-          return $this->cquery;
-        }
-
-        /* if file exists we get the content */
-        $fcon = json_decode(utf8_decode(file_get_contents($data['json'])), true);
-
-        /* if the file has not been updated we return the query */
-        if ($fcon[ $this->id ]['update'] ==  $data['date']) {
-          $this->vars = $fcon[$this->id]['vtvars'];
-          return $fcon[$this->id]['cquery'];
-        }
-
-        $f = fopen( $data['json'], "w");
-        fwrite($f, json_encode(array_merge(array(
-          $this->id => [
-            'update' => $data['date'],
-            'vtvars' => $this->vars  ,
-            'cquery' => $this->cquery,
-            ]
-          ), $fcon), JSON_PRETTY_PRINT ));
-        fclose( $f );
-
-        return $this->cquery;
     }
 
 }

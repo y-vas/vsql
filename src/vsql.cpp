@@ -7,7 +7,7 @@ string example(){
    string content = "";
    string line;
 
-   ifstream myfile ("example.vsql");
+   ifstream myfile ("example.sql");
    if (myfile.is_open()){
       while ( getline (myfile,line) ) {
          content += line + '\n';
