@@ -103,5 +103,5 @@ AND d.pass = 'secret'
 ### Classes
 - VSQL
   - Query Compiler ```php $db->query('select * from dbtable',array()); ```
-  - Fetch Rows&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ```php $db->get( $list = false ); ```
-  - Execute&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;```php $db->run(  $list = false ); /* retuns mysql instance */```
+  - Fetch Rows ```php $db->get( $list = false ); ```
+  - Execute ```php $db->run(  $list = false ); /* retuns mysql instance */```
