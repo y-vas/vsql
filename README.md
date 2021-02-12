@@ -71,7 +71,7 @@ WHERE TRUE
 AND d.surname like '%{:surname}%'
 { AND d.type = i:type }
 { AND d.pass = s:pswd }
-{ AND d.id = i:pswd   }
+{ AND d.id = i:id   }
 ````
 
 Output Query
