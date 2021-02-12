@@ -164,14 +164,14 @@ class Mold extends DB {
 
     $count = self::uppline('count');
     $count .= "\n\tpublic static function count( \$arr ){\n";
-    $count .= "\t\t\$obj = self::sel(
+    $count .= "\t\t\$obj = self::get(
       array_merge(\$arr , ['count' => true ])
     );\n";
     $count .= "\n\t\treturn \$obj->num;\n\t}";
 
     $clone = self::uppline('clone');
     $clone .= "\n\tpublic static function clone( \$arr ){\n";
-    $clone .= "\t\t\$obj = self::sel([ '$id' => \$arr['$id'] ]);\n";
+    $clone .= "\t\t\$obj = self::get([ '$id' => \$arr['$id'] ]);\n";
     $clone .= "\n\t\t\$id = self::add([\n".$abs[0]['clone']."\t\t]); \n";
     $clone .= "\n\t\t\$obj->$id = \$id; \n";
     $clone .= "\n\t\treturn \$obj;\n\t}";
@@ -211,12 +211,12 @@ class Mold extends DB {
 
     $sort = self::uppline('sort');
     $sort.= "\n\tpublic static function sort( \$id, \$put ){";
-    $sort.= "\n\t\t\$elem = self::sel(['$id' => \$id ]);";
+    $sort.= "\n\t\t\$elem = self::get(['$id' => \$id ]);";
     $sort.= "\n\t\t\$pos = \$elem->$ord;
     \$zon = \$elem->zone;
 
     if (\$id == null) return;
-    \$sorts = self::sel([
+    \$sorts = self::get([
       '_id'   => true,
 			'zone'  => \$zon,
 			'order' => '$ord',
@@ -259,7 +259,7 @@ class Mold extends DB {
 
     $shw = self::uppline('show');
     $shw .= "\n\tpublic function show(){";
-    $shw .= "\n\t\t\$obj = {$table}::sel(['$id'=>request()->route('id')]);";
+    $shw .= "\n\t\t\$obj = {$table}::get(['$id'=>request()->route('id')]);";
     $shw .= "\n\n\t\tif ( !isset( \$obj->$id ) ){
       // Utils::alert( '/rute' , 'Item-Not-Found' , 'danger');
     }";
@@ -291,7 +291,7 @@ class Mold extends DB {
     $toggle = self::uppline('ajax ~ toggle');
     $toggle .= "\n\tpublic function toggle( ){
     {$table}::upd([
-      '$id' => request()->route('id')
+      '$id' => request()->route('id'),
       'toggle' => true,
     ]);
 
