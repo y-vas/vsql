@@ -10,6 +10,7 @@ class Mold {
   public $id; // deprecated
   public $func; // deprecated
   public $fetched = [];
+  
   public $query; // query used as
   public $connect = false; # resource: DB connection
   public $error; # string: Error message
@@ -122,7 +123,7 @@ class Mold {
     $td     = '';
 
     while($r = $res->fetch_assoc()) {
-      var_dump($r);
+      var_dump( $r );
 
       $exp = explode(  '(',$r['Type']  )[0];
       $ht = $this->datatypes[ $exp ][ 2 ];
@@ -133,11 +134,11 @@ class Mold {
 
       $ofs = str_repeat( ' ' , $lenght - strlen( $f ) );
 
-      $n = ($c++ % 3 == 0) ? "\n$e" : "\n$e";
-      $na = ($c % 8 == 0) ? "\n\t$e" : '';
-      $t = ($c != $max) ? "," : '';
+      $n = ( $c++ % 3 == 0) ? "\n$e" : "\n$e";
+      $na =( $c % 8 == 0) ? "\n\t$e" : '';
+      $t = ( $c != $max) ? "," : '';
 
-      if ($c == 1){ $data['ff'] = $f; }
+      if ( $c == 1 ){ $data['ff'] = $f; }
 
       $select .= "$n`" . $f ."`$ofs$t" ;
       $where .=  "$n{ AND `" . $f ."`$ofs =  $tp:". $f ."$ofs }" ;
@@ -148,7 +149,7 @@ class Mold {
       $array.= $e ."\t'{$f}' $ofs=> \$arr['{$f}'] $ofs ?? null ,\n";
       $data['clone'] .= $e ."\t'{$f}' $ofs=> \$obj->{$f} $ofs ,\n";
 
-      $name = ucfirst(strtolower($f));
+      $name   = ucfirst(strtolower($f));
       $search.= "\n\t<input class='form-control-sm' type='{$ht}' name='{$f}' {$ofs} placeholder='{$name}'>";
       $th    .= "\n\t\t\t\t<th scope='col'>   {$name}{$ofs}   </th>";
       $td    .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </th>";
@@ -178,7 +179,7 @@ class Mold {
 
     $data['blade'] = $blade;
 
-    return [ $data, $q,$i,$u,$d,$p,$a,$r,$s,$search,$th,$td ];
+    return [ $data, $q, $i, $u, $d, $p, $a, $r, $s, $search, $th, $td ];
   }
 
 
