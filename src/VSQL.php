@@ -301,9 +301,9 @@ class VSQL extends \DB {
 
 //------------------------------------------------ <  get > ------------------------------------------------------------
   public function get( $list = false ) {
-      // if ($list === 'output-query') {
-      //   return $this->vquery;
-      // }
+      if ($list === 'output-query') {
+        return $this->vquery;
+      }
 
       $mysqli = $this->connect;
       $obj = new \stdClass();
@@ -313,26 +313,24 @@ class VSQL extends \DB {
       if (mysqli_multi_query( $mysqli, $this->vquery )) {
 
           // to remove for for making csv's
-          // if ($list === 'output-csv') {
-          //     //----------------------------------------------------------------
-          //     $fp = fopen('php://output', 'wb');
-          //     do { if($result = mysqli_store_result($mysqli)) {
-          //         while ($proceso = mysqli_fetch_assoc($result)) {
-          //             fputcsv($fp, (array) $this->fetch($result, $proceso));
-          //         }
-          //         mysqli_free_result($result);
-          //     }
-          //
-          //     if (!mysqli_more_results($mysqli)) { break; }
-          //     } while (mysqli_next_result($mysqli) && mysqli_more_results());
-          //
-          //     fclose($fp);
-          //
-          //     return $fp;
-          //
-          // } elseif ($list === true) {
+          if ($list === 'output-csv') {
+              //----------------------------------------------------------------
+              $fp = fopen('php://output', 'wb');
+              do { if($result = mysqli_store_result($mysqli)) {
+                  while ($proceso = mysqli_fetch_assoc($result)) {
+                      fputcsv($fp, (array) $this->fetch($result, $proceso));
+                  }
+                  mysqli_free_result($result);
+              }
 
-          if ($list == true) {
+              if (!mysqli_more_results($mysqli)) { break; }
+              } while (mysqli_next_result($mysqli) && mysqli_more_results());
+
+              fclose($fp);
+
+              return $fp;
+
+          } elseif ($list === true) {
 
               //----------------------------------------------------------------
               do { if($result = mysqli_store_result($mysqli) ) {
