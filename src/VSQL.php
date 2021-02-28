@@ -259,7 +259,7 @@ class VSQL extends \DB {
       // parse the value to string
       case 's':
           $v = strval($res);
-          $res = (strlen($v) > 1) ? "'". $v . "'": null;
+          $res = (strlen($v) > 0) ? "'". $v . "'": null;
           break;
 
       // deprecated
