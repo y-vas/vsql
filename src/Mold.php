@@ -1,9 +1,20 @@
 <?php
 
-// namespace VSQL\VSQL;
-include(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
+namespace VSQL\VSQL;
 
-class Mold extends DB {
+class Mold {
+  public $inspect;   // shows if you are in inspect mode
+  public $vquery=''; // given query
+  public $cquery; // compiled query
+  public $vars; // vars used between each query
+  public $id; // deprecated
+  public $func; // deprecated
+  public $fetched = [];
+  
+  public $query; // query used as
+  public $connect = false; # resource: DB connection
+  public $error; # string: Error message
+  public $errno; # integer: error no
 
   private $datatypes = array(
   /* datatype   |  parser   | default | html           |      */
@@ -34,6 +45,32 @@ class Mold extends DB {
     }}
 
     $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable Mold Class" );
+  }
+
+  public function connect() {
+    $this->connect = mysqli_connect(
+      $_ENV[  'DB_HOST'  ],
+      $_ENV['DB_USERNAME'],
+      $_ENV['DB_PASSWORD'],
+      $_ENV['DB_DATABASE']
+    );
+
+    if (!$this->connect) {
+      $this->error('Unable to connect to the database!');
+    }
+
+    if (isset($_ENV['VSQL_UTF8'])) {
+      $this->connect->query("
+        SET
+        character_set_results    = 'utf8',
+        character_set_client     = 'utf8',
+        character_set_connection = 'utf8',
+        character_set_database   = 'utf8',
+        character_set_server     = 'utf8'
+      ");
+    }
+
+    return $this->connect;
   }
 
 //~~~~ uppline ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -86,7 +123,7 @@ class Mold extends DB {
     $td     = '';
 
     while($r = $res->fetch_assoc()) {
-      var_dump($r);
+      var_dump( $r );
 
       $exp = explode(  '(',$r['Type']  )[0];
       $ht = $this->datatypes[ $exp ][ 2 ];
@@ -97,11 +134,11 @@ class Mold extends DB {
 
       $ofs = str_repeat( ' ' , $lenght - strlen( $f ) );
 
-      $n = ($c++ % 3 == 0) ? "\n$e" : "\n$e";
-      $na = ($c % 8 == 0) ? "\n\t$e" : '';
-      $t = ($c != $max) ? "," : '';
+      $n = ( $c++ % 3 == 0) ? "\n$e" : "\n$e";
+      $na =( $c % 8 == 0) ? "\n\t$e" : '';
+      $t = ( $c != $max) ? "," : '';
 
-      if ($c == 1){ $data['ff'] = $f; }
+      if ( $c == 1 ){ $data['ff'] = $f; }
 
       $select .= "$n`" . $f ."`$ofs$t" ;
       $where .=  "$n{ AND `" . $f ."`$ofs =  $tp:". $f ."$ofs }" ;
@@ -112,7 +149,7 @@ class Mold extends DB {
       $array.= $e ."\t'{$f}' $ofs=> \$arr['{$f}'] $ofs ?? null ,\n";
       $data['clone'] .= $e ."\t'{$f}' $ofs=> \$obj->{$f} $ofs ,\n";
 
-      $name = ucfirst(strtolower($f));
+      $name   = ucfirst(strtolower($f));
       $search.= "\n\t<input class='form-control-sm' type='{$ht}' name='{$f}' {$ofs} placeholder='{$name}'>";
       $th    .= "\n\t\t\t\t<th scope='col'>   {$name}{$ofs}   </th>";
       $td    .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </th>";
@@ -142,8 +179,10 @@ class Mold extends DB {
 
     $data['blade'] = $blade;
 
-    return [ $data, $q,$i,$u,$d,$p,$a,$r,$s,$search,$th,$td ];
+    return [ $data, $q, $i, $u, $d, $p, $a, $r, $s, $search, $th, $td ];
   }
+
+
 
   public function model( $table /*, $type = 'static'*/){
     $abs = $this->abstraction($table,"\t\t");
@@ -421,6 +460,27 @@ class Mold extends DB {
     }
 
     die;
+  }
+
+  protected function trace_func($func){
+    $e = new \Exception();
+    foreach ($e->getTrace() as $key => $value) {
+        if ($value['function'] == $func ) {
+            $bodytag = str_replace(DIRECTORY_SEPARATOR,"", $value['file']);
+            $value['date'] = filemtime($value['file']);
+            $value['json'] = $_ENV['VSQL_CACHE'].DIRECTORY_SEPARATOR."{$bodytag}.json";
+            $value['real'] = file_exists($value['json']);
+            return $value;
+        }
+    }
+
+
+    //------------------------------------------------ <  error > ------------------------------------------------------------
+    protected function error( $msg , $code = 0 , $debug = false ) {
+      throw new \Exception("Error : " . $msg, $code );
+    }
+
+    return null;
   }
 
 }
