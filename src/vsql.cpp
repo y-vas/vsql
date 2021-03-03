@@ -15,7 +15,6 @@ string example(){
       }
       myfile.close();
    }
-
    return content;
 }
 
