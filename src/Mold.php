@@ -10,7 +10,7 @@ class Mold {
   public $id; // deprecated
   public $func; // deprecated
   public $fetched = [];
-  
+
   public $query; // query used as
   public $connect = false; # resource: DB connection
   public $error; # string: Error message
@@ -475,12 +475,13 @@ class Mold {
     }
 
 
-    //------------------------------------------------ <  error > ------------------------------------------------------------
-    protected function error( $msg , $code = 0 , $debug = false ) {
-      throw new \Exception("Error : " . $msg, $code );
-    }
 
     return null;
+  }
+  
+  //------------------------------------------------ <  error > ------------------------------------------------------------
+  protected function error( $msg , $code = 0 , $debug = false ) {
+    throw new \Exception("Error : " . $msg, $code );
   }
 
 }
