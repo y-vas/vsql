@@ -278,7 +278,7 @@ class VSQL extends \DB {
 
       default:
           $v = strval($res);
-          $res = (strlen($v) > 1) ? $v : null;
+          $res = (strlen($v) > 0) ? $v : null;
           break;
     }
 
