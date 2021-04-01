@@ -374,21 +374,21 @@ class VSQL extends \DB {
       foreach ($proceso as $key => $value) {
           $direct = $result->fetch_field_direct($count++);
 
-          if (trim($key) != trim($direct->name)) {
-
-            // echo "<hr>";
-            // echo "$value, $direct->type, , $direct->name";
-            // echo gettype( $value );
-            // echo "<hr>";
-            //
-            // // $key = $direct->name;
-            $row->$key = $value;
-
-          }else {
+          // if (trim($key) != trim($direct->name)) {
+          //
+          //   // echo "<hr>";
+          //   // echo "$value, $direct->type, , $direct->name";
+          //   // echo gettype( $value );
+          //   // echo "<hr>";
+          //   //
+          //   // // $key = $direct->name;
+          //   $row->$key = $value;
+          //
+          // }else {
             $ret = $this->_transform_get($value, $direct->type, $key);
             $key = $ret[1];
             $row->$key = $ret[0];
-          }
+          // }
       }
 
       return $row;
