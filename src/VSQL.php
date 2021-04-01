@@ -326,7 +326,6 @@ class VSQL extends \DB {
                     // echo "string";
                     $this->fetch( $result, $proceso );
                     // die;
-
                     // fputcsv($fp, (array) $this->fetch( $result, $proceso ));
                   }
 
