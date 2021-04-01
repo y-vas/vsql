@@ -18,7 +18,7 @@ class VSQL extends \DB {
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query($str, $vrs, $strict = false , $debug = false) {
     $this->query  = $str;
-    $this->vquery  = ''; // init agai
+    $this->vquery = ''; // init agai
     $this->vars   = $vrs;
     $this->strict = $strict;
 
@@ -26,14 +26,14 @@ class VSQL extends \DB {
     $str = $this->modifier( $str, $vrs );
 
     $this->vquery = $str;
-    if ( $debug ){ $this->error('Inspect', 0 , true ); }
+    if ( $debug ){ $this->error('Inspect', 0 , true); }
 
     return $this->vquery;
   }
 
   public function run($list = false) {
       // if the first word is selet then we use the get method
-      $qtipe = strtolower(explode(' ',trim($this->vquery))[0]);
+      $qtipe = strtolower(explode(' ', trim($this->vquery) )[0]);
 
       if ($qtipe == 'select') {
         return $this->get( $list );
@@ -193,7 +193,7 @@ class VSQL extends \DB {
     $res = $this->secure( $var );
 
     //---------------------- cases ----------------------
-    switch ($parser) {
+    switch ( $parser ) {
       // d = date
       case 'd':
           settype($var, 'string');
@@ -316,18 +316,27 @@ class VSQL extends \DB {
           if ($list === 'output-csv') {
               //----------------------------------------------------------------
               $fp = fopen('php://output', 'wb');
-              do { if($result = mysqli_store_result($mysqli)) {
-                  while ($proceso = mysqli_fetch_assoc($result)) {
-                      fputcsv($fp, (array) $this->fetch($result, $proceso));
+              do { if( $result = mysqli_store_result($mysqli) ){
+                  while ($proceso = mysqli_fetch_assoc( $result )) {
+
+                    // echo "string";
+                    // var_dump(mysqli_field_name( $result , 1 ));
+                    // die;
+
+                    // echo "string";
+                    $this->fetch( $result, $proceso );
+                    // die;
+
+                    // fputcsv($fp, (array) $this->fetch( $result, $proceso ));
                   }
+
                   mysqli_free_result($result);
               }
 
               if (!mysqli_more_results($mysqli)) { break; }
               } while (mysqli_next_result($mysqli) && mysqli_more_results());
 
-              fclose($fp);
-
+              fclose( $fp );
               return $fp;
 
           } elseif ($list === true) {
@@ -365,9 +374,22 @@ class VSQL extends \DB {
       $count = 0;
       foreach ($proceso as $key => $value) {
           $direct = $result->fetch_field_direct($count++);
-          $ret = $this->_transform_get($value, $direct->type, $key);
-          $key = $ret[1];
-          $row->$key = $ret[0];
+
+          if (trim($key) != trim($direct->name)) {
+
+            // echo "<hr>";
+            // echo "$value, $direct->type, , $direct->name";
+            // echo gettype( $value );
+            // echo "<hr>";
+            //
+            // // $key = $direct->name;
+            $row->$key = $value;
+
+          }else {
+            $ret = $this->_transform_get($value, $direct->type, $key);
+            $key = $ret[1];
+            $row->$key = $ret[0];
+          }
       }
 
       return $row;
@@ -375,6 +397,7 @@ class VSQL extends \DB {
 
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
   public function _transform_get( $val, $datatype, $key ){
+
       $dtypes = array(
           1   => ['tinyint', 'int'],
           2   => ['smallint', 'int'],
@@ -403,6 +426,11 @@ class VSQL extends \DB {
       if ($dt_str && isset($_ENV['VSQL_UTF8']) && $_ENV['VSQL_UTF8'] == true) {
           $val = utf8_decode(utf8_encode( $val ));
       }
+
+      // if ($st) {
+      //   // code...
+      // }
+
       settype($val, $dt_str);
 
       foreach ($this->fetched as $k => $value) {
@@ -410,6 +438,8 @@ class VSQL extends \DB {
               foreach ($value as $t => $tr) {
                 $val = $this->_transform($tr, $val);
       }}}
+
+      echo " => $val, $key";
 
       return array($val, $key);
     }
@@ -428,7 +458,7 @@ class VSQL extends \DB {
             }
 
             $non = json_decode(utf8_encode($val),true);
-            if ($non != null){
+            if ( $non != null ){
               return $non;
             }
 
@@ -441,16 +471,18 @@ class VSQL extends \DB {
             return json_decode($val, true);
 
         case 'explode':
-            return explode(',',$val);
+            return explode( ',' , $val );
 
         case 'array-std':
-            $non = json_decode($val,true);
+            $non = json_decode( $val , true );
             if ($non == null ){
-              $non = json_decode($val, true);
+              $non = json_decode( $val, true );
             }
-            foreach ($non as $key => $value) {
+
+            foreach ( $non as $key => $value ){
               $non[$key] = (object) $value;
             }
+
             return $non;
         default:
           break;
