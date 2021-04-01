@@ -397,40 +397,34 @@ class VSQL extends \DB {
 // ------------------------------------------------ <  _transform_get > ------------------------------------------------
   public function _transform_get( $val, $datatype, $key ){
 
-      $dtypes = array(
-          1   => ['tinyint', 'int'],
-          2   => ['smallint', 'int'],
-          3   => ['int', 'int'],
-          4   => ['float', 'float'],
-          5   => ['double', 'double'],
-          7   => ['timestamp', 'string'],
-          8   => ['bigint', 'int'],
-          9   => ['mediumint', 'int'],
-          10  => ['date', 'string'],
-          11  => ['time', 'string'],
-          12  => ['datetime', 'string'],
-          13  => ['year', 'int'],
-          16  => ['bit', 'int'],
-          253 => ['varchar', 'string'],
-          254 => ['char', 'string'],
-          246 => ['decimal', 'float']
-      );
+      // $dtypes = array(
+      //     1   => ['tinyint', 'int'],
+      //     2   => ['smallint', 'int'],
+      //     3   => ['int', 'int'],
+      //     4   => ['float', 'float'],
+      //     5   => ['double', 'double'],
+      //     7   => ['timestamp', 'string'],
+      //     8   => ['bigint', 'int'],
+      //     9   => ['mediumint', 'int'],
+      //     10  => ['date', 'string'],
+      //     11  => ['time', 'string'],
+      //     12  => ['datetime', 'string'],
+      //     13  => ['year', 'int'],
+      //     16  => ['bit', 'int'],
+      //     253 => ['varchar', 'string'],
+      //     254 => ['char', 'string'],
+      //     246 => ['decimal', 'float']
+      // );
 
 
-      $dt_str = "string";
-      if (isset($dtypes[$datatype][1])) {
-          $dt_str = $dtypes[$datatype][1];
-      }
-
-      if ($dt_str && isset($_ENV['VSQL_UTF8']) && $_ENV['VSQL_UTF8'] == true) {
-          $val = utf8_decode(utf8_encode( $val ));
-      }
-
-      // if ($st) {
-      //   // code...
+      // only caoused problemas
+      // if (isset($dtypes[$datatype][1])) {
+      //     $dt_str = $dtypes[$datatype][1];
       // }
-
-      settype($val, $dt_str);
+      // echo "<hr>";
+      // echo " => $val, $key";
+      // settype($val, $dt_str);
+      // echo " => $val, $key";
 
       foreach ($this->fetched as $k => $value) {
           if (trim($key) == trim($k)) {
@@ -438,7 +432,6 @@ class VSQL extends \DB {
                 $val = $this->_transform($tr, $val);
       }}}
 
-      // echo " => $val, $key";
 
       return array($val, $key);
     }
