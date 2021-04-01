@@ -438,7 +438,7 @@ class VSQL extends \DB {
                 $val = $this->_transform($tr, $val);
       }}}
 
-      echo " => $val, $key";
+      // echo " => $val, $key";
 
       return array($val, $key);
     }
