@@ -324,15 +324,13 @@ class VSQL extends \DB {
               $fp = fopen('php://output', 'wb');
               do { if( $result = mysqli_store_result($mysqli) ){
                   while ($proceso = mysqli_fetch_assoc( $result )) {
+                    $crow = (array) $this->fetch( $result, $proceso );
 
-                    // echo "string";
-                    // var_dump(mysqli_field_name( $result , 1 ));
-                    // die;
-
-                    // echo "string";
-                    $this->fetch( $result, $proceso );
-                    // die;
-                    // fputcsv($fp, (array) $this->fetch( $result, $proceso ));
+                    if ($count == 0) {
+                      fputcsv( $fp , array_keys($crow) );
+                    }
+                    fputcsv( $fp , $crow );
+                    $count ++;
                   }
 
                   mysqli_free_result($result);
@@ -359,9 +357,12 @@ class VSQL extends \DB {
 
           } else {
               $result = mysqli_store_result($mysqli);
+              if (!$result) {
+                $this->error("Fail on query get :" . mysqli_error($mysqli));
+              }
               $proceso = mysqli_fetch_assoc($result);
               if($proceso == null){ $obj = null; }
-              else { $obj = $this->fetch($result, $proceso); }
+              else { $obj = $this->fetch( $result, $proceso ); }
           };
 
       } else {
@@ -373,7 +374,7 @@ class VSQL extends \DB {
 
 
 // ------------------------------------------------ <  fetch > ----------------------------------------------------
-  private function fetch( $result, $proceso ) {
+  private function fetch( $result, $proceso , $colname = false ) {
       $row = new \stdClass();
 
       $count = 0;
