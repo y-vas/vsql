@@ -19,7 +19,7 @@ class VSQL extends \DB {
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query($str, $vrs, $strict = false , $debug = false) {
     $this->query  = $str;
-    $this->vquery = ''; // init agai
+    $this->vquery = ''; // init again
     $this->vars   = $vrs;
     $this->strict = $strict;
 
@@ -27,7 +27,10 @@ class VSQL extends \DB {
     $str = $this->modifier( $str, $vrs );
 
     $this->vquery = $str;
-    if ( $debug ){ $this->error('Inspect', 0 , true); }
+
+    if ( $debug ){
+        $this->error( 'Inspect', 0 , true );
+    }
 
     return $this->vquery;
   }
@@ -392,8 +395,8 @@ class VSQL extends \DB {
   public function _transform_get( $val, $datatype, $key ){
 
       foreach ($this->fetched as $k => $value) {
-          if (trim($key) == trim($k)) {
-              foreach ($value as $t => $tr) {
+          if (trim( $key ) == trim( $k )){
+              foreach ( $value as $t => $tr ){
                 $val = $this->_transform($tr, $val);
       }}}
 

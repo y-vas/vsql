@@ -6,16 +6,21 @@ using namespace std;
 
 string example(){
    string content = "";
-   string line;
 
-   ifstream myfile ("example.sql");
-   if (myfile.is_open()){
-      while ( getline(myfile,line) ) {
-         content += line + '\n';
-      }
-      myfile.close();
-   }
-   return content;
+   // ifstream myfile ("example.sql");
+   // if (myfile.is_open()){
+   //
+   //    while ( getline(myfile,line) ) {
+   //       content += line + '\n';
+   //    }
+   //
+   //    myfile.close();
+   // }
+
+   return " SELECT * FROM Table T "
+          "  WHERE TRUE "
+          "{ AND T.name = :name } "
+   ;
 }
 
 string find_word(string data, int i){
@@ -35,19 +40,19 @@ int main() {
       char c = data[i];
 
       if (c == ' '){
-        cout << cuw << '\n';
+        cout << cuw << '/';
         cuw = "";
         append = 0;
-      } else if ( c == ':' ){
+      } else if ( c == ':' ) {
         append = 1;
+
       }
 
-      // cout << c;
       if ( append == 1 ) {
         cuw += c;
       }
+
    }
 
-   cout << "data";
    return 0;
 }
