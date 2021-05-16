@@ -25,11 +25,11 @@ class DB {
             }
         }
 
-        $this->error = false;
-        $this->errno = false;
+        $this->error   = false;
+        $this->errno   = false;
         $this->inspect = isset($_ENV['VSQL_INSPECT']) ? $_ENV['VSQL_INSPECT'] : null;
-        $this->vquery = '';
-        $this->query = '';
+        $this->vquery  = '';
+        $this->query   = '';
 
         if (!function_exists('mysqli_connect')) {
             if (function_exists('mysqli_connect_error')) {
@@ -92,12 +92,12 @@ class DB {
 
       if (isset($_ENV['VSQL_INSPECT'])){ if ($_ENV['VSQL_INSPECT']){
         // get the info wrapper for error
-        $content = file_get_contents(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'info.html');
+        $content = file_get_contents(dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'info.html');
 
         $values = array(
           "ERROR_MESAGES" => $msg,
-          "ORIGINALQUERY" => htmlentities($this->query ),
-          "TRANSFRMQUERY" => htmlentities($this->vquery),
+          "ORIGINALQUERY" => htmlentities(  $this->query  ),
+          "TRANSFRMQUERY" => htmlentities(  $this->vquery ),
         );
 
         foreach ($values as $key => $value ){

@@ -11,10 +11,10 @@ include(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 //                                             ╚═══╝   ╚══════╝ ╚══▀▀═╝ ╚══════╝
 
 class VSQL extends \DB {
+
   public function __construct( $id = null ){
     $this->connect();
   }
-
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
   public function query($str, $vrs, $strict = false , $debug = false) {
@@ -269,6 +269,10 @@ class VSQL extends \DB {
       case 'safejson':
           json_decode($var);
           $res = (json_last_error() == JSON_ERROR_NONE) ? "'". $var."'" : '{}';
+          break;
+
+      case: 'rstr'
+          $res = substr(md5(mt_rand()),0,7);
           break;
 
       // deprecated

@@ -152,7 +152,7 @@ class Mold {
       $name   = ucfirst(strtolower($f));
       $search.= "\n\t<input class='form-control-sm' type='{$ht}' name='{$f}' {$ofs} placeholder='{$name}'>";
       $th    .= "\n\t\t\t\t<th scope='col'>   {$name}{$ofs}   </th>";
-      $td    .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </th>";
+      $td    .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </td>";
 
       $l = "<label for='{$f}'>{$name}</label>";
       $b = "<label for='{$f}'>{$name}</label>";
@@ -273,7 +273,7 @@ class Mold {
     $inner = implode([ $sel ,$count, $add, $del, $upd, $rep, $sort,$clone],"\n\n");
     $class = "<?php\nnamespace App\Http\Controllers\\{$classname};\n";
     $class .= "\nuse VSQL\VSQL\VSQL;\n\n";
-    $class .= "class {$table} extends VSQL\VSQL\Table {{$inner}\n}";
+    $class .= "class {$table} {{$inner}\n}";
 
     return $class;
   }
@@ -283,7 +283,8 @@ class Mold {
     $abs = $this->abstraction($table,"\t\t");
     $id = $abs[0]['id'];
 
-    $classname = ucfirst(strtolower($table));
+    $name = strtolower($table);
+    $classname = ucfirst($name);
 
     $all = self::uppline('index');
     $all .= "\n\tpublic function index(){";
@@ -314,7 +315,7 @@ class Mold {
     $edit = self::uppline('edit');
     $edit .= "\n\tpublic function edit( ){
     \$id = self::compose(\$_POST);
-    // Utils::alert( '/rute/' . \$id , 'Item-Composed' , 'success');
+    Utils::redirect( '/{$name}/show/{\$id}' , 'success-success' , 'success');
   }\n";
 
     $ajaxedit = self::uppline('ajax ~ edit');
@@ -358,11 +359,12 @@ class Mold {
     $del .= "\t\t{$table}::del([
       '$id' => request()->route('id')
     ]);
-    // Utils::alert( '/rute' , 'Item-Deleted' , 'success');
+
+    Utils::redirect( '/{$name}'  , 'Item-Deleted' , 'success');
   }\n";
 
     $ajaxdel = self::uppline('ajax ~ del');
-    $ajaxdel .= "\n\tpublic function del(){\n";
+    $ajaxdel .= "\n\tpublic function adel(){\n";
     $ajaxdel .= "\t\t{$table}::del([
       '$id' => request()->route('id')
     ]);
@@ -372,7 +374,15 @@ class Mold {
 		]));\n\t}\n";
 
 
-    $inner = $all . $shw. $mod . $edit .$ajaxedit . $toggle . $sort .$del .$ajaxdel;
+// -----------------------------------
+    $dwld = self::uppline('download');
+    $dwld .= "\n\tpublic function dwld(){
+      header( 'Content-Disposition: attachment; filename=\"{$table}.csv\";' );
+      \$obj = {$table}::get([],'output-csv');
+      die;
+    }\n";
+
+    $inner = $all . $shw . $dwld . $mod . $edit .$ajaxedit . $toggle . $sort .$del .$ajaxdel;
     $class = "<?php\nnamespace App\Http\Controllers\\{$table};\n\n";
     $class .= "use App\Http\Controllers\\{$table}\\{$table};\n\n";
     $class .= "class Controller extends \App\Http\Controllers\Core {{$inner}\n}";
@@ -427,19 +437,49 @@ class Mold {
     return $blade;
   }
 
+
+  public function routes( $table ){
+    $abs = $this->abstraction($table,"\t\t");
+
+    $name = strtolower($table);
+    $classname = ucfirst($name);
+
+    $routes = self::uppline( $classname );
+    $routes .= "\nRoute::prefix('{$name}')->group(function() {
+  Route::get(  '/'           , '{$classname}\Controller@index'   );
+  Route::post( '/edit/{id}'  , '{$classname}\Controller@edit'    );
+  Route::post( '/status/{id}', '{$classname}\Controller@status'  );
+  Route::get(  '/dwld/{id}'  , '{$classname}\Controller@dwld'    );
+  Route::get(  '/show/{id}'  , '{$classname}\Controller@show'    );
+  Route::get(  '/clone/{id}' , '{$classname}\Controller@clone'   );
+  Route::get(  '/del/{id}'   , '{$classname}\Controller@del'     );
+});\n";
+
+
+    $inner =  $routes ;
+    $class = "<?php\nuse Illuminate\Support\Facades\Route;\n\n";
+    $class .= "{$inner}";
+
+    return $class;
+  }
+
   public function makeMold( $table ,$dir = '') {
-    $sname = strtolower( $table );
+    $sname     = strtolower( $table );
     $classname = ucfirst($sname);
     $gitignore = "__mold__";
 
     echo "<pre>";
 
     if ($dir == ''){
+
       $diro = dirname($this->trace_func( 'makeMold' )['file']);
-      $f = fopen("{$diro}/.gitignore", "w");
-      fwrite($f, '__mold__*/');
-      fclose($f);
+      $f    = fopen("{$diro}/.gitignore", "w");
+
+      fwrite( $f , '__mold__*/' );
+      fclose( $f                );
+
       $dir = $diro . DIRECTORY_SEPARATOR . $gitignore . $classname;
+
     }
 
     try {
@@ -449,13 +489,14 @@ class Mold {
     $files = array(
       ['name'=> "/index.blade.php" , 'func' => 'blade_list'],
       ['name'=> "/show.blade.php"  , 'func' => 'blade_show'],
+      ['name'=> "/routes.php"      , 'func' => 'routes'],
       ['name'=> "/Controller.php"  , 'func' => 'controller'],
       ['name'=> "/{$table}.php"    , 'func' => 'model'     ],
     );
 
     foreach ($files as $key => $f) {
       $fl = fopen( $dir . $f['name'] , "w" );
-      eval('fwrite($fl, $this->'.$f['func'].'($table));');
+      eval( 'fwrite($fl, $this->'.$f['func'].'($table));' );
       fclose($fl);
     }
 
@@ -478,7 +519,7 @@ class Mold {
 
     return null;
   }
-  
+
   //------------------------------------------------ <  error > ------------------------------------------------------------
   protected function error( $msg , $code = 0 , $debug = false ) {
     throw new \Exception("Error : " . $msg, $code );
