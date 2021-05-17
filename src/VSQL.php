@@ -271,7 +271,7 @@ class VSQL extends \DB {
           $res = (json_last_error() == JSON_ERROR_NONE) ? "'". $var."'" : '{}';
           break;
 
-      case: 'rstr'
+      case 'rstr'
           $res = substr(md5(mt_rand()),0,7);
           break;
 
