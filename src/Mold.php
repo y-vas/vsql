@@ -420,7 +420,8 @@ class Mold {
     $abs = $this->abstraction($table,"\t");
     $id = $abs[0]['id'];
 
-    $classname = ucfirst(strtolower($table));
+    $sname     = strtolower( $table );
+    $classname = ucfirst($sname);
 
     $buttons = "\n<button class='btn btn-sm btn-warning' type='button' name='button'>Delete</button>";
     $buttons.= "\n";
@@ -430,8 +431,10 @@ class Mold {
 
     $inner = $abs[0]['blade'];
     $inner.= "\n\t<input type='submit' class='btn btn-primary' value='Save'>";
-    $inner.= "\n\t<a href='.../del/{{\$obj->id}}' class='btn btn-primary'> Delete </a>";
-    $class = "<form action='.../compose/{{ \$obj->$id ?? 0 }}' method='post'>\n{$inner}\n</form>";
+    $inner.= "\n\t<a href='/{$name}/del/{{\$obj->id}}' class='btn btn-primary'> Delete </a>";
+    $class = "<form action='/{$name}/edit/{{ \$obj->id ?? 0 }}' method='post' enctype=\"multipart/form-data\">
+    @csrf
+    \n{$inner}\n</form>";
     $blade.= "@section('container')\n{$class}\n@endsection\n";
 
     return $blade;
