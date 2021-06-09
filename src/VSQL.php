@@ -247,7 +247,7 @@ class VSQL extends \DB {
       // implode the array
       case 'implode':
       case 'array':
-          $res = "'" . implode(',', $res ) . "'";
+          $res = "'" . implode(',', is_array($res) ? $res : [] ) . "'";
           break;
 
       // transform the valie to json
