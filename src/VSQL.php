@@ -17,11 +17,10 @@ class VSQL extends \DB {
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-  public function query($str, $vrs, $strict = false , $debug = false) {
+  public function query($str , $vrs , $debug = false , $old = null ) {
     $this->query  = $str;
     $this->vquery = ''; // init again
     $this->vars   = $vrs;
-    $this->strict = $strict;
 
     $str = $this->interpreter( $str, $vrs );
     $str = $this->modifier( $str, $vrs );
@@ -29,22 +28,26 @@ class VSQL extends \DB {
     $this->vquery = $str;
 
     if ( $debug ){
-        $this->error( 'Inspect', 0 , true );
+        $this->error( 'Inspect' , 0 , true );
     }
 
     return $this->vquery;
   }
 
-  public function run($list = false) {
+  public function run( $list = false ){
       // if the first word is selet then we use the get method
-      $qtipe = strtolower(explode(' ', trim($this->vquery) )[0]);
+      $qtipe = strtolower(explode(' ', trim( $this->vquery ))[ 0 ]);
 
       if ($qtipe == 'select') {
         return $this->get( $list );
       }
 
       $mysqli = $this->connect;
-      $mysqli->query( $this->vquery );
+
+      $mysqli->query(
+          $this->vquery
+      );
+
       return $mysqli;
   }
 

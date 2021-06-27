@@ -3,18 +3,18 @@
 namespace VSQL\VSQL;
 
 class Mold {
-  public $inspect;   // shows if you are in inspect mode
-  public $vquery=''; // given query
-  public $cquery; // compiled query
-  public $vars; // vars used between each query
-  public $id; // deprecated
-  public $func; // deprecated
   public $fetched = [];
+  public $inspect;         // shows if you are in inspect mode
+  public $vquery='';       // given query
+  public $cquery;          // compiled query
+  public $vars;            // vars used between each query
+  public $id;              // deprecated
+  public $func;            // deprecated
 
-  public $query; // query used as
-  public $connect = false; # resource: DB connection
-  public $error; # string: Error message
-  public $errno; # integer: error no
+  public $query;           // query used as
+  public $connect = false; // resource: DB connection
+  public $error;           // string: Error message
+  public $errno;           // integer: error no
 
   private $datatypes = array(
   /* datatype   |  parser   | default | html           |      */
