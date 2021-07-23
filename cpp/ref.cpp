@@ -1,21 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <regex>
 
 using namespace std;
 
 string example(){
    string content = "";
-
-   // ifstream myfile ("example.sql");
-   // if (myfile.is_open()){
-   //
-   //    while ( getline(myfile,line) ) {
-   //       content += line + '\n';
-   //    }
-   //
-   //    myfile.close();
-   // }
 
    return " SELECT * FROM Table T "
           "  WHERE TRUE "
@@ -23,33 +14,24 @@ string example(){
    ;
 }
 
-string find_word(string data, int i){
-   return 0;
-}
-
 int main() {
+
    string data = example();
+   // current key word found          //
 
-   // current key word found //
    string cuw = "";
+   // add char to cuw                 //
 
-   // add char to cuw ----------
    int append = 0;
+   int pos[];
 
    for (int i = 0; i < data.length(); ++i) {
-      char c = data[i];
 
-      if (c == ' '){
-        cout << cuw << '/';
-        cuw = "";
-        append = 0;
-      } else if ( c == ':' ) {
-        append = 1;
+      switch ( data[i] ) {
+        case '{':
+        case '}':
+        break;
 
-      }
-
-      if ( append == 1 ) {
-        cuw += c;
       }
 
    }
