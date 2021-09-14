@@ -3,39 +3,41 @@
 namespace VSQL\VSQL;
 
 class Mold {
+  public $inspect;   // shows if you are in inspect mode
+  public $vquery=''; // given query
+  public $cquery; // compiled query
+  public $vars; // vars used between each query
+  public $id; // deprecated
+  public $func; // deprecated
   public $fetched = [];
-  public $inspect;         // shows if you are in inspect mode
-  public $vquery='';       // given query
-  public $cquery;          // compiled query
-  public $vars;            // vars used between each query
-  public $id;              // deprecated
-  public $func;            // deprecated
 
-  public $query;           // query used as
-  public $connect = false; // resource: DB connection
-  public $error;           // string: Error message
-  public $errno;           // integer: error no
+  public $query; // query used as
+  public $connect = false; # resource: DB connection
+  public $error; # string: Error message
+  public $errno; # integer: error no
 
   private $datatypes = array(
-  /* datatype   |  parser   | default | html           |      */
-  'tinyint'   =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'smallint'  =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'int'       =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'float'     =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
-  'double'    =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
-  'timestamp' =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'bigint'    =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'mediumint' =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'date'      =>[  'string' ,  "''"   ,'date'          ,   0   ] ,
-  'time'      =>[  'string' ,  "''"   ,'time'          ,   0   ] ,
-  'datetime'  =>[  'string' ,  "''"   ,'datetime-local',   0   ] ,
-  'year'      =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'bit'       =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'varchar'   =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'char'      =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'decimal'   =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
-  'text'      =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'enum'      =>[  'string' ,  "''"   ,'text'          ,   0   ]
+  /* datatype          |  parser   | default | html           |      */
+  'tinyint'          =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'smallint'         =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'int'              =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'bigint unsigned'  =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'float'            =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+  'double'           =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+  'timestamp'        =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'bigint'           =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'mediumint'        =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'date'             =>[  'string' ,  "''"   ,'date'          ,   0   ] ,
+  'time'             =>[  'string' ,  "''"   ,'time'          ,   0   ] ,
+  'datetime'         =>[  'string' ,  "''"   ,'datetime-local',   0   ] ,
+  'year'             =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'bit'              =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+  'varchar'          =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+  'char'             =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+  'decimal'          =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+  'text'             =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+  'longtext'         =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+  'enum'             =>[  'string' ,  "''"   ,'text'          ,   0   ]
   );
 
   public function __construct(){
@@ -121,11 +123,14 @@ class Mold {
     $search = '';
     $th     = '';
     $td     = '';
+    $blade  = '';
 
     while($r = $res->fetch_assoc()) {
       var_dump( $r );
 
       $exp = explode(  '(',$r['Type']  )[0];
+      // echo $exp;
+      // die;
       $ht = $this->datatypes[ $exp ][ 2 ];
       $tp = $this->datatypes[ $exp ][ 0 ][ 0 ];
       $nn = $this->datatypes[ $exp ][ 1 ];
@@ -179,7 +184,7 @@ class Mold {
 
     $data['blade'] = $blade;
 
-    return [ $data, $q, $i, $u, $d, $p, $a, $r, $s, $search, $th, $td ];
+    return [ $data, $q, $i, $u, null, $p, $a, $r, $s, $search, $th, $td ];
   }
 
 
@@ -195,7 +200,7 @@ class Mold {
     $sel .= "\t\t\$v = new VSQL();
 
     \$v->query(\"SELECT {
-    { count(*)$le as `num` count; }
+    { count(*) as `num` count; }
     { `$id`  _id; }
       default: *
     } " . $abs[1];
@@ -270,7 +275,7 @@ class Mold {
     self::upd(['$id'=> \$id,'$ord'=> \$put ]);
   }";
 
-    $inner = implode([ $sel ,$count, $add, $del, $upd, $rep, $sort,$clone],"\n\n");
+    $inner = implode("\n\n",[ $sel ,$count, $add, $del, $upd, $rep, $sort,$clone]);
     $class = "<?php\nnamespace App\Http\Controllers\\{$classname};\n";
     $class .= "\nuse VSQL\VSQL\VSQL;\n\n";
     $class .= "class {$table} {{$inner}\n}";
@@ -301,7 +306,7 @@ class Mold {
     $shw .= "\n\tpublic function show(){";
     $shw .= "\n\t\t\$obj = {$table}::get(['$id'=>request()->route('id')]);";
     $shw .= "\n\n\t\tif ( !isset( \$obj->$id ) ){
-      // Utils::alert( '/rute' , 'Item-Not-Found' , 'danger');
+      Utils::redirect( '/{$name}' , __('office.item_not_found',['name'=>'$table']) , 'danger');
     }";
     $shw .= "\n\n\t\treturn view('{$table}/show',[
       'obj' => \$obj \n\t\t]); ";
@@ -315,7 +320,7 @@ class Mold {
     $edit = self::uppline('edit');
     $edit .= "\n\tpublic function edit( ){
     \$id = self::compose(\$_POST);
-    Utils::redirect( '/{$name}/show/{\$id}' , 'success-success' , 'success');
+    Utils::redirect( \"/{$name}/show/{\$id}\" , __('office.success') , 'success');
   }\n";
 
     $ajaxedit = self::uppline('ajax ~ edit');
@@ -431,8 +436,8 @@ class Mold {
 
     $inner = $abs[0]['blade'];
     $inner.= "\n\t<input type='submit' class='btn btn-primary' value='Save'>";
-    $inner.= "\n\t<a href='/{$name}/del/{{\$obj->id}}' class='btn btn-primary'> Delete </a>";
-    $class = "<form action='/{$name}/edit/{{ \$obj->id ?? 0 }}' method='post' enctype=\"multipart/form-data\">
+    $inner.= "\n\t<a href='/{$sname}/del/{{\$obj->id}}' class='btn btn-primary'> Delete </a>";
+    $class = "<form action='/{$sname}/edit/{{ \$obj->id ?? 0 }}' method='post' enctype=\"multipart/form-data\">
     @csrf
     \n{$inner}\n</form>";
     $blade.= "@section('container')\n{$class}\n@endsection\n";
@@ -441,7 +446,7 @@ class Mold {
   }
 
 
-  public function routes( $table ){
+  public function routes_office( $table ){
     $abs = $this->abstraction($table,"\t\t");
 
     $name = strtolower($table);
@@ -465,6 +470,31 @@ class Mold {
 
     return $class;
   }
+
+//   public function routes_client( $table ){
+//     $abs = $this->abstraction($table,"\t\t");
+//
+//     $name = strtolower($table);
+//     $classname = ucfirst($name);
+//
+//     $routes = self::uppline( $classname );
+//     $routes .= "\nRoute::prefix('{$name}')->group(function() {
+//   Route::get(  '/'           , '{$classname}\Controller@index'   );
+//   Route::post( '/edit/{id}'  , '{$classname}\Controller@edit'    );
+//   Route::post( '/status/{id}', '{$classname}\Controller@status'  );
+//   Route::get(  '/dwld/{id}'  , '{$classname}\Controller@dwld'    );
+//   Route::get(  '/show/{id}'  , '{$classname}\Controller@show'    );
+//   Route::get(  '/clone/{id}' , '{$classname}\Controller@clone'   );
+//   Route::get(  '/del/{id}'   , '{$classname}\Controller@del'     );
+// });\n";
+//
+//
+//     $inner =  $routes ;
+//     $class = "<?php\nuse Illuminate\Support\Facades\Route;\n\n";
+//     $class .= "{$inner}";
+//
+//     return $class;
+//   }
 
   public function makeMold( $table ,$dir = '') {
     $sname     = strtolower( $table );
@@ -490,10 +520,16 @@ class Mold {
     } catch (\Exception $e) { }
 
     $files = array(
-      ['name'=> "/index.blade.php" , 'func' => 'blade_list'],
-      ['name'=> "/show.blade.php"  , 'func' => 'blade_show'],
-      ['name'=> "/routes.php"      , 'func' => 'routes'],
-      ['name'=> "/Controller.php"  , 'func' => 'controller'],
+      ['name'=> "/list.blade.php"     , 'func' => 'blade_list'],
+      ['name'=> "/compose.blade.php"  , 'func' => 'blade_show'],
+
+      ['name'=> "/client.routes.php"  , 'func' => 'routes_client'],
+      ['name'=> "/office.routes.php"  , 'func' => 'routes_office'],
+
+      ['name'=> "/Office.php"      , 'func' => 'controller'],
+      ['name'=> "/Client.php"      , 'func' => 'controller'],
+      ['name'=> "/API.php"         , 'func' => 'controller'],
+
       ['name'=> "/{$table}.php"    , 'func' => 'model'     ],
     );
 
@@ -508,7 +544,7 @@ class Mold {
 
   protected function trace_func($func){
     $e = new \Exception();
-    foreach ($e->getTrace() as $key => $value) {
+    foreach ( $e->getTrace() as $key => $value ){
         if ($value['function'] == $func ) {
             $bodytag = str_replace(DIRECTORY_SEPARATOR,"", $value['file']);
             $value['date'] = filemtime($value['file']);
@@ -517,8 +553,6 @@ class Mold {
             return $value;
         }
     }
-
-
 
     return null;
   }

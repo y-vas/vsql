@@ -23,7 +23,6 @@ int main() {
    // add char to cuw                 //
 
    int append = 0;
-   int pos[];
 
    for (int i = 0; i < data.length(); ++i) {
 
