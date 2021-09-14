@@ -9,7 +9,7 @@ services:
     depends_on:
       - mysql_vsql
     ports:
-      - "80:80"
+      - "0:80"
     volumes:
       - ./:/var/www/html/
       - ./docker/apache/virtualhost.conf:/etc/apache2/sites-enabled/000-default.conf
@@ -21,7 +21,7 @@ services:
     command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci','--default-authentication-plugin=mysql_native_password']
     restart: always
     ports:
-      - "18906:3306"
+      - "0:3306"
 
     # volumes:
     #   - ./docker/mysql-dump:/docker-entrypoint-initdb.d
