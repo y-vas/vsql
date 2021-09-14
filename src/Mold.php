@@ -7,8 +7,6 @@ class Mold {
   public $vquery=''; // given query
   public $cquery; // compiled query
   public $vars; // vars used between each query
-  public $id; // deprecated
-  public $func; // deprecated
   public $fetched = [];
 
   public $query; // query used as
@@ -129,8 +127,10 @@ class Mold {
       var_dump( $r );
 
       $exp = explode(  '(',$r['Type']  )[0];
+
       // echo $exp;
       // die;
+
       $ht = $this->datatypes[ $exp ][ 2 ];
       $tp = $this->datatypes[ $exp ][ 0 ][ 0 ];
       $nn = $this->datatypes[ $exp ][ 1 ];
@@ -139,25 +139,34 @@ class Mold {
 
       $ofs = str_repeat( ' ' , $lenght - strlen( $f ) );
 
-      $n = ( $c++ % 3 == 0) ? "\n$e" : "\n$e";
-      $na =( $c % 8 == 0) ? "\n\t$e" : '';
-      $t = ( $c != $max) ? "," : '';
+      $n = ( $c++ % 3 == 0 ) ? "\n$e" : "\n$e";
+      $na =( $c   % 8 == 0 ) ? "\n\t$e" : '';
+      $t = ( $c   != $max  ) ? "," : '';
 
-      if ( $c == 1 ){ $data['ff'] = $f; }
+      if ( $c == 1 ){
+        $data['ff'] = $f;
+      }
 
       $select .= "$n`" . $f ."`$ofs$t" ;
-      $where .=  "$n{ AND `" . $f ."`$ofs =  $tp:". $f ."$ofs }" ;
-      $insert .= "$n $tp:". $f ."{$ofs} ? {$nn}; {$t}" ;
+      $where  .= "$n{ AND `" . $f ."`$ofs =  $tp:". $f ."$ofs }" ;
+      $insert .= "$n $tp:". $f ."{$ofs} ? {$nn}; {$t}";
       $update .= "$n{ ". $f ."{$ofs} = $tp:". $f ." {$ofs},}" ;
 
       $parser.= $e ."\t'{$f}' $ofs=> \$_GET['{$f}'] $ofs ?? null ,\n";
       $array.= $e ."\t'{$f}' $ofs=> \$arr['{$f}'] $ofs ?? null ,\n";
       $data['clone'] .= $e ."\t'{$f}' $ofs=> \$obj->{$f} $ofs ,\n";
 
-      $name   = ucfirst(strtolower($f));
-      $search.= "\n\t<input class='form-control-sm' type='{$ht}' name='{$f}' {$ofs} placeholder='{$name}'>";
-      $th    .= "\n\t\t\t\t<th scope='col'>   {$name}{$ofs}   </th>";
-      $td    .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </td>";
+      $name    = ucfirst(strtolower($f));
+      $search .= "\n\t<input class='form-control-sm' type='{$ht}' name='{$f}' {$ofs} placeholder='{$name}'>";
+      $th     .= "\n\t\t\t\t<th scope='col'> {$name}{$ofs} </th>";
+
+      if ($f == 'id') {
+        $td .= "\n\t\t\t\t<td scope='col'>";
+        $td .= "\n\t\t\t\t\t<a href='/{$name}/show/{{\$obj->id}}'> {{\$obj->name}} {$ofs}  </a>";
+        $td .= "\n\t\t\t\t</td>";
+      }else {
+        $td .= "\n\t\t\t\t<td scope='col'>   {{\$obj->{$f}}} {$ofs}  </td>";
+      }
 
       $l = "<label for='{$f}'>{$name}</label>";
       $b = "<label for='{$f}'>{$name}</label>";
@@ -187,9 +196,7 @@ class Mold {
     return [ $data, $q, $i, $u, null, $p, $a, $r, $s, $search, $th, $td ];
   }
 
-
-
-  public function model( $table /*, $type = 'static'*/){
+  public function model( $table /*, $type = 'static'*/ ){
     $abs = $this->abstraction($table,"\t\t");
     $classname = ucfirst(strtolower($table));
     $id = $abs[0]['id'];
@@ -282,7 +289,6 @@ class Mold {
 
     return $class;
   }
-
 
   public function controller( $table ){
     $abs = $this->abstraction($table,"\t\t");
@@ -403,20 +409,19 @@ class Mold {
     $th     = $abs[10];
     $td     = $abs[11];
 
-    $buttons = "\n<a href='#' class='btn btn-sm btn-warning'> Add </a>";
+    $buttons = "\n<a href='show/0' class='btn btn-sm btn-warning'> {{__('office.add')}} </a>";
     $buttons.= "\n";
 
     $thead = "<thead class='table-active'>\n\t\t\t<tr>{$th}\n\t\t</tr>\n\t</thead>";
     $tbody = "\t<tbody>\n\t\t\t@foreach (\$objs as \$obj)\n\t\t\t<tr>{$td}\n\t\t</tr>\n\t\t@endforeach\n\t</tbody>";
     $table = "<table class='table'>\n\t{$thead}\n\t{$tbody}\n</table>";
 
-    $pagination = "\n\n@component('components.page',[ 'max' => \$max ])\n/urls\n";
-    $pagination.= "@endcomponent";
+    $pagination = "\n\n@component('components.page',[ 'max' => \$max ])@endcomponent";
 
-    $blade = "@extends('base')\n\n";
+    $blade = "@extends('office')\n\n";
     $blade.= "@section('search'){$search}\n\t<button class='btn btn-sm btn-info' type='submit' >Search</button>\n@endsection\n\n";
-    $blade.= "@section('main-buttons'){$buttons}@endsection\n\n";
-    $blade.= "@section('container')\n{$table}{$pagination}\n\n@endsection\n";
+    $blade.= "@section('content-header'){$buttons}@endsection\n\n";
+    $blade.= "@section('content')\n{$table}{$pagination}\n\n@endsection\n";
 
     return $blade;
   }
@@ -454,6 +459,32 @@ class Mold {
 
     $routes = self::uppline( $classname );
     $routes .= "\nRoute::prefix('{$name}')->group(function() {
+  Route::get(  '/'           , [ Office::class , 'index'   ]);
+  Route::post( '/edit/{id}'  , [ Office::class , 'edit'    ]);
+  Route::post( '/status/{id}', [ Office::class , 'status'  ]);
+  Route::get(  '/dwld/{id}'  , [ Office::class , 'dwld'    ]);
+  Route::get(  '/show/{id}'  , [ Office::class , 'show'    ]);
+  Route::get(  '/clone/{id}' , [ Office::class , 'clone'   ]);
+  Route::get(  '/del/{id}'   , [ Office::class , 'del'     ]);
+  Route::get(  '/import'     , [ Office::class , 'import'  ]);
+});\n";
+
+    $inner =  $routes ;
+    $class = "<?php\nuse Illuminate\Support\Facades\Route;
+use \App\Http\Controllers\{$table}\Office;\n\n";
+    $class .= "{$inner}";
+
+    return $class;
+  }
+
+  public function routes_client( $table ){
+    $abs = $this->abstraction($table,"\t\t");
+
+    $name = strtolower($table);
+    $classname = ucfirst($name);
+
+    $routes = self::uppline( $classname );
+    $routes .= "\nRoute::prefix('{$name}')->group(function() {
   Route::get(  '/'           , '{$classname}\Controller@index'   );
   Route::post( '/edit/{id}'  , '{$classname}\Controller@edit'    );
   Route::post( '/status/{id}', '{$classname}\Controller@status'  );
@@ -463,38 +494,13 @@ class Mold {
   Route::get(  '/del/{id}'   , '{$classname}\Controller@del'     );
 });\n";
 
-
     $inner =  $routes ;
-    $class = "<?php\nuse Illuminate\Support\Facades\Route;\n\n";
+    $class = "<?php\nuse Illuminate\Support\Facades\Route;
+use \App\Http\Controllers\{$table}\Client;\n\n";
     $class .= "{$inner}";
 
     return $class;
   }
-
-//   public function routes_client( $table ){
-//     $abs = $this->abstraction($table,"\t\t");
-//
-//     $name = strtolower($table);
-//     $classname = ucfirst($name);
-//
-//     $routes = self::uppline( $classname );
-//     $routes .= "\nRoute::prefix('{$name}')->group(function() {
-//   Route::get(  '/'           , '{$classname}\Controller@index'   );
-//   Route::post( '/edit/{id}'  , '{$classname}\Controller@edit'    );
-//   Route::post( '/status/{id}', '{$classname}\Controller@status'  );
-//   Route::get(  '/dwld/{id}'  , '{$classname}\Controller@dwld'    );
-//   Route::get(  '/show/{id}'  , '{$classname}\Controller@show'    );
-//   Route::get(  '/clone/{id}' , '{$classname}\Controller@clone'   );
-//   Route::get(  '/del/{id}'   , '{$classname}\Controller@del'     );
-// });\n";
-//
-//
-//     $inner =  $routes ;
-//     $class = "<?php\nuse Illuminate\Support\Facades\Route;\n\n";
-//     $class .= "{$inner}";
-//
-//     return $class;
-//   }
 
   public function makeMold( $table ,$dir = '') {
     $sname     = strtolower( $table );
@@ -512,25 +518,26 @@ class Mold {
       fclose( $f                );
 
       $dir = $diro . DIRECTORY_SEPARATOR . $gitignore . $classname;
-
     }
 
     try {
       mkdir($dir , 0777);
-    } catch (\Exception $e) { }
+    } catch (\Exception $e){
+
+    }
 
     $files = array(
-      ['name'=> "/list.blade.php"     , 'func' => 'blade_list'],
-      ['name'=> "/compose.blade.php"  , 'func' => 'blade_show'],
+      ['name'=> "/list.blade.php"     , 'func' => 'blade_list'    ],
+      ['name'=> "/compose.blade.php"  , 'func' => 'blade_show'    ],
 
-      ['name'=> "/client.routes.php"  , 'func' => 'routes_client'],
-      ['name'=> "/office.routes.php"  , 'func' => 'routes_office'],
+      ['name'=> "/client.routes.php"  , 'func' => 'routes_client' ],
+      ['name'=> "/office.routes.php"  , 'func' => 'routes_office' ],
 
-      ['name'=> "/Office.php"      , 'func' => 'controller'],
-      ['name'=> "/Client.php"      , 'func' => 'controller'],
-      ['name'=> "/API.php"         , 'func' => 'controller'],
+      ['name'=> "/Office.php"         , 'func' => 'controller'    ],
+      ['name'=> "/Client.php"         , 'func' => 'controller'    ],
+      ['name'=> "/API.php"            , 'func' => 'controller'    ],
 
-      ['name'=> "/{$table}.php"    , 'func' => 'model'     ],
+      ['name'=> "/{$table}.php"       , 'func' => 'model'         ],
     );
 
     foreach ($files as $key => $f) {
