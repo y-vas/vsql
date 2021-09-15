@@ -68,20 +68,20 @@ class DB {
       return $this->connect;
     }
 
-    public function secure($var) {
-        if (is_array($var)) {
-            foreach ($var as $k=>$e) {
+    public function secure( $var ) {
+        if (is_array( $var )) {
+            foreach ( $var as $k => $e ) {
                 $_newvar[$k] = $this->secure($e);
             }
             return $_newvar;
         }
 
         if (function_exists('mysqli_real_escape_string')) {
-            return mysqli_real_escape_string($this->connect, $var);
+            return mysqli_real_escape_string( $this->connect, $var );
         } elseif (function_exists('mysqli_escape_string')) {
             return mysql_escape_string($var);
         } else {
-            return addslashes($var);
+            return addslashes( $var );
         }
     }
 
