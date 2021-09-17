@@ -120,7 +120,7 @@ class VSQL extends \DB {
         if ($exist && $r != ';') {
           /* ---------------------------------------------------------------- */
           // if the strict mode is enabled trows an error on any empty value
-          if ( empty( $vrs[ $var ] ) && $this->strict ) {
+          if ( empty( $vrs[ $var ] ) ) {
             $this->error( $var , VSQL_NULL_FIELD );
           }
 
