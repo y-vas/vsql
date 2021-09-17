@@ -27,7 +27,7 @@ class DB {
 
         $this->error   = false;
         $this->errno   = false;
-        $this->inspect = isset($_ENV['VSQL_INSPECT']) ? $_ENV['VSQL_INSPECT'] : null;
+        $this->inspect = isset($_ENV['APP_DEBUG']) ? $_ENV['APP_DEBUG'] : null;
         $this->vquery  = '';
         $this->query   = '';
 
@@ -71,7 +71,7 @@ class DB {
     public function secure( $var ) {
         if (is_array( $var )) {
             foreach ( $var as $k => $e ) {
-                $_newvar[$k] = $this->secure($e);
+              $_newvar[$k] = $this->secure( $e );
             }
             return $_newvar;
         }
@@ -85,12 +85,12 @@ class DB {
         }
     }
 
-
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
-      if ($debug) { $_ENV['VSQL_INSPECT'] = true; }
+      if ($debug) { $_ENV['APP_DEBUG'] = true; }
 
-      if (isset($_ENV['VSQL_INSPECT'])){ if ($_ENV['VSQL_INSPECT']){
+      if (isset($_ENV['APP_DEBUG'])){ if ($_ENV['APP_DEBUG']){
+
         // get the info wrapper for error
         $content = file_get_contents(dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'info.html');
 
