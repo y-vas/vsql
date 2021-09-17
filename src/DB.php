@@ -89,8 +89,15 @@ class DB {
     protected function error( $msg , $code = 0 , $debug = false ) {
       if ($debug) { $_ENV['APP_DEBUG'] = true; }
 
-      if (isset($_ENV['APP_DEBUG'])){ if ($_ENV['APP_DEBUG']){
+      if ($_ENV['APP_DEBUG'] == 'API') {
+        die(json_encode([
+          "status" => $msg,
+          "vquery" => $this->query,
+          "query"  => $this->vquery,
+        ]))
+      }
 
+      if ($_ENV['APP_DEBUG']){
         // get the info wrapper for error
         $content = file_get_contents(dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'info.html');
 
@@ -105,7 +112,7 @@ class DB {
         }
 
         die( $content );
-      }}
+      }
 
       throw new \Exception("Error : " . $msg, $code );
     }
