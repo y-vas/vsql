@@ -14,27 +14,27 @@ class Mold {
   public $errno; # integer: error no
 
   private $datatypes = array(
-  /* datatype          |  parser   | default | html           |      */
-  'tinyint'          =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'smallint'         =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'int'              =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'bigint unsigned'  =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'float'            =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
-  'double'           =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
-  'timestamp'        =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'bigint'           =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'mediumint'        =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'date'             =>[  'string' ,  "''"   ,'date'          ,   0   ] ,
-  'time'             =>[  'string' ,  "''"   ,'time'          ,   0   ] ,
-  'datetime'         =>[  'string' ,  "''"   ,'datetime-local',   0   ] ,
-  'year'             =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'bit'              =>[  'int'    ,  0      ,'number'        ,   0   ] ,
-  'varchar'          =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'char'             =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'decimal'          =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
-  'text'             =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'longtext'         =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
-  'enum'             =>[  'string' ,  "''"   ,'text'          ,   0   ]
+    /* datatype          |  parser   | default | html           |      */
+    'tinyint'          =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'smallint'         =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'int'              =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'bigint unsigned'  =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'float'            =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+    'double'           =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+    'timestamp'        =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'bigint'           =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'mediumint'        =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'date'             =>[  'string' ,  "''"   ,'date'          ,   0   ] ,
+    'time'             =>[  'string' ,  "''"   ,'time'          ,   0   ] ,
+    'datetime'         =>[  'string' ,  "''"   ,'datetime-local',   0   ] ,
+    'year'             =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'bit'              =>[  'int'    ,  0      ,'number'        ,   0   ] ,
+    'varchar'          =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+    'char'             =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+    'decimal'          =>[  'float'  ,  0.0    ,'number'        ,   0   ] ,
+    'text'             =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+    'longtext'         =>[  'string' ,  "''"   ,'text'          ,   0   ] ,
+    'enum'             =>[  'string' ,  "''"   ,'text'          ,   0   ]
   );
 
   public function __construct(){
@@ -469,7 +469,7 @@ class Mold {
 
     $inner =  $routes ;
     $class = "<?php\nuse Illuminate\Support\Facades\Route;
-use \App\Http\Controllers\{$table}\Office;\n\n";
+use \App\Http\Controllers\{$table}\Client;\n\n";
     $class .= "{$inner}";
 
     return $class;
@@ -483,13 +483,7 @@ use \App\Http\Controllers\{$table}\Office;\n\n";
 
     $routes = self::uppline( $classname );
     $routes .= "\nRoute::prefix('{$name}')->group(function() {
-  Route::get(  '/'           , '{$classname}\Controller@index'   );
-  Route::post( '/edit/{id}'  , '{$classname}\Controller@edit'    );
-  Route::post( '/status/{id}', '{$classname}\Controller@status'  );
-  Route::get(  '/dwld/{id}'  , '{$classname}\Controller@dwld'    );
-  Route::get(  '/show/{id}'  , '{$classname}\Controller@show'    );
-  Route::get(  '/clone/{id}' , '{$classname}\Controller@clone'   );
-  Route::get(  '/del/{id}'   , '{$classname}\Controller@del'     );
+  Route::get(  '/'           , [ Client::class , 'index'   ]);
 });\n";
 
     $inner =  $routes ;
