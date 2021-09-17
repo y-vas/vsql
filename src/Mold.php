@@ -8,7 +8,6 @@ class Mold {
   public $cquery; // compiled query
   public $vars; // vars used between each query
   public $fetched = [];
-
   public $query; // query used as
   public $connect = false; # resource: DB connection
   public $error; # string: Error message
