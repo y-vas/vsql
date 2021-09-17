@@ -42,7 +42,6 @@ class Mold {
       $this->connect();
       return;
     }}
-
     $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable Mold Class" );
   }
 
