@@ -11,9 +11,10 @@ class DB {
     public $func; // deprecated
     public $fetched = [];
     public $query; // query used as
+
     public $connect = false; # resource: DB connection
-    public $error; # string: Error message
-    public $errno; # integer: error no
+    public $error;           # string: Error message
+    public $errno;           # integer: error no
 
 // ------------------------------------------------ <  init > ----------------------------------------------------
     function __construct( $id = null ) {
@@ -33,10 +34,10 @@ class DB {
 
         if (!function_exists('mysqli_connect')) {
             if (function_exists('mysqli_connect_error')) {
-                $this->error = mysqli_connect_error();
+              $this->error = mysqli_connect_error();
             }
             if (function_exists('mysqli_connect_errno')) {
-                $this->errorno = mysqli_connect_errno();
+              $this->errorno = mysqli_connect_errno();
             }
             $this->error("Function mysqli_connect() does not exists. mysqli extension is not enabled?");
         }
@@ -44,10 +45,10 @@ class DB {
 
     public function connect() {
       $this->connect = mysqli_connect(
-        $_ENV[  'DB_HOST'  ],
-        $_ENV['DB_USERNAME'],
-        $_ENV['DB_PASSWORD'],
-        $_ENV['DB_DATABASE']
+        $_ENV[   'DB_HOST'   ],
+        $_ENV[ 'DB_USERNAME' ],
+        $_ENV[ 'DB_PASSWORD' ],
+        $_ENV[ 'DB_DATABASE' ]
       );
 
       if (!$this->connect) {
@@ -94,7 +95,7 @@ class DB {
           "status" => $msg,
           "vquery" => $this->query,
           "query"  => $this->vquery,
-        ]))
+        ]));
       }
 
       if ($_ENV['APP_DEBUG']){
