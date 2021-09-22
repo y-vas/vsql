@@ -33,12 +33,15 @@ class DB {
         $this->query   = '';
 
         if (!function_exists('mysqli_connect')) {
-            if (function_exists('mysqli_connect_error')) {
+
+            if ( function_exists('mysqli_connect_error') ){
               $this->error = mysqli_connect_error();
             }
+
             if (function_exists('mysqli_connect_errno')) {
               $this->errorno = mysqli_connect_errno();
             }
+
             $this->error("Function mysqli_connect() does not exists. mysqli extension is not enabled?");
         }
     }
@@ -93,8 +96,8 @@ class DB {
       if ($_ENV['APP_DEBUG'] == 'API') {
         die(json_encode([
           "status" => $msg,
-          "vquery" => $this->query,
-          "query"  => $this->vquery,
+          "vquery" => preg_replace("/\s+/", " ", $this->query),
+          "query" => preg_replace("/\s+/", " ", $this->vquery),
         ]));
       }
 

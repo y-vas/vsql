@@ -250,7 +250,7 @@ class VSQL extends \DB {
       // implode the array
       case 'implode':
       case 'array':
-          if (!is_array($res)) {
+          if (!is_array( $res )) {
             $res = null;
             break;
           }
@@ -274,7 +274,7 @@ class VSQL extends \DB {
           break;
 
       case 'safejson':
-          json_decode($var);
+          json_decode( $var );
           $res = (json_last_error() == JSON_ERROR_NONE) ? "'". $var."'" : '{}';
           break;
 
@@ -287,10 +287,9 @@ class VSQL extends \DB {
       //     if (is_array($res)){
       //       self::upload(
       //         $res[0],
-      //         $res[1] ?? $_ENV['VSQL_CACHE'],
       //         $res[3] ?? ['jpg','png','jpeg']
       //       );
-      //     }else{
+      //     } else {
       //       self::upload($res);
       //     }
       //     break;
@@ -328,7 +327,6 @@ class VSQL extends \DB {
       $mysqli = $this->connect;
       $obj = new \stdClass();
 
-
       $count = 0;
       if (mysqli_multi_query( $mysqli, $this->vquery )) {
 
@@ -338,11 +336,12 @@ class VSQL extends \DB {
               $fp = fopen('php://output', 'wb');
               do { if( $result = mysqli_store_result($mysqli) ){
                   while ($proceso = mysqli_fetch_assoc( $result )) {
-                    $crow = (array) $this->fetch( $result, $proceso );
+                    $crow = ( array ) $this->fetch( $result, $proceso );
 
-                    if ($count == 0) {
+                    if ( $count == 0 ){
                       fputcsv( $fp , array_keys($crow) );
                     }
+
                     fputcsv( $fp , $crow );
                     $count ++;
                   }

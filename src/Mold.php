@@ -38,11 +38,11 @@ class Mold {
   );
 
   public function __construct(){
-    if (isset($_ENV['VSQL_INSPECT'])){if ($_ENV['VSQL_INSPECT']){
+    if (isset($_ENV['APP_DEBUG'])){if ($_ENV['APP_DEBUG']){
       $this->connect();
       return;
     }}
-    $this->error( "Set ( \$_ENV['VSQL_INSPECT'] = true; ) to enable Mold Class" );
+    $this->error( "Set ( \$_ENV['APP_DEBUG'] = true; ) to enable Mold Class" );
   }
 
   public function connect() {
@@ -53,7 +53,7 @@ class Mold {
       $_ENV['DB_DATABASE']
     );
 
-    if (!$this->connect) {
+    if ( !$this->connect ) {
       $this->error('Unable to connect to the database!');
     }
 
@@ -72,7 +72,7 @@ class Mold {
   }
 
 //~~~~ uppline ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  private function uppline($name,$extra = ''){
+  public function uppline( $name , $extra = '' ){
     $len = strlen( $name );
     $line = "\n// ~~~~ $name " . str_repeat( '~' , 71 - $len );
     if (!empty( $extra )) {
@@ -84,11 +84,13 @@ class Mold {
 
 //~~~~ abstraction ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   public function abstraction( $table ,$e = "\t"){
-    $id = 'none';
+    $id     = 'none';
     $lenght = 0;
+
     $data = [
       'order' => 'ORDER_COLUMN',
-      'clone' => ''
+      'clone' => '',
+      'db' => []
     ];
 
     $res = $this->connect->query( "SHOW COLUMNS FROM {$table} FROM " . $_ENV['DB_DATABASE'] );
@@ -97,6 +99,7 @@ class Mold {
         $id = $r['Field'];
         $data['id'] = $id;
       }
+      $data['db'][] = $r;
 
       if ( strpos(strtolower($r['Field']),'ord') !== false && $r['Type'] == 'int'){
         $data['order'] = $r['Field'];
@@ -494,6 +497,26 @@ use \App\Http\Controllers\{$table}\Client;\n\n";
     return $class;
   }
 
+  public function _get_dir( $func , $gi = true){
+    $gitignore = "__mold__";
+
+    $diro = dirname($this->trace_func( $func )['file']);
+    if ($gi) {
+      $f    = fopen("{$diro}/.gitignore", "w");
+      fwrite( $f , '__mold__*/' );
+      fclose( $f                );
+    }
+
+    $dir = $diro . DIRECTORY_SEPARATOR . $gitignore;
+    try {
+      mkdir($dir , 0777);
+    } catch (\Exception $e){
+
+    }
+
+    return $dir;
+  }
+
   public function makeMold( $table ,$dir = '') {
     $sname     = strtolower( $table );
     $classname = ucfirst($sname);
@@ -502,21 +525,9 @@ use \App\Http\Controllers\{$table}\Client;\n\n";
     echo "<pre>";
 
     if ($dir == ''){
-
-      $diro = dirname($this->trace_func( 'makeMold' )['file']);
-      $f    = fopen("{$diro}/.gitignore", "w");
-
-      fwrite( $f , '__mold__*/' );
-      fclose( $f                );
-
-      $dir = $diro . DIRECTORY_SEPARATOR . $gitignore . $classname;
+      $dir = $this->_get_dir('makeMold');
     }
 
-    try {
-      mkdir($dir , 0777);
-    } catch (\Exception $e){
-
-    }
 
     $files = array(
       ['name'=> "/list.blade.php"     , 'func' => 'blade_list'    ],
@@ -547,7 +558,7 @@ use \App\Http\Controllers\{$table}\Client;\n\n";
         if ($value['function'] == $func ) {
             $bodytag = str_replace(DIRECTORY_SEPARATOR,"", $value['file']);
             $value['date'] = filemtime($value['file']);
-            $value['json'] = $_ENV['VSQL_CACHE'].DIRECTORY_SEPARATOR."{$bodytag}.json";
+            $value['json'] = DIRECTORY_SEPARATOR."{$bodytag}.json";
             $value['real'] = file_exists($value['json']);
             return $value;
         }
