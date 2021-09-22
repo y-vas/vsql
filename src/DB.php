@@ -91,13 +91,13 @@ class DB {
 
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
-      if ($debug) { $_ENV['APP_DEBUG'] = true; }
+      if ( $debug ) { $_ENV['APP_DEBUG'] = true; }
 
-      if ($_ENV['APP_DEBUG'] == 'API') {
+      if ( $_ENV['APP_DEBUG'] == 'API' ) {
         die(json_encode([
           "status" => $msg,
           "vquery" => preg_replace("/\s+/", " ", $this->query),
-          "query" => preg_replace("/\s+/", " ", $this->vquery),
+          "query"  => preg_replace("/\s+/", " ", $this->vquery),
         ]));
       }
 
