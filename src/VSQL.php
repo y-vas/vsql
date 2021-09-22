@@ -118,11 +118,6 @@ class VSQL extends \DB {
         $exist = array_key_exists( $var , $vrs );
 
         if ($exist && $r != ';') {
-          /* ---------------------------------------------------------------- */
-          // if the strict mode is enabled trows an error on any empty value
-          if ( empty( $vrs[ $var ] ) ) {
-            $this->error( $var , VSQL_NULL_FIELD );
-          }
 
           // here we make the substitution
           $nv = $this->parser( $parser , $vrs[ $var ] );
