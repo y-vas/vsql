@@ -303,7 +303,7 @@ class Mold {
     $all .= "\n\t\t\$limit = 10;\n";
     $all .= "\n\t\t\$page = ((\$_GET['page'] ?? 1) - 1) * \$limit;\n";
     $all .= "\n\t\t\$search = [\n$abs[5]\t\t\t'limit'  => \$limit,\n\t\t\t'offset' => \$page\n\t\t];\n";
-    $all .= "\n\n\t\treturn view('{$table}/index',[
+    $all .= "\n\n\t\treturn view('{$table}/list',[
       'objs'=> {$table}::get(\$search, true ),
       'max' => ceil( {$table}::count( \$search ) / \$limit )
     ]); ";
@@ -315,7 +315,7 @@ class Mold {
     $shw .= "\n\n\t\tif ( !isset( \$obj->$id ) ){
       Utils::redirect( '/{$name}' , __('office.item_not_found',['name'=>'$table']) , 'danger');
     }";
-    $shw .= "\n\n\t\treturn view('{$table}/show',[
+    $shw .= "\n\n\t\treturn view('{$table}/compose',[
       'obj' => \$obj \n\t\t]); ";
     $shw .= "\n\t}\n";
 
@@ -397,7 +397,7 @@ class Mold {
     $inner = $all . $shw . $dwld . $mod . $edit .$ajaxedit . $toggle . $sort .$del .$ajaxdel;
     $class = "<?php\nnamespace App\Http\Controllers\\{$table};\n\n";
     $class .= "use App\Http\Controllers\\{$table}\\{$table};\n\n";
-    $class .= "class Controller extends \App\Http\Controllers\Core {{$inner}\n}";
+    $class .= "class Office extends \App\Http\Controllers\Core\Office {{$inner}\n}";
 
     return $class;
   }
@@ -405,19 +405,20 @@ class Mold {
   public function blade_list( $table ){
     $abs = $this->abstraction($table,"\t");
     $id = $abs[0]['id'];
+    $sname     = strtolower( $table );
 
     $search = $abs[ 9];
     $th     = $abs[10];
     $td     = $abs[11];
 
-    $buttons = "\n<a href='show/0' class='btn btn-sm btn-warning'> {{__('office.add')}} </a>";
+    $buttons = "\n<a href='/{$sname}/show/0' class='btn btn-sm btn-warning'> {{__('office.add')}} </a>";
     $buttons.= "\n";
 
     $thead = "<thead class='table-active'>\n\t\t\t<tr>{$th}\n\t\t</tr>\n\t</thead>";
     $tbody = "\t<tbody>\n\t\t\t@foreach (\$objs as \$obj)\n\t\t\t<tr>{$td}\n\t\t</tr>\n\t\t@endforeach\n\t</tbody>";
     $table = "<table class='table'>\n\t{$thead}\n\t{$tbody}\n</table>";
 
-    $pagination = "\n\n@component('components.page',[ 'max' => \$max ])@endcomponent";
+    $pagination = "\n\n@component('comp.page',[ 'max' => \$max ])@endcomponent";
 
     $blade = "@extends('office')\n\n";
     $blade.= "@section('search'){$search}\n\t<button class='btn btn-sm btn-info' type='submit' >Search</button>\n@endsection\n\n";
