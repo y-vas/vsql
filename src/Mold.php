@@ -472,7 +472,7 @@ class Mold {
 
     $inner =  $routes ;
     $class = "<?php\nuse Illuminate\Support\Facades\Route;
-use \App\Http\Controllers\{$table}\Client;\n\n";
+use \App\Http\Controllers\\$table\Office;\n\n";
     $class .= "{$inner}";
 
     return $class;
@@ -538,7 +538,7 @@ use \App\Http\Controllers\{$table}\Client;\n\n";
 
       ['name'=> "/Office.php"         , 'func' => 'controller'    ],
       ['name'=> "/Client.php"         , 'func' => 'controller'    ],
-      ['name'=> "/API.php"            , 'func' => 'controller'    ],
+      // ['name'=> "/API.php"            , 'func' => 'controller'    ],
 
       ['name'=> "/{$table}.php"       , 'func' => 'model'         ],
     );
