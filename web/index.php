@@ -9,4 +9,5 @@ $_ENV['DB_PASSWORD'] = 'root';
 $_ENV['DB_DATABASE'] = 'dbtest';
 
 $vsql = new VSQL();
+$vsql->query("SELECT * FROM Db",[] , true );
 echo "string";

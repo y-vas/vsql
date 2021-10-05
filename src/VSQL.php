@@ -1,7 +1,7 @@
 <?php
-
 namespace VSQL\VSQL;
-include(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
+
+include( dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php' );
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
