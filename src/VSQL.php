@@ -214,7 +214,9 @@ class VSQL extends \DB {
           settype($var, 'int');
           $res = $var;
           break;
+          
       // parse to positive integer
+      case 'r':
       case '+i':
           if ($var === null){
             $res = null;
