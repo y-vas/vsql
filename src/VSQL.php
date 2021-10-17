@@ -249,7 +249,6 @@ class VSQL extends \DB {
       case 'array':
           if (!is_array( $res )) {
             $res = [];
-            break;
           }
           $res = "'" . implode(',' ,  $res ) . "'";
           break;
