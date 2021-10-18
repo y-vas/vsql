@@ -1,7 +1,7 @@
 <?php
-namespace VSQL\VSQL;
 
-include( dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php' );
+namespace VSQL\VSQL;
+include(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'DB.php');
 
 //                                           ██╗     ██╗ ███████╗  ██████╗  ██╗
 //                                           ██║    ██║ ██╔════╝ ██╔═══██╗ ██║
@@ -149,6 +149,8 @@ class VSQL extends \DB {
         $ofst += strlen( $sub ) - strlen( $full );
       }
 
+      // echo $f;
+
       if($f == '}'){
         $co .= $f;
         $cp = strrpos( $co, '{' );
@@ -156,17 +158,22 @@ class VSQL extends \DB {
         $pb = $m[ 0 ][ intval( $cp ) ][ 2 ];
 
         $e = $p + $ofst - $pb + 1;
-        if (strpos($pr, '~') !== false && strpos($pr, ':') !== false) {
+        if ( strpos( $pr,'~') !== false && strpos($pr, ':') !== false) {
 
+          // dd( $grp );
           $grp = substr(  $str , $pb + 1 , $e - 2 );
           $exp = explode('default:', $grp );
-          $nst = str_repeat(' ',strlen($exp[1]) + 10) . $exp[0];
+          $nst = str_repeat(' ',
+              strlen(
+                $exp[1]
+                ) + 10) . $exp[0];
           $str = substr_replace(  $str, $nst, $pb , $e );
 
         } else if (strpos($pr, '~') !== false && strpos($pr, ':') === false) {
 
           $grp = substr(  $str , $pb + 1 , $e - 2 );
           $exp = explode('default:', $grp );
+
           // we add 10 ' ' because the lenght of $exp
           $nst = str_repeat(' ',strlen($exp[0]) + 10) . $exp[1];
           $str = substr_replace(  $str, $nst, $pb , $e );
@@ -262,6 +269,10 @@ class VSQL extends \DB {
           $res = "'" . trim(strval($res)) . "'";
           break;
 
+      case '\'': // add for quoted values
+          $res =  "'" . trim(strval($res));
+          break;
+
       // parse the value to string
       case 's':
           $v = strval($res);
@@ -307,9 +318,10 @@ class VSQL extends \DB {
       foreach ($m[0] as $k => $full) {
         $s = $m[1][$k];
         $f = $m[2][$k];
-        $this->fetched[trim($s)] = [trim($f)];
+        $this->fetched[ trim( $s )] = [trim($f)];
         $str = str_replace($full," AS {$s} ",$str);
       }
+
       return $str;
   }
 
@@ -365,9 +377,10 @@ class VSQL extends \DB {
 
           } else {
               $result = mysqli_store_result($mysqli);
-              if (!$result) {
+              if ( !$result ) {
                 $this->error("Fail on query get :" . mysqli_error($mysqli));
               }
+
               $proceso = mysqli_fetch_assoc($result);
               if($proceso == null){ $obj = null; }
               else { $obj = $this->fetch( $result, $proceso ); }
@@ -402,10 +415,10 @@ class VSQL extends \DB {
       foreach ($this->fetched as $k => $value) {
           if (trim( $key ) == trim( $k )){
               foreach ( $value as $t => $tr ){
-                $val = $this->_transform($tr, $val);
+                $val = $this->_transform( $tr, $val );
       }}}
 
-      return array($val, $key);
+      return array( $val, $key );
     }
 
 // ------------------------------------------------ <  _transform > ----------------------------------------------------
@@ -414,14 +427,13 @@ class VSQL extends \DB {
           $val = utf8_decode( $val );
       }
 
-      switch ($transform) {
+      switch ( $transform ) {
         case 'json':
-            $non = json_decode($val,true);
-            if ($non != null){
-              return $non;
-            }
+            $non = json_decode( $val , true );
+            if ( $non != null ){ return $non; }
 
-            $non = json_decode(utf8_encode($val),true);
+            $non = json_decode( utf8_encode( $val ), true );
+
             if ( $non != null ){
               return $non;
             }
@@ -429,24 +441,20 @@ class VSQL extends \DB {
             return json_decode($val, true);
         case 'array':
             $non = json_decode($val,true);
-            if ( $non!=null ){
+            if ( $non != null ){
               return $non;
             }
             return json_decode($val, true);
-
         case 'explode':
             return explode( ',' , $val );
-
         case 'array-std':
             $non = json_decode( $val , true );
-            if ($non == null ){
+            if ( $non == null ){
               $non = json_decode( $val, true );
             }
-
             foreach ( $non as $key => $value ){
               $non[$key] = (object) $value;
             }
-
             return $non;
         default:
           break;
