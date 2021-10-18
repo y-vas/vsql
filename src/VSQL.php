@@ -278,6 +278,9 @@ class VSQL extends \DB {
           $res = "'" . trim(strval($res)) . "'";
           break;
 
+      case '"': // add for quoted values
+          $res =  '"' . trim(strval($res));
+          break;
       case '\'': // add for quoted values
           $res =  "'" . trim(strval($res));
           break;
