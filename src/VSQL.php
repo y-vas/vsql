@@ -35,7 +35,7 @@ class VSQL extends \DB {
   }
 
   public function run( $list = false ){
-      // if the first word is selet then we use the get method
+      // if the first word is 'select' then we fetch the values
       $qtipe = strtolower(explode(' ', trim( $this->vquery ))[ 0 ]);
 
       if ($qtipe == 'select') {
@@ -43,7 +43,6 @@ class VSQL extends \DB {
       }
 
       $mysqli = $this->connect;
-
       $mysqli->query(
           $this->vquery
       );
@@ -136,8 +135,6 @@ class VSQL extends \DB {
           $nv = '';
         } else if ( strlen( $qs ) > 0 ){
           $nv = $qs;
-        } else if ( $cache ) {
-          // $nv = ' --test-- ';
         } else {
           $nv = '';
           $ad = "!";
@@ -210,7 +207,10 @@ class VSQL extends \DB {
           break;
       case 'email':
           preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
-          $res = "'".$m[0][0]."'";
+          if (isset($m[0][0])) {
+            $res = "'".$m[0][0]."'";
+          }
+          $res = null;
           break;
       // i = integer
       case 'i':
@@ -221,7 +221,9 @@ class VSQL extends \DB {
           settype($var, 'int');
           $res = $var;
           break;
+
       // parse to positive integer
+      case 'r':
       case '+i':
           if ($var === null){
             $res = null;
@@ -253,10 +255,17 @@ class VSQL extends \DB {
       case 'implode':
       case 'array':
           if (!is_array( $res )) {
+            $res = [];
+          }
+          $res = "'" . implode(',' ,  $res ) . "'";
+          break;
+
+      case 'c':
+          if (!is_array( $res )) {
             $res = null;
             break;
           }
-          $res = "'" . implode(',' ,  $res ) . "'";
+          $res = implode(',' ,  $res );
           break;
 
       // transform the valie to json
