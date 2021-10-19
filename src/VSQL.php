@@ -59,7 +59,7 @@ class VSQL extends \DB {
     // check how the regex match works here
     // https://regex101.com/r/b65mwz/1/
 
-    preg_match_all('~(?:([^\s,=%]*)(:)(\w+)\s*(?(?=\?)\?([^;]*);|([!;]*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}})|(default\s{0,1}:))~',
+    preg_match_all('~(?:([^\s,=%]*)([:])(\w+)[^\S\r\n]*(?(?=\?)\?([^;]*);|([!;]*))|([^\s{\)]*)(;)|(\\\\{0,1}{)|(\\\\{0,1}})|(default\s{0,1}:))~',
                   $str, $m , PREG_OFFSET_CAPTURE );
 
     $ofst = 0; // offset lenght
@@ -275,14 +275,14 @@ class VSQL extends \DB {
 
       // trim the value
       case 't':
-          $res = "'" . trim(strval($res)) . "'";
+          $res = "'" . trim(strval( $res )) . "'";
           break;
 
       case '"': // add for quoted values
-          $res =  '"' . trim(strval($res));
+          $res =  '"' . trim(strval( $res ));
           break;
       case '\'': // add for quoted values
-          $res =  "'" . trim(strval($res));
+          $res =  "'" . trim(strval( $res ));
           break;
 
       // parse the value to string
@@ -344,9 +344,9 @@ class VSQL extends \DB {
       }
 
       $mysqli = $this->connect;
-      $obj = new \stdClass();
+      $obj    = new \stdClass();
+      $count  = 0;
 
-      $count = 0;
       if (mysqli_multi_query( $mysqli, $this->vquery )) {
 
           // to remove for for making csv's
@@ -354,7 +354,7 @@ class VSQL extends \DB {
               //----------------------------------------------------------------
               $fp = fopen('php://output', 'wb');
               do { if( $result = mysqli_store_result($mysqli) ){
-                  while ($proceso = mysqli_fetch_assoc( $result )) {
+                  while( $proceso = mysqli_fetch_assoc( $result ) ){
                     $crow = ( array ) $this->fetch( $result, $proceso );
 
                     if ( $count == 0 ){
@@ -399,7 +399,7 @@ class VSQL extends \DB {
           };
 
       } else {
-          $this->error("Fail on query get :" . mysqli_error($mysqli));
+        $this->error("Fail on query get :" . mysqli_error($mysqli));
       }
 
       return $obj;
