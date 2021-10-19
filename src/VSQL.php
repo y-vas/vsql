@@ -205,16 +205,20 @@ class VSQL extends \DB {
           settype($var, 'string');
           $res = empty($var) ? "'1970-01-01'": "'{$var}'";
           break;
+
       case 'email':
           preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
-          if (isset($m[0][0])) {
+
+          if (isset( $m[0][0] )) {
             $res = "'".$m[0][0]."'";
           }
+
           $res = null;
           break;
+
       // i = integer
       case 'i':
-          if ($var === null){
+          if ( $var === null ){
             $res = null;
             break;
           }
