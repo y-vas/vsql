@@ -204,25 +204,38 @@ class VSQL extends \DB {
       case 'd':
           settype($var, 'string');
           $res = empty($var) ? "'1970-01-01'": "'{$var}'";
+          if (!(\DateTime::createFromFormat('Y-m-d', $var) !== false)) {
+              $res = null;
+          }
+          break;
+
+      case 'dt':
+          settype($var, 'string');
+          $res = empty($var) ? "'1970-01-01 00:00:00'": "'{$var}'";
+          if (!(\DateTime::createFromFormat('Y-m-d H:i:s', $var) !== false)) {
+              $res = null;
+          }
           break;
 
       case 'email':
-          preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
-          if (isset( $m[0][0] )) {
-            $res = "'".$m[0][0]."'";
+          if (!filter_var($res, FILTER_VALIDATE_EMAIL)) {
+            $res = null;
+          } else {
+            $res = "'".$res."'";
           }
 
-          $res = null;
           break;
 
       // i = integer
       case 'i':
-          if ( $var === null ){
+          if ($var === null){
             $res = null;
-            break;
+          } elseif (!is_numeric($var)) {
+            $res = null;
+          }else{
+            settype($var, 'int');
+            $res = $var;
           }
-          settype($var, 'int');
-          $res = $var;
           break;
 
       // parse to positive integer
@@ -230,30 +243,37 @@ class VSQL extends \DB {
       case '+i':
           if ($var === null){
             $res = null;
-            break;
+          } elseif (!is_numeric($var)) {
+            $res = null;
+          }else{
+            settype($var, 'int');
+            $res = abs($var);
           }
-          settype($var, 'int');
-          $res = abs($var);
           break;
 
       // parse to float
       case 'f':
           if ($var === null){
             $res = null;
-            break;
+          } elseif (!is_numeric($var)) {
+            $res = null;
+          }else{
+            settype($var, 'float');
+            $res = $var;
           }
-          settype($var, 'float');
-          $res = $var;
+
           break;
 
       // parse to positive float
       case '+f':
           if ($var === null){
             $res = null;
-            break;
+          } elseif (!is_numeric($var)) {
+            $res = null;
+          }else{
+            settype($var, 'float');
+            $res = abs($var);
           }
-          settype($var, 'float');
-          $res = abs($var);
           break;
 
       // implode the array
