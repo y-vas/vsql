@@ -208,7 +208,6 @@ class VSQL extends \DB {
 
       case 'email':
           preg_match_all('/(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)/', $var , $m );
-
           if (isset( $m[0][0] )) {
             $res = "'".$m[0][0]."'";
           }
@@ -236,6 +235,7 @@ class VSQL extends \DB {
           settype($var, 'int');
           $res = abs($var);
           break;
+
       // parse to float
       case 'f':
           if ($var === null){
@@ -245,6 +245,7 @@ class VSQL extends \DB {
           settype($var, 'float');
           $res = $var;
           break;
+
       // parse to positive float
       case '+f':
           if ($var === null){
