@@ -316,7 +316,12 @@ class VSQL extends \DB {
           $res = (strlen($v) > 0) ? "'". $v . "'": null;
           break;
 
-      case 'safejson':
+      case 'q':
+          $v = strval($res);
+          $res = (strlen($v) > 0) ? '"'. $v . '"': null;
+          break;
+
+      case 'raw':
           json_decode( $var );
           $res = (json_last_error() == JSON_ERROR_NONE) ? "'". $var."'" : '{}';
           break;
