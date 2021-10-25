@@ -326,6 +326,10 @@ class VSQL extends \DB {
           $res = (json_last_error() == JSON_ERROR_NONE) ? "'". $var."'" : '{}';
           break;
 
+      case 'checkbox':
+          $res = ($var == 'on') ? 1 : 0;
+          break;
+
       case 'rstr':
           $res = substr(md5(mt_rand()),0,7);
           break;
