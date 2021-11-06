@@ -152,20 +152,24 @@ class VSQL extends \DB {
         $co .= $f;
         $cp = strrpos( $co, '{' );
         $pr = substr(  $co, $cp, strlen( $co ) );
+
         $pb = $m[ 0 ][ intval( $cp ) ][ 2 ];
+        // echo $pr;
+        // echo '<hr>';
 
         $e = $p + $ofst - $pb + 1;
+
         if ( strpos( $pr,'~') !== false && strpos($pr, ':') !== false) {
 
-          // dd( $grp );
           $grp = substr(  $str , $pb + 1 , $e - 2 );
           $exp = explode('default:', $grp );
-          $nst = str_repeat(' ',
-              strlen(
-                $exp[1]
-                ) + 10) . $exp[0];
-          $str = substr_replace(  $str, $nst, $pb , $e );
 
+          // dd( $grp );
+
+          $nst = str_repeat(' ', strlen( $exp[1] ) + 10) . $exp[0];
+
+
+          $str = substr_replace(  $str, $nst, $pb , $e );
         } else if (strpos($pr, '~') !== false && strpos($pr, ':') === false) {
 
           $grp = substr(  $str , $pb + 1 , $e - 2 );
@@ -175,11 +179,30 @@ class VSQL extends \DB {
           $nst = str_repeat(' ',strlen($exp[0]) + 10) . $exp[1];
           $str = substr_replace(  $str, $nst, $pb , $e );
 
+        } else if ( strpos( $pr,'!') !== false && strpos($pr, ':') !== false) {
+          // has negatives and positives trader_cdl3inside
+          // clear it
+          $str = substr_replace(  $str, str_repeat(' ', $e ), $pb , $e );
         } else if (strpos($pr, ':') === false) {
+          // negative
           $str = substr_replace(  $str, str_repeat(' ', $e ), $pb , $e );
         } else {
+          // positive
           $str = substr_replace(  $str, ' ' , $pb ,        1 );
           $str = substr_replace(  $str, ' ' , $p + $ofst , 1 );
+        }
+
+        // echo "<hr>";
+        // echo "<hr>";
+        // echo "<hr>";
+        // echo "<hr>";
+        // echo $co;
+        // echo "<hr>";
+        // echo $co;
+        // die;
+
+        if ($pr == '!') {
+          $co = substr_replace($co, 'i' , $cp+1 , 1 );
         }
 
         $co = substr_replace($co, '(' , $cp , 1 );
@@ -188,6 +211,9 @@ class VSQL extends \DB {
     }
 
     // echo $co;
+    // echo "<hr>";
+    // echo "end";
+    // echo "<hr>";
     return $str;
   }
 
