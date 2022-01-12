@@ -1,7 +1,5 @@
 <?php
 
-define( 'VSQL_NULL_FIELD' , 1 );
-
 class DB {
     public $inspect;   // shows if you are in inspect mode
     public $vquery=''; // given query
@@ -92,14 +90,6 @@ class DB {
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
       if ( $debug ) { $_ENV['APP_DEBUG'] = true; }
-
-      if ( $_ENV['APP_DEBUG'] == 'API' ) {
-        die(json_encode([
-          "status" => $msg,
-          "vquery" => preg_replace("/\s+/", " ", $this->query),
-          "query"  => preg_replace("/\s+/", " ", $this->vquery),
-        ]));
-      }
 
       if ($_ENV['APP_DEBUG']){
         // get the info wrapper for error

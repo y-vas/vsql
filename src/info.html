@@ -31,51 +31,6 @@
   <div class="col-sm-12">
     <div>&nbsp;</div>
     <div class="container-fluid board debug">
-      <div class="col-lg-12 hover-me">
-
-
-
-        <span class="text-danger" >
-          As of version <b>4.9.23</b> the <i>query</i> function has been modified!
-        </span>
-
-        HOVER HERE TO SEE THE CHANGE!
-
-
-        <div class="row show-me" >
-          <div class="col-sm-6">
-            <pre>
-            <code class="php">
-              // old use of query function
-$v = new VSQL();
-$v->query(
-  string $query = '',
-  string $variables = '',
-  null $cache = null , // DEPRECATED
-  bool $debug = false
-): string
-            </code>
-            </pre>
-          </div>
-          <div class="col-sm-6">
-            <pre>
-              <code class="php">
-                // new use of query function
-$v = new VSQL();
-$v->query(
-  string $query = '',
-  string $variables = '',
-  bool $debug = false,
-  null $cache = null // DEPRECATED
-): string
-              </code>
-            </pre>
-          </div>
-        </div>
-        <!-- to: -->
-
-      </div>
-
       <div class="col-lg-12">
         <h5 class="text-info"> ERROR MESSAGE: </h5>
         <pre style="height:200;"> <ERROR_MESAGES> </pre>

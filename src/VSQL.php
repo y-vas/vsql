@@ -126,10 +126,6 @@ class VSQL extends \DB {
             if (strlen( $qs ) > 0){ $nv = $qs; }
           }
 
-          if ( empty( $nv ) && ($a == '!') ) {
-            $this->error( $var , VSQL_NULL_FIELD );
-          }
-
           /* ---------------------------------------------------------------- */
         } else if ($exist && $r == ';' ){
           $nv = '';
