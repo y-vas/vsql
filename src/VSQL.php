@@ -17,7 +17,7 @@ class VSQL extends \DB {
   }
 
 //------------------------------------------------ <  query > ----------------------------------------------------------
-  public function query($str , $vrs , $debug = false , $old = null ) {
+  public function query($str , $vrs , $debug = false ) {
     $this->query  = $str;
     $this->vquery = ''; // init again
     $this->vars   = $vrs;
@@ -28,19 +28,13 @@ class VSQL extends \DB {
     $this->vquery = $str;
 
     if ( $debug ){
-        $this->error( 'Inspect' , 0 , true );
+      $this->error( 'Inspect' , 0 , true );
     }
 
     return $this->vquery;
   }
 
-  public function run( $list = false ){
-      // if the first word is 'select' then we fetch the values
-      $qtipe = strtolower(explode(' ', trim( $this->vquery ))[ 0 ]);
-
-      if ($qtipe == 'select') {
-        return $this->get( $list );
-      }
+  public function run(){
 
       $mysqli = $this->connect;
       $mysqli->query(
@@ -55,7 +49,7 @@ class VSQL extends \DB {
 // vrs = values to use
 // cache = deprecated
 // tring to make this with c++ to make the interpreter faster
-  protected function interpreter( $str, $vrs, $cache = false ) {
+  protected function interpreter( $str, $vrs ) {
     // check how the regex match works here
     // https://regex101.com/r/b65mwz/1/
 
@@ -74,7 +68,7 @@ class VSQL extends \DB {
       $full = $full[ 0 ];
 
       // position
-      $p = isset($m[ 0 ][$k][1]) ? $m[ 0 ][$k][1] : null;
+      $p = $m[ 0 ][$k][1] ?? null;
 
       // the key to replace
       $n1 = isset($m[ 3 ][$k][0]) ? trim($m[ 3 ][$k][0]) : null;
@@ -82,33 +76,33 @@ class VSQL extends \DB {
       $var= strlen( $n1 ) == 0 ? $n2 : $n1;
 
       // checks for '{' // s = start of block
-      $s = isset($m[ 8 ][$k][0]) ? $m[ 8 ][$k][0] : null;
+      $s = $m[ 8 ][$k][0] ?? null;
       // checks for '}' f = final of block
-      $f = isset($m[ 9 ][$k][0]) ? $m[ 9 ][$k][0] : null;
+      $f = $m[ 9 ][$k][0] ?? null;
 
       // checks if field is requiered
-      $a = isset($m[ 5 ][$k][0]) ? $m[ 5 ][$k][0] : null;
+      $a = $m[ 5 ][$k][0] ?? null;
 
       $r  = isset($m[ 7 ][$k][0]) ? trim($m[ 7 ][$k][0]) : null;
       $qs = isset($m[ 4 ][$k][0]) ? trim($m[ 4 ][$k][0]) : null;
 
       // parser
-      $parser = isset($m[ 1 ][$k][0]) ? $m[ 1 ][$k][0] : null;
+      $parser = $m[ 1 ][$k][0] ?? null;
 
       // defaault value if is set
-      $default = isset($m[ 10][$k][0]) ? $m[ 10][$k][0] : null;
+      $default = $m[ 10][$k][0] ?? null;
 
       if($s == '{' ){
         $co .= $s;
         $m[0][$k][2] = $p + $ofst;
       }
 
-      if(!empty($default)){
+      if(!empty( $default )){
         $co .= '~';
       }
 
       if($s == '\{' || $f == '\}'){
-        $str = substr_replace(  $str, ' ' , $p + $ofst , 1 );
+        $str = substr_replace( $str , ' ' , $p + $ofst , 1 );
         $co .= '_';
       }
 
@@ -116,19 +110,20 @@ class VSQL extends \DB {
         $ad = ':';
         $exist = array_key_exists( $var , $vrs );
 
-        if ($exist && $r != ';') {
-
+        if ( $exist && $r != ';' ){
           // here we make the substitution
+
           $nv = $this->parser( $parser , $vrs[ $var ] );
 
-          if ($nv === null){
+          if ( $nv === null ){
             $ad = "!";
-            if (strlen( $qs ) > 0){ $nv = $qs; }
+            if ( strlen( $qs ) > 0 ){ $nv = $qs; }
           }
 
           /* ---------------------------------------------------------------- */
-        } else if ($exist && $r == ';' ){
-          $nv = '';
+        } elseif( $exist && $r == ';' ){
+          $ad = '*';
+          $nv = '/**/';
         } else if ( strlen( $qs ) > 0 ){
           $nv = $qs;
         } else {
@@ -155,27 +150,35 @@ class VSQL extends \DB {
 
         $e = $p + $ofst - $pb + 1;
 
-        if ( strpos( $pr,'~') !== false && strpos($pr, ':') !== false) {
 
+        // if { default: } is set
+        if (strpos( $pr,'~') !== false) {
           $grp = substr(  $str , $pb + 1 , $e - 2 );
           $exp = explode('default:', $grp );
 
-          // dd( $grp );
+          // if (($vrs['find'] ?? null) != null) {
+          //   dd(  $pr );
+          // }
 
-          $nst = str_repeat(' ', strlen( $exp[1] ) + 10) . $exp[0];
+          if (strpos($pr, ':') !== false ||
+              strpos($pr, '*') !== false
+            ) {
+            $nst = str_repeat(' ', strlen( $exp[1] ) + 10) . $exp[0];
+            $str = substr_replace(  $str, $nst, $pb , $e );
+          } else if (strpos($pr, ':') === false) {
+            // we add 10 ' ' because the lenght of $exp
+            $nst = str_repeat(' ',strlen($exp[0]) + 10) . $exp[1];
+            $str = substr_replace(  $str, $nst, $pb , $e );
+          }
 
 
-          $str = substr_replace(  $str, $nst, $pb , $e );
-        } else if (strpos($pr, '~') !== false && strpos($pr, ':') === false) {
+        }else if ( strpos( $pr,'*') ) {
 
-          $grp = substr(  $str , $pb + 1 , $e - 2 );
-          $exp = explode('default:', $grp );
+          // if has a key;
+          $str = substr_replace(  $str, ' ' , $pb ,        1 );
+          $str = substr_replace(  $str, ' ' , $p + $ofst , 1 );
 
-          // we add 10 ' ' because the lenght of $exp
-          $nst = str_repeat(' ',strlen($exp[0]) + 10) . $exp[1];
-          $str = substr_replace(  $str, $nst, $pb , $e );
-
-        } else if ( strpos( $pr,'!') !== false && strpos($pr, ':') !== false) {
+        }else if ( strpos( $pr,'!') !== false && strpos($pr, ':') !== false) {
           // has negatives and positives trader_cdl3inside
           // clear it
           $str = substr_replace(  $str, str_repeat(' ', $e ), $pb , $e );
@@ -188,9 +191,6 @@ class VSQL extends \DB {
           $str = substr_replace(  $str, ' ' , $p + $ofst , 1 );
         }
 
-        // echo "<hr>";
-        // echo "<hr>";
-        // echo "<hr>";
         // echo "<hr>";
         // echo $co;
         // echo "<hr>";
@@ -355,19 +355,6 @@ class VSQL extends \DB {
       case 'rstr':
           $res = substr(md5(mt_rand()),0,7);
           break;
-
-      // deprecated
-      // case 'image':
-      //     if (is_array($res)){
-      //       self::upload(
-      //         $res[0],
-      //         $res[3] ?? ['jpg','png','jpeg']
-      //       );
-      //     } else {
-      //       self::upload($res);
-      //     }
-      //     break;
-      // return as it is
 
       default:
           $v = strval($res);
