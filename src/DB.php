@@ -1,5 +1,7 @@
 <?php
 
+define( 'VSQL_NULL_FIELD' , 1 );
+
 class DB {
     public $inspect;   // shows if you are in inspect mode
     public $vquery=''; // given query
@@ -89,9 +91,7 @@ class DB {
 
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
-      if ( $debug ) { $_ENV['APP_DEBUG'] = true; }
-
-      if ($_ENV['APP_DEBUG']){
+      if ( $_ENV['APP_DEBUG'] == true || $debug ){
         // get the info wrapper for error
         $content = file_get_contents(dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'info.html');
 
