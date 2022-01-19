@@ -1,7 +1,5 @@
 <?php
 
-define( 'VSQL_NULL_FIELD' , 1 );
-
 class DB {
     public $inspect;   // shows if you are in inspect mode
     public $vquery=''; // given query
@@ -74,9 +72,11 @@ class DB {
 
     public function secure( $var ) {
         if (is_array( $var )) {
+            $_newvar = [];
             foreach ( $var as $k => $e ) {
               $_newvar[$k] = $this->secure( $e );
             }
+
             return $_newvar;
         }
 
@@ -91,7 +91,7 @@ class DB {
 
 //------------------------------------------------ <  error > ------------------------------------------------------------
     protected function error( $msg , $code = 0 , $debug = false ) {
-      if ( $_ENV['APP_DEBUG'] == true || $debug ){
+      if ( $_ENV['APP_DEBUG'] || $debug ) {
         // get the info wrapper for error
         $content = file_get_contents(dirname( __FILE__ ) . DIRECTORY_SEPARATOR . 'info.html');
 
@@ -108,7 +108,7 @@ class DB {
         die( $content );
       }
 
-      throw new \Exception("Error : " . $msg, $code );
+      throw new \Exception("Error : " . $msg );
     }
 
 }
